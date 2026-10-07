@@ -1,0 +1,210 @@
+% three-column role page: #1 colour, #2 "Bạn thấy", #3 "Việc của bạn bây giờ", #4 "Sắp có"
+\newcommand\rolecols[4]{%
+\begin{tikzpicture}[x=1mm,y=1mm]
+\draw[#1,line width=0.8pt,fill=#1!6,rounded corners=3pt] (0,0) rectangle (42,-62);
+\node[anchor=north west,font=\scriptsize\bfseries,text=#1!85!black] at (2,-2) {Bạn thấy};
+\node[anchor=north west,font=\fsz{6.2}{7.8},text width=38mm] at (2,-8) {#2};
+\draw[ink!30,line width=0.8pt,fill=white,rounded corners=3pt] (45,0) rectangle (105,-62);
+\node[anchor=north west,font=\scriptsize\bfseries] at (47,-2) {Việc của bạn bây giờ};
+\node[anchor=north west,font=\fsz{6.2}{7.8},text width=56mm] at (47,-8) {#3};
+\draw[warn!60,line width=0.8pt,dashed,fill=soft,rounded corners=3pt] (108,0) rectangle (144,-62);
+\node[anchor=north west,font=\scriptsize\bfseries,text=warn!80!black] at (110,-2) {Sắp có trên trang web};
+\node[anchor=north west,font=\fsz{6}{7.6},text width=32mm,text=ink!85] at (110,-8) {#4};
+\end{tikzpicture}}
+
+%======================================================== PB
+\begin{frame}[label=pb]{\rtag{PB}\ Phản biện}
+\rolecols{PB}{%
+• Chỉ \textbf{bài được giao cho bạn} trong kỳ đang mở.\\[1mm]
+• Đề bài và lời giải đã biên tập.\\[1mm]
+• Thảo luận của bài đó (cả của phản biện khác cùng được giao).\\[3mm]
+\textbf{Không thấy}: tên tác giả, tên tệp, nguồn, các bài khác — để chấm \textbf{ẩn danh}.\\[3mm]
+Hết kỳ, bài rời khỏi danh sách của bạn.}{%
+\textbf{1.}\ Nhận email mời, mở \textbf{đường dẫn đăng nhập}.\\[1mm]
+\textbf{2.}\ Mở từng bài: tự giải, rồi đọc lời giải đi kèm.\\[1mm]
+\textbf{3.}\ Viết nhận xét ngay dưới bài (mục \emph{Thảo luận}). Nên trả lời:\\[0.5mm]
+\hspace*{3mm}• Đề có rõ, đủ điều kiện không?\\
+\hspace*{3mm}• Lời giải đúng và đủ chưa? Chỗ nào cần sửa?\\
+\hspace*{3mm}• Mức đề nghị: \textbf{A} hay \textbf{B}?\\
+\hspace*{3mm}• Có giống bài đã biết không?\\
+\hspace*{3mm}• Đề nghị: \textbf{chọn} / \textbf{sửa rồi chọn} / \textbf{không chọn}.\\[1mm]
+\textbf{4.}\ Đọc và trả lời nhận xét của người khác trên cùng bài.\\[2mm]
+\textcolor{ink!65}{Công thức viết như \LaTeX: \texttt{\$a\textbackslash ge b\$} (mục 7). Nhận xét chưa sửa được sau khi gửi.}}{%
+• Ô chấm riêng: mức đề nghị, đề nghị chọn / không.\\[1mm]
+• Hạn phản biện hiện trên trang.\\[1mm]
+• Email nhắc trước hạn.\\[1mm]
+• Đánh dấu \emph{đã xong} từng bài.}
+\end{frame}
+
+%======================================================== NCB
+\begin{frame}[label=ncb]{\rtag{NCB}\ Người chuẩn bị bài}
+\rolecols{NCB}{%
+• \textbf{Mọi bài}, tên tác giả (không có liên hệ).\\[1mm]
+• \textbf{Nguồn \& chỉnh sửa} của từng bài (trang sau).\\[1mm]
+• Chấm \textbf{cần kiểm tra n}, \textbf{xung đột mở n} trên danh sách.\\[1mm]
+• Thảo luận của mọi bài.}{%
+\textbf{Nguyên tắc}\\[0.5mm]
+• \textbf{Không sửa lén}: mỗi sửa đổi là một dòng ghi — vị trí, trước, sau, lý do, trạng thái. Văn bản đề, lời giải không chứa ghi chú.\\
+• \textbf{Bản gốc của tác giả giữ nguyên}; chỉ sửa bản biên tập.\\
+• \textbf{Nghi ngờ thì ghi, không tự sửa}: thành mục \emph{cần kiểm tra}; khi cần, hỏi tác giả qua Văn phòng / PT.\\
+• Xung đột ghi theo loại, mỗi cái một dòng.\\[2mm]
+\textbf{Bây giờ}\\[0.5mm]
+• Lọc danh sách, xử lý các bài có \emph{cần kiểm tra}.\\
+• Đối chiếu bản gốc khi mục \emph{Đối chiếu nguyên bản} còn „chưa".\\
+• Trả lời thảo luận; báo dòng \emph{Cảnh báo hiển thị}.\\
+• Cần sửa văn bản: ghi vào Thảo luận của bài — Quản trị cập nhật (cho tới khi có ô sửa).}{%
+• \textbf{Sửa đề, lời giải ngay trên trang}, xem trước công thức. Nếu người khác vừa sửa, hệ thống báo — không ghi đè.\\[1mm]
+• Thêm / đóng mục cần kiểm tra, xung đột.\\[1mm]
+• Biểu mẫu \textbf{Nhập bài}: tải hồ sơ, hệ thống tạo mã bài.\\[1mm]
+• Xem lịch sử sửa của từng bài.}
+\end{frame}
+
+%======================================================== NGUỒN & CHỈNH SỬA
+\begin{frame}[label=nguon]{\rtag{NCB}\ \rtag{PT}\ \rtag{TBT}\ Đọc mục „Nguồn \& chỉnh sửa"}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\draw[win] (0,0) rectangle (70,-63);
+\node[anchor=west,font=\fsz{5.4}{6.4}\bfseries] at (2,-3.5) {{\symf ▾} Nguồn \& chỉnh sửa};
+\begin{scope}[every node/.style={anchor=north west,font=\fsz{4.8}{5.8},text width=65mm}]
+\node at (2,-7) {\textbf{Nguồn}\\ 2026-09 · Thư mục hồ sơ 11 · bai-de-xuat.pdf · 2026-09-14 · email};
+\node at (2,-15) {\textbf{Đối chiếu nguyên bản}\\ chưa — chép từ ảnh/PDF};
+\node at (2,-23) {\textbf{Sửa đổi}\\ \textbf{lời giải, kết luận}: $x=\frac{4}{3}\to x=\frac{2}{3}$ (bước trước tính ra $\frac{2}{3}$, kết luận chép nhầm; đã sửa ở bản biên tập — chờ tác giả xác nhận)};
+\node at (2,-35) {\textbf{Cần kiểm tra}\\ • Công thức chép từ ảnh, cần đối chiếu [mở]\\ • Cần lập luận vì sao mẫu số khác $0$ [mở]};
+\node at (2,-47) {\textbf{Xung đột}\\ \textbf{mức} — tác giả đề xuất B, phản biện đề nghị A $\Rightarrow$ (chưa) [mở]};
+\node at (2,-56) {\textbf{Nhật ký chuyển đổi}\\ đổi \textbackslash over thành \textbackslash frac (chỉ cách gõ)};
+\end{scope}
+\begin{scope}[every node/.style={anchor=north west,font=\fsz{5.8}{7.2},text width=68mm}]
+\node at (76,-1) {\textbf{Nguồn} — hồ sơ gốc ở đâu, nhận ngày nào, qua kênh nào, các bản trung gian, bài đã qua những vòng nào.};
+\node at (76,-10) {\textbf{Đối chiếu nguyên bản} — văn bản trong hệ thống đã được so với tệp gốc của tác giả chưa, ai so, kết quả.};
+\node at (76,-19) {\textbf{Sửa đổi} — mọi chỗ bản biên tập khác bản gốc: \emph{vị trí: trước → sau (lý do; trạng thái)}. Trạng thái cho biết tác giả đã đồng ý chưa.};
+\node at (76,-31) {\textbf{Cần kiểm tra} — câu hỏi còn mở: nghi lỗi, thiếu hình, chép từ ảnh… [mở] / [xong].};
+\node at (76,-40) {\textbf{Xung đột} — mỗi loại một dòng, kèm cách giải quyết:};
+\end{scope}
+\foreach \t/\d [count=\i] in {số hiệu/{cùng bài, số khác nhau ở các danh sách},mức/{A hay B},bản chép khác nhau/{các bản sao không khớp},trùng bài/{giống bài khác / bài đã biết},đề và lời giải không khớp/{},tác giả/{sáng tác hay sưu tầm, tên in},trạng thái/{danh sách ghi „chính thức" nhưng chưa in}}{
+  \node[anchor=west,font=\fsz{5.4}{6.4}] at (79,{-45.5-(\i-1)*2.9}) {• \textbf{\t}\ \textcolor{ink!60}{\d}};}
+\end{tikzpicture}
+\end{frame}
+
+%======================================================== PT
+\begin{frame}[label=pt]{\rtag{PT}\ Phụ trách chuyên mục}
+\rolecols{PT}{%
+• \textbf{Mọi bài}, tên và \textbf{liên hệ} tác giả.\\[1mm]
+• Nguồn \& chỉnh sửa, xung đột, mục cần kiểm tra.\\[1mm]
+• Thảo luận của mọi bài.}{%
+• Theo dõi \textbf{việc còn mở}: lọc theo trạng thái, xem các chấm \emph{cần kiểm tra}, \emph{xung đột mở}.\\[1mm]
+• Giải quyết xung đột trong phạm vi PT (số hiệu, bản chép khác nhau, trùng bài…); xung đột \emph{mức}, \emph{tác giả} chuyển TBT quyết định.\\[1mm]
+• Liên hệ tác giả khi NCB cần hỏi (thông tin liên hệ chỉ dùng trong hệ thống, không chép ra đề, lời giải).\\[1mm]
+• Nhận người mới: báo Quản trị email và vai trò của họ.\\[1mm]
+• Đổi trạng thái bài (Mới → SL → SL-OK / SL-Fail → PL): hiện báo Quản trị, cho tới khi có nút.}{%
+• Nút \textbf{đổi trạng thái}, thêm xung đột.\\[1mm]
+• \textbf{Mở kỳ phản biện}: chọn bài, giao cho phản biện, đặt hạn; email mời tự gửi.\\[1mm]
+• \textbf{Bảng chọn bài}: xếp bài theo mức, vị trí; TBT duyệt.\\[1mm]
+• \textbf{Khoá kỳ}: đánh số in, xuất \LaTeX\ cho BTK.}
+\end{frame}
+
+%======================================================== TBT
+\begin{frame}[label=tbt]{\rtag{TBT}\ Tổng biên tập}
+\rolecols{TBT}{%
+• \textbf{Mọi bài}, tên và \textbf{liên hệ} tác giả.\\[1mm]
+• Nguồn \& chỉnh sửa, xung đột, mục cần kiểm tra.\\[1mm]
+• Thảo luận của mọi bài, gồm nhận xét của phản biện.}{%
+\textbf{Quyết định thuộc TBT}\\[0.5mm]
+• \textbf{Mức} A / B khi tác giả, NCB và phản biện khác nhau.\\
+• \textbf{Tác giả}: sáng tác hay sưu tầm, cách ghi tên khi đăng.\\
+• Bài nghi \textbf{trùng} bài đã biết: giữ, sửa hay bỏ.\\
+• \textbf{Duyệt cuối} danh sách đăng.\\[2mm]
+\textbf{Bây giờ}\\[0.5mm]
+• Lọc danh sách; mở bài có \emph{xung đột mở} để xem loại xung đột.\\
+• Ghi quyết định vào Thảo luận của bài — mọi người cùng thấy, không cần email.\\
+• Muốn xem hệ thống như phản biện thấy: nhờ Quản trị dùng \emph{xem như vai trò}.}{%
+• Nút ghi quyết định cho xung đột, đổi trạng thái.\\[1mm]
+• \textbf{Bảng chọn bài}: xem đề xuất của PT, duyệt.\\[1mm]
+• Thông báo email gọn: bài nào chờ TBT quyết định.}
+\end{frame}
+
+%======================================================== VP
+\begin{frame}[label=vp]{\rtag{VP}\ Văn phòng}
+\rolecols{VP}{%
+• \textbf{Mọi bài}, tên và \textbf{liên hệ} tác giả.\\[1mm]
+• Nguồn của từng bài: thư mục hồ sơ, tệp gốc, ngày nhận, kênh.}{%
+• Nhận hồ sơ như hiện nay (email, Drive), mỗi hồ sơ một thư mục.\\[1mm]
+• Báo NCB khi có hồ sơ mới; NCB đưa vào hệ thống.\\[1mm]
+• Tác giả hỏi về bài: tìm theo mã bài trong danh sách, xem trạng thái.\\[2mm]
+\textbf{Thông tin cá nhân}\\[0.5mm]
+• Điện thoại, email, địa chỉ của tác giả chỉ nằm trong mục liên hệ (chỉ VP, PT, TBT, Quản trị xem), \textbf{không} chép vào đề, lời giải, nhận xét.\\
+• Thông tin của học sinh dưới 18 tuổi: ghi tối thiểu.}{%
+• Biểu mẫu \textbf{Nhập bài}: điền tên, đơn vị, liên hệ; tải tệp; hệ thống tạo mã bài và báo NCB.\\[1mm]
+• Thư báo nhận bài cho tác giả (tuỳ chọn).}
+\end{frame}
+
+%======================================================== BTK
+\begin{frame}[label=btk]{\rtag{BTK}\ BTK — chế bản}
+\rolecols{BTK}{%
+• \textbf{Mọi bài} (đọc).\\[1mm]
+• Nguồn \& chỉnh sửa (để biết bài nào còn chờ tác giả xác nhận).}{%
+• Xem trước các bài trạng thái \textbf{SL-OK} (chờ đăng): lọc \emph{Mọi trạng thái} → SL-OK.\\[1mm]
+• Góp ý về chế bản (hình, công thức dài, cách ngắt dòng) trong Thảo luận của bài.\\[1mm]
+• Báo NCB nếu công thức trên trang hiện khác bản in mong muốn.}{%
+• \textbf{Khoá kỳ}: nhận một tệp \LaTeX\ theo mẫu Pi — đề, lời giải, hình TikZ, số in đã đánh.\\[1mm]
+• Bản PDF xem thử của cả chuyên mục.}
+\end{frame}
+
+%======================================================== QT
+\begin{frame}[label=qt]{\rtag{QT}\ Quản trị}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\node[anchor=north west,font=\scriptsize\bfseries] at (0,0) {Thêm người dùng — Sheet „Pi ĐRKN — dữ liệu", tab \texttt{Users}};
+\draw[ink!30,fill=white] (0,-5) rectangle (96,-23);
+\fill[soft] (0,-5) rectangle (96,-9);
+\foreach \x/\h in {0/email,34/ten,52/vai\_tro,74/hoat\_dong,86/ghi\_chu}{\node[anchor=west,font=\fsz{5.4}{6.4}\bfseries\ttfamily] at (\x+1,-7) {\h};}
+\foreach \y/\a/\b/\c/\d in {-11/ten.nguoi@example.com/Họ Tên/PB/TRUE,-15/nguoi.khac@example.com/Họ Tên/{NCB, PT}/TRUE,-19/da.nghi@example.com/Họ Tên/PB/\textcolor{warn}{FALSE}}{
+  \node[anchor=west,font=\fsz{5.4}{6.4}\ttfamily] at (1,\y) {\a};\node[anchor=west,font=\fsz{5.4}{6.4}] at (35,\y) {\b};
+  \node[anchor=west,font=\fsz{5.4}{6.4}] at (53,\y) {\c};\node[anchor=west,font=\fsz{5.4}{6.4}\ttfamily] at (75,\y) {\d};}
+\foreach \x in {34,52,74,86}{\draw[ink!20] (\x,-5) -- (\x,-23);}
+\node[anchor=north west,font=\fsz{6}{7.6},text width=96mm] at (0,-26) {%
+• \textbf{Một người một dòng.} Nhiều vai trò cách nhau dấu phẩy: \texttt{NCB, PT}. Vai trò hợp lệ: TBT, PT, NCB, PB, VP, BTK, Quản trị.\\
+• \textbf{Tạm ngưng}: đổi \texttt{hoat\_dong} thành FALSE — có hiệu lực ngay, kể cả khi người đó đang mở trang. Không cần xoá dòng.\\
+• Sau khi thêm: gửi cho người đó \textbf{đường dẫn đăng nhập} (không gửi địa chỉ trang hệ thống).\\
+• Phân công phản biện hiện ghi ở tab \texttt{Assignments} (kỳ, mã bài, email) và kỳ đang mở ở tab \texttt{Rounds} — cho tới khi có trang phân công.\\
+• \textbf{Không sửa tay} các tab khác (Problems, Corrections…): sửa qua hệ thống để có lịch sử.};
+\draw[QT,line width=0.8pt,fill=QT!5,rounded corners=3pt] (102,0) rectangle (144,-62);
+\node[anchor=north west,font=\scriptsize\bfseries,text=QT] at (104,-2) {Xem như vai trò};
+\node[anchor=north west,font=\fsz{6}{7.6},text width=38mm] at (104,-8) {Ô \emph{Vai trò thật} ở đầu danh sách → chọn \emph{Xem như PB} (hay vai trò khác) để thấy đúng những gì vai trò đó thấy. Chọn lại \emph{Vai trò thật} để trở về. Chỉ đổi cách xem, không đổi quyền thật.};
+\node[anchor=north west,font=\scriptsize\bfseries,text=QT] at (104,-34) {Việc kỹ thuật};
+\node[anchor=north west,font=\fsz{6}{7.6},text width=38mm] at (104,-40) {Nhập hàng loạt, bản vá dữ liệu, kiểm thử, bài luyện tập: chạy trong trình soạn thảo Apps Script bằng tài khoản chủ — xem tài liệu kỹ thuật (\texttt{docs/}). Tài khoản chủ bật \textbf{xác minh 2 bước}; không gửi mật khẩu qua email.};
+\end{tikzpicture}
+\end{frame}
+
+%======================================================== SỰ CỐ
+\begin{frame}[label=suco]{Khi gặp sự cố}
+\vskip1mm
+{\fsz{6.2}{7.6}
+\setlength{\tabcolsep}{5pt}\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{}p{50mm}p{42mm}p{47mm}@{}}
+\textbf{Bạn thấy} & \textbf{Vì sao} & \textbf{Làm gì}\\\hline
+„Địa chỉ … chưa có vai trò trong hệ thống" & email chưa được thêm, hoặc đang dùng nhầm tài khoản & xem dòng \emph{Xin chào}; nếu đúng tài khoản, báo PT\\
+„Phiên vào hệ thống đã hết hạn hoặc không hợp lệ" & tải lại trang sau 10 phút, hoặc mở dấu trang cũ & bấm \textbf{Đăng nhập lại}\\
+Dòng đỏ „Phiên làm việc đã hết hạn — hãy vào lại…" & tab đã mở quá 6 giờ & vào lại từ đường dẫn đăng nhập\\
+„Không có quyền xem bài này" & bài không giao cho bạn, hoặc kỳ đã đóng & báo PT nếu bạn cần bài đó\\
+Trang trắng & trình duyệt tải lại khung trang & đóng tab, vào lại từ đường dẫn đăng nhập\\
+Công thức hiện nguyên \texttt{\$…\$}, hoặc dòng \emph{Cảnh báo hiển thị} & lệnh \LaTeX\ hệ thống chưa hiển thị được & ghi vào Thảo luận của bài để NCB xử lý\\
+„Bài vừa được người khác sửa (phiên bản n)" \soon & hai người sửa cùng lúc & mở lại bài, sửa tiếp trên bản mới\\
+Dải xanh „This application was created by a Google Apps Script user" & thông báo chuẩn của Google & bấm \no\ để đóng\\\hline
+\end{tabular}}
+\end{frame}
+
+%======================================================== SẮP CÓ
+\begin{frame}[label=sapco]{Đang làm tiếp — hướng dẫn sẽ được cập nhật}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\foreach \t/\who/\d [count=\i] in {
+  {Sửa đề, lời giải trên trang}/{NCB, PT}/{xem trước công thức; báo khi người khác vừa sửa; giữ lịch sử},
+  {Nút trạng thái, cần kiểm tra, xung đột}/{TBT, PT, NCB}/{ghi quyết định ngay trên trang bài},
+  {Biểu mẫu Nhập bài}/{VP, NCB, PT}/{tải hồ sơ, hệ thống tạo mã bài},
+  {Kỳ phản biện}/{PT, PB}/{giao bài, hạn, ô chấm, email mời và nhắc},
+  {Bảng chọn bài}/{PT, TBT}/{xếp bài theo mức, vị trí; TBT duyệt},
+  {Khoá kỳ}/{PT, BTK}/{đánh số in, xuất \LaTeX\ và hình cho chế bản}}{
+  \node[badge=NCB,minimum size=5.5mm,font=\fsz{7}{8}\bfseries] at (3,{-4-(\i-1)*9.5}) {\i};
+  \node[anchor=west,font=\fsz{7}{8.4}\bfseries] at (8,{-2.6-(\i-1)*9.5}) {\t};
+  \node[anchor=west,font=\fsz{6.2}{7.4},text=ink!70] at (8,{-6-(\i-1)*9.5}) {\d};
+  \node[anchor=west,font=\fsz{6}{7},text=ink!55] at (86,{-4-(\i-1)*9.5}) {cho: \who};}
+\node[anchor=north west,font=\fsz{6.2}{7.6},text=ink!70,text width=140mm] at (0,-58) {Trong kỳ thử 10/2026, phần nào chưa có trên trang web vẫn làm như cũ; mọi góp ý về cách dùng, xin ghi vào Thảo luận của bài luyện tập hoặc báo PT.};
+\end{tikzpicture}
+\end{frame}

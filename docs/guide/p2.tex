@@ -1,0 +1,156 @@
+%======================================================== 6 DANH SÁCH
+\begin{frame}[label=danhsach]{4.\ Danh sách bài và bộ lọc}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\browser{0}{0}{92}{62}
+\node[anchor=west,font=\fsz{7}{8}\bfseries] (h) at (2,-7) {Đề ra kỳ này};
+\node[anchor=west,font=\fsz{4.6}{5.4},text=ink!60] (me) at (2,-10.5) {ban@example.com · NCB};
+\node[sel,anchor=west] (f1) at (27,-10.5) {Mọi chủ đề {\symf ⌄}};
+\node[sel,anchor=west] (f2) at (42,-10.5) {Mọi mức {\symf ⌄}};
+\node[sel,anchor=west] (f3) at (54,-10.5) {Mọi trạng thái {\symf ⌄}};
+\node[sel,anchor=west,draw=QT] (f4) at (72,-10.5) {Vai trò thật {\symf ⌄}};
+\draw[ink!15] (0,-13.5) -- (92,-13.5);
+% card 1
+\draw[ink!20,fill=white,rounded corners=1pt] (6,-16) rectangle (86,-34);
+\node[anchor=west,font=\fsz{5.6}{6.4}\ttfamily\bfseries,text=PB!70!black] (code) at (8,-19.5) {2026-07-06a};
+\node[pchip,anchor=west] (c1) at (26,-19.5) {ĐS};
+\node[pchip,anchor=west] (c2) at (31,-19.5) {Mức B};
+\node[pchip,anchor=west] (c3) at (40,-19.5) {SL-Fail};
+\node[wchip,anchor=west] (c4) at (48,-19.5) {cần kiểm tra 2};
+\node[wchip,anchor=west] (c5) at (61.5,-19.5) {xung đột mở 1};
+\node[anchor=east,font=\fsz{4.8}{5.6}\itshape,text=ink!60] (au) at (84.5,-19.5) {Tác Giả};
+\node[anchor=north west,font=\fsz{5.4}{6.6},text width=74mm] at (8,-22.5) {Cho $a,b,c$ là các số thực dương thoả mãn $a+b+c=3$. Chứng minh rằng \dots};
+\draw[ink!20,fill=white,rounded corners=1pt] (6,-36) rectangle (86,-48);
+\node[anchor=west,font=\fsz{5.6}{6.4}\ttfamily\bfseries,text=PB!70!black] at (8,-39.5) {SL09-1047};
+\node[pchip,anchor=west] at (26,-39.5) {ĐS}; \node[pchip,anchor=west] at (31,-39.5) {Mức B}; \node[pchip,anchor=west] at (40,-39.5) {SL-Fail};
+\fill[ink!15] (8,-43) rectangle (80,-43.8); \fill[ink!15] (8,-45.5) rectangle (60,-46.3);
+\draw[ink!20,fill=white,rounded corners=1pt] (6,-50) rectangle (86,-60);
+\fill[ink!15] (8,-55) rectangle (80,-55.8);
+% callouts
+\begin{scope}[every node/.style={callout=ink,anchor=west,text width=44mm}]
+\node (k1) at (99,-4) {\textbf{Email · vai trò} của bạn. Quản trị có thêm ô \emph{Vai trò thật} để xem như vai trò khác.};
+\node (k2) at (99,-14) {\textbf{Bộ lọc}: chủ đề (ĐS, SH, HH, TH), mức (A, B), trạng thái. Kết hợp được, ví dụ HH + A + SL-OK.};
+\node (k3) at (99,-25.5) {\textbf{Mã bài} — bấm vào để mở trang bài.};
+\node (k4) at (99,-34) {\textbf{Thuộc tính}: chủ đề · mức · trạng thái (mục 5).};
+\node[callout=warn] (k5) at (99,-43.5) {\textbf{Việc còn mở}: số mục cần kiểm tra, số xung đột chưa giải quyết. Không hiện với phản biện.};
+\node (k6) at (99,-54) {\textbf{Tác giả}: ẩn với phản biện (chấm ẩn danh).};
+\end{scope}
+
+\draw[cline=ink!50] (k1.west) -- (me.north east);
+\draw[cline=ink!50] (k2.west) -- (f3.north east);
+\draw[cline=ink!50] (k3.west) -- (code.south east);
+\draw[cline=ink!50] (k4.west) -- (c3.south);
+\draw[cline=warn!70] (k5.west) -- (c5.south);
+\draw[cline=ink!50] (k6.west) -- (au.south);
+\end{tikzpicture}
+\end{frame}
+
+%======================================================== 7 MÃ BÀI
+\begin{frame}[label=mabai]{5.\ Mã bài và thuộc tính}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\node[seg=TAGG] (c0) at (0,-8) {2026-06-10a};
+\node[seg=tHH,right=4mm of c0] (c1) {HH};
+\node[seg=PT,right=4mm of c1] (c2) {A};
+\node[seg=PB,right=4mm of c2] (c3) {SL-OK};
+\node[seg=BTK,right=4mm of c3] (c4) {Pi 11/2026 · P1045};
+\draw[decorate,decoration={brace,amplitude=2mm},line width=0.7pt,ink!60] ([yshift=1mm]c0.north west) -- ([yshift=1mm]c0.north east) node[midway,above=2.5mm,font=\fsz{6}{7}\bfseries]{MÃ BÀI — không bao giờ đổi};
+\draw[decorate,decoration={brace,amplitude=2mm},line width=0.7pt,ink!60] ([yshift=1mm]c1.north west) -- ([yshift=1mm]c4.north east) node[midway,above=2.5mm,font=\fsz{6}{7}\bfseries]{THUỘC TÍNH — thay đổi theo vòng đời của bài};
+\node[anchor=north,font=\fsz{5.4}{6.4},text=ink!70,align=center] at (c0.south) {năm-tháng nhận · số hồ sơ\\a, b, c… = bài thứ mấy trong hồ sơ};
+\node[anchor=north,font=\fsz{5.4}{6.4},text=tHH!70!black] at (c1.south) {chủ đề};
+\node[anchor=north,font=\fsz{5.4}{6.4},text=PT] at (c2.south) {mức};
+\node[anchor=north,font=\fsz{5.4}{6.4},text=PB] at (c3.south) {trạng thái};
+\node[anchor=north,font=\fsz{5.4}{6.4},text=BTK] at (c4.south) {số tạp chí · số in (khi đã đăng)};
+\draw[ink!25,fill=soft,rounded corners=2pt] (0,-24) rectangle (88,-62);
+\begin{scope}[every node/.style={anchor=west,font=\fsz{6.2}{7.4}}]
+\node at (2,-28) {\textbf{Chủ đề}}; \node at (20,-28) {ĐS đại số · SH số học · HH hình học · TH tổ hợp};
+\node at (2,-33) {\textbf{Mức}}; \node at (20,-33) {A · B};
+\node at (2,-38) {\textbf{Trạng thái}}; \node at (20,-38) {\textbf{Mới} — đã nhập, chưa vào shortlist};
+\node at (20,-42.5) {\textbf{SL} — trong shortlist, đang phản biện};
+\node at (20,-47) {\textbf{SL-OK} — đạt, chờ đăng (dự trữ)};
+\node at (20,-51.5) {\textbf{SL-Fail} — chưa đạt ở lần xét này};
+\node at (20,-56) {\textbf{PL} — đã đăng};
+\end{scope}
+\node[anchor=north west,text width=50mm,font=\fsz{6.4}{8}] at (93,-24) {%
+\textbf{Mã tạm.} Bài chưa tìm được hồ sơ gốc dùng mã tạm, ví dụ \texttt{SL09-1042} (bảng chọn bài tháng 9, số 1042). Khi tìm được hồ sơ, bài nhận mã chính thức; mã tạm vẫn được ghi lại.\\[3mm]
+\textbf{Bài luyện tập} \texttt{THU-01…} là bài bịa để thử hệ thống; chỉ người được giao và Quản trị thấy.\\[3mm]
+\textbf{Số in} (P1045…) chỉ có khi khoá kỳ. Các danh sách cũ đánh số khác nhau cho cùng một bài; mã bài chấm dứt việc đó.};
+\end{tikzpicture}
+\end{frame}
+
+%======================================================== 8 TRANG BÀI
+\begin{frame}[label=trangbai]{6.\ Trang một bài}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\browser{0}{0}{92}{64}
+\node[anchor=west,font=\fsz{5}{6},text=NCB] (back) at (3,-6.5) {← Danh sách};
+\node[anchor=west,font=\fsz{5.6}{6.4}\ttfamily\bfseries] at (3,-10.5) {2026-09-11a};
+\node[pchip,anchor=west] at (21,-10.5) {ĐS}; \node[pchip,anchor=west] at (26,-10.5) {Mức B}; \node[pchip,anchor=west] at (35,-10.5) {Mới};
+\node[anchor=west,font=\fsz{6}{7}\bfseries] (de) at (3,-15.5) {Đề bài};
+\fill[ink!15] (3,-18.5) rectangle (86,-19.3); \fill[ink!15] (3,-21) rectangle (70,-21.8);
+\node[anchor=west,font=\fsz{6}{7}\bfseries] (lg) at (3,-26) {Lời giải};
+\foreach \y in {-29,-31.5,-34,-36.5}{\fill[ink!15] (3,\y) rectangle (84,\y-0.8);}
+\node[anchor=west,font=\fsz{4.8}{5.6},text=warn] (cb) at (3,-40) {Cảnh báo hiển thị: lệnh chưa hỗ trợ …};
+\node[anchor=west,font=\fsz{5}{6}\bfseries] (ng) at (3,-44.5) {{\symf ▸} Nguồn \& chỉnh sửa};
+\node[anchor=west,font=\fsz{6}{7}\bfseries] (tl) at (3,-49.5) {Thảo luận};
+\node[anchor=west,font=\fsz{4.8}{5.6}] at (3,-53) {\textbf{pb1@example.com}\ \textcolor{ink!50}{2026-10-12}\ \ Bước cuối nên viết rõ \dots};
+\draw[ink!30,fill=white] (3,-55.5) rectangle (70,-61.5);
+\node[anchor=west,font=\fsz{4.4}{5},text=ink!45] at (4,-57) {Nhận xét (có thể viết công thức \$…\$)};
+\node[btn,anchor=west] (gui) at (72,-58.5) {Gửi nhận xét};
+\begin{scope}[every node/.style={callout=ink,anchor=west,text width=44mm}]
+\node (k1) at (99,-6) {Về danh sách. (Không dùng nút tải lại của trình duyệt.)};
+\node (k2) at (99,-17) {\textbf{Đề bài, lời giải}: bản đã biên tập, công thức hiện như khi in.};
+\node[callout=warn] (k3) at (99,-29) {Dòng đỏ này chỉ hiện khi văn bản có lệnh \LaTeX\ hệ thống chưa hiển thị được — báo NCB.};
+\node (k4) at (99,-40.5) {\textbf{Nguồn \& chỉnh sửa}: bấm để mở (giải thích ở phần NCB). Phản biện không có mục này.};
+\node (k5) at (99,-53) {\textbf{Thảo luận}: mọi người xem được bài đều thấy và trả lời được (mục 7).};
+\end{scope}
+\draw[cline=ink!50] (k1.west) -- (back.east);
+\draw[cline=ink!50] (k2.west) -- (de.east);
+\draw[cline=warn!70] (k3.west) -- (cb.east);
+\draw[cline=ink!50] (k4.west) -- (ng.east);
+\draw[cline=ink!50] (k5.west) -- (tl.east);
+\end{tikzpicture}
+\end{frame}
+
+%======================================================== 9 NHẬN XÉT
+\begin{frame}[label=nhanxet]{7.\ Viết nhận xét có công thức}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\node[anchor=north west,font=\fsz{6.4}{7.6}\bfseries] at (0,0) {Bạn gõ};
+\node[anchor=north west,font=\fsz{6.4}{7.6}\bfseries] at (76,0) {Mọi người thấy};
+\foreach \src/\out [count=\i] in {
+  {Bước 2: \$a+b\textbackslash ge 2\textbackslash sqrt\{ab\}\$ đúng vì \dots}/{Bước 2: $a+b\ge 2\sqrt{ab}$ đúng vì \dots},
+  {\$\$\textbackslash frac\{x\}\{y\}+\textbackslash frac\{y\}\{x\}\textbackslash ge 2\$\$}/{\hspace*{18mm}$\displaystyle\frac{x}{y}+\frac{y}{x}\ge 2$},
+  {Đáp số đúng là \$n=5\$, không phải \$14\$.}/{Đáp số đúng là $n=5$, không phải $14$.},
+  {Mã HTML như <b>đậm</b> không có tác dụng.}/{Mã HTML như \texttt{<b>đậm</b>} không có tác dụng.},
+  {\textbackslash textbf\{Ý chính\}: bài nên ở mức A.}/{\textbf{Ý chính}: bài nên ở mức A.}}{
+  \node[draw=ink!25,fill=white,rounded corners=1pt,anchor=north west,text width=68mm,minimum height=8mm,font=\fsz{5.8}{7}\ttfamily] at (0,{-6-(\i-1)*10}) {\src};
+  \node[font=\fsz{8}{8},text=ink!40] at (72,{-10-(\i-1)*10}) {→};
+  \node[draw=PB!40,fill=PB!4,rounded corners=1pt,anchor=north west,text width=66mm,minimum height=8mm,font=\fsz{6.4}{7.6}] at (76,{-6-(\i-1)*10}) {\out};}
+\node[anchor=north west,text width=144mm,font=\fsz{6.4}{8}] at (0,-57) {%
+\textbf{Công thức}: \texttt{\$…\$} trong dòng, \texttt{\$\$…\$\$} riêng một dòng — giống \LaTeX. Các lệnh riêng của Pi (\texttt{\textbackslash dtr}, \texttt{\textbackslash vto}…) dùng được.
+\textbf{Mã HTML không có tác dụng} (hiện ra như chữ). Nhận xét \textbf{chưa sửa/xoá được} sau khi gửi — đọc lại trước khi bấm \emph{Gửi nhận xét}.
+Một dòng trống tách đoạn. Tên (email) người viết hiện cạnh nhận xét.};
+\end{tikzpicture}
+\end{frame}
+
+%======================================================== 10 AI THẤY GÌ
+\begin{frame}[label=aithay]{8.\ Ai thấy gì}
+\vskip-1mm
+{\fsz{6.6}{8.2}
+\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}l*{7}{c}@{}}
+ & \rtag{TBT} & \rtag{PT} & \rtag{NCB} & \rtag{VP} & \rtag{BTK} & \rtag{PB} & \rtag{QT}\\\hline
+Danh sách bài & mọi bài & mọi bài & mọi bài & mọi bài & mọi bài & \textbf{bài được giao} & mọi bài\\
+Tên tác giả & \yes & \yes & \yes & \yes & \yes & \no\ (ẩn danh) & \yes\\
+Liên hệ tác giả & \yes & \yes & \no & \yes & \no & \no & \yes\\
+Nguồn \& chỉnh sửa, xung đột & \yes & \yes & \yes & \yes & \yes & \no & \yes\\
+Thảo luận (xem, viết) & \yes & \yes & \yes & \yes & \yes & bài được giao & \yes\\\hline
+Sửa đề, lời giải \soon & & \yes & \yes & & & & \yes\\
+Thêm mục cần kiểm tra, xung đột \soon & \yes & \yes & \yes & & & & \yes\\
+Đổi trạng thái \soon & \yes & \yes & & & & & \yes\\
+Thêm người dùng, giao vai trò & & & & & & & \yes\\\hline
+\end{tabular}}
+\vskip3mm
+{\fsz{6.2}{7.6}\color{ink!75}
+\textbf{Phản biện} chỉ thấy bài được giao trong \textbf{kỳ đang mở}; hết kỳ, bài không còn trong danh sách của họ.
+Phản biện không thấy tên tác giả, tên tệp, nguồn, xung đột — để chấm ẩn danh.
+Mỗi lần mở một bài đều được ghi lại (ai, bài nào, khi nào).
+Dòng \soon: hệ thống đã làm được, nút trên trang web đang được thêm.}
+\end{frame}

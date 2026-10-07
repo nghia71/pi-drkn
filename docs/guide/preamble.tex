@@ -1,0 +1,179 @@
+\usepackage{fontspec}
+\setsansfont{TeX Gyre Heros}
+\setmainfont{TeX Gyre Heros}
+\newfontfamily\symf{DejaVu Sans}
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathreplacing,shapes.geometric,shapes.symbols,positioning,arrows.meta,calc,fit,backgrounds,angles,quotes,shadows}
+\usepackage{xcolor}
+
+% ---------- Colours ----------
+\definecolor{TBT}{HTML}{7A1F5C}
+\definecolor{PT}{HTML}{B8541B}
+\definecolor{NCB}{HTML}{1F6FB2}
+\definecolor{PB}{HTML}{2E8B57}
+\definecolor{VP}{HTML}{A67C00}
+\definecolor{BTK}{HTML}{5B4FA8}
+\definecolor{TG}{HTML}{8B5A2B}
+\definecolor{HT}{HTML}{8A8F98}
+\definecolor{ink}{HTML}{1E2A38}
+\definecolor{soft}{HTML}{F4F6F8}
+\definecolor{warn}{HTML}{C0392B}
+\definecolor{TAGG}{HTML}{6B7280}
+
+% ---------- Beamer look ----------
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{normal text}{fg=ink}
+\setbeamercolor{frametitle}{fg=ink}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamertemplate{frametitle}{%
+  \vskip6pt\hskip-2pt\insertframetitle\par
+  \vskip2pt{\color{ink!25}\rule{\linewidth}{0.6pt}}\vskip-2pt}
+\setbeamertemplate{footline}{%
+  \hskip8pt{\tiny\color{ink!45}Đề ra kỳ này · Hướng dẫn sử dụng · bản thử kỳ 10/2026}\hfill
+  {\tiny\color{ink!45}\insertframenumber}\hskip8pt\vskip5pt}
+\setbeamersize{text margin left=8mm,text margin right=8mm}
+
+% ---------- Icons ----------
+\newcommand\human[1][ink]{\tikz[baseline=-0.55ex,x=1cm,y=1cm,sharp corners,solid,line width=0.4pt,scale=0.11]{\fill[#1] (0,0.9) circle (0.55);\fill[#1] (-0.95,-0.9) to[out=90,in=180] (0,0.15) to[out=0,in=90] (0.95,-0.9) -- cycle;}}
+\newcommand\gear{{\symf ⚙}}
+\newcommand\yes{{\symf ✓}}
+\newcommand\no{{\symf ✕}}
+\newcommand\fullc{{\symf ●}}
+\newcommand\emptyc{{\symf ○}}
+\newcommand\lockic{\tikz[baseline=-0.4ex,x=1cm,y=1cm,sharp corners,solid,line width=0.4pt,scale=0.12]{\draw[line width=0.7pt] (-0.55,0.3) -- (-0.55,0.75) arc (180:0:0.55) -- (0.55,0.3);\fill (-0.85,-0.75) rectangle (0.85,0.35);}}
+% channel icons (draw at given size)
+\newcommand\icmail[1][ink]{\tikz[baseline=-0.6ex,x=1cm,y=1cm,sharp corners,solid,line width=0.4pt,scale=0.16]{\draw[#1,line width=0.6pt,fill=white] (-1,-0.65) rectangle (1,0.65);\draw[#1,line width=0.6pt] (-1,0.65) -- (0,-0.1) -- (1,0.65);}}
+\newcommand\icfolder[1][ink]{\tikz[baseline=-0.6ex,x=1cm,y=1cm,sharp corners,solid,line width=0.4pt,scale=0.16]{\draw[#1,line width=0.6pt,fill=#1!15] (-1,-0.7) -- (-1,0.7) -- (-0.35,0.7) -- (-0.15,0.45) -- (1,0.45) -- (1,-0.7) -- cycle;}}
+\newcommand\icdoc[2][ink]{\tikz[baseline=-0.6ex,x=1cm,y=1cm,sharp corners,solid,line width=0.4pt,scale=0.16]{\draw[#1,line width=0.6pt,fill=white] (-0.75,-0.95) -- (-0.75,0.95) -- (0.35,0.95) -- (0.75,0.55) -- (0.75,-0.95) -- cycle;\node[font=\fontsize{3.2}{3}\selectfont\bfseries,text=#1] at (0,-0.2) {#2};}}
+\newcommand\icweb[1][ink]{\tikz[baseline=-0.6ex,x=1cm,y=1cm,sharp corners,solid,line width=0.4pt,scale=0.16]{\draw[#1,line width=0.6pt,fill=white] (-1.1,-0.75) rectangle (1.1,0.75);\fill[#1] (-1.1,0.42) rectangle (1.1,0.75);\fill[white] (-0.95,0.58) circle (0.08) (-0.75,0.58) circle (0.08);}}
+\newcommand\icoverleaf{\icdoc[NCB]{TeX}}
+\newcommand\icpdf{\icdoc[warn]{PDF}}
+
+% ---------- Diagram styles ----------
+\tikzset{
+  >=Stealth,
+  hstep/.style={draw=#1,fill=#1!8,line width=0.9pt,rounded corners=2.5pt,align=center,font=\scriptsize,inner sep=3pt,text=ink},
+  sstep/.style={draw=HT,fill=HT!9,dashed,line width=0.6pt,rounded corners=2.5pt,align=center,font=\tiny,inner sep=2pt,text=HT!55!black},
+  dec/.style={diamond,aspect=1.8,draw=#1,fill=#1!8,line width=0.9pt,align=center,font=\scriptsize,inner sep=0.5pt,text=ink},
+  tag/.style={fill=#1,text=white,font=\fontsize{5.5}{6}\selectfont\bfseries,rounded corners=1.5pt,inner sep=1.6pt},
+  note/.style={draw=ink!25,fill=soft,rounded corners=2pt,font=\tiny,align=left,text=ink!80,inner sep=3pt},
+  flow/.style={->,line width=0.7pt,ink!70},
+  doc/.style={->,dashed,line width=0.6pt,ink!50},
+  lane/.style={fill=#1!5,draw=none},
+  lanelab/.style 2 args={fill=#1,text=white,font=\fontsize{6}{7}\selectfont\bfseries,minimum width=9mm,minimum height=#2,inner sep=0pt,align=center},
+  badge/.style={circle,fill=#1,text=white,font=\scriptsize\bfseries,minimum size=8mm,inner sep=0pt},
+  mtag/.style={draw=TAGG,fill=TAGG!10,text=TAGG!70!black,font=\fontsize{6}{7}\selectfont\ttfamily,rounded corners=1.5pt,inner sep=1.8pt},
+  stag/.style={fill=PT,text=white,font=\fontsize{6.5}{7}\selectfont\bfseries,rounded corners=1.5pt,inner sep=2pt},
+}
+% owner tag on a node's top-right corner
+\newcommand\owner[2]{\node[tag=#1,anchor=center] at ([xshift=-2pt]#2.north east) {#1};}
+\newcommand\ownerHT[1]{\node[tag=HT,anchor=center] at ([xshift=-2pt]#1.north east) {HT};}
+% a decision with PT on top, TBT approval below
+\newcommand\decTags[1]{\node[tag=PT,anchor=center] at (#1.north) {PT};\node[tag=TBT,anchor=center] at (#1.south) {TBT duyệt};}
+
+% "you are here" strip, top-right of frame
+\newcommand\youare[1]{%
+\begin{tikzpicture}[remember picture,overlay]
+\node[anchor=north east,inner sep=0pt] at ([xshift=-6mm,yshift=-3.2mm]current page.north east){%
+\begin{tikzpicture}[x=6.2mm,font=\fontsize{4.5}{5}\selectfont]
+\foreach \i/\l/\c in {1/Gửi bài/TG,2/LaTeX/NCB,3/Sơ bộ/NCB,4/Shortlist/NCB,5/Phản biện/PB,6/Chọn/PT,7/Khoá/PT,8/In/BTK}{
+  \ifnum\i=#1\relax
+    \node[circle,fill=\c,minimum size=2.6mm,inner sep=0] (y\i) at (\i,0) {};
+    \node[below=0.2mm of y\i,text=\c,font=\fontsize{4.5}{5}\selectfont\bfseries] {\l};
+  \else
+    \node[circle,fill=\c!35,minimum size=1.7mm,inner sep=0] (y\i) at (\i,0) {};
+    \node[below=0.3mm of y\i,text=ink!45] {\l};
+  \fi}
+\foreach \i [count=\j from 2] in {1,...,7}{\draw[ink!25,line width=0.4pt] (y\i) -- (y\j);}
+\end{tikzpicture}};
+\end{tikzpicture}}
+
+% ---------- P1036 figure (verified configuration) ----------
+\newcommand\figP[2][1]{%
+\begin{tikzpicture}[x=1cm,y=1cm,scale=#1,line cap=round,line join=round,sharp corners,solid]
+\coordinate (A) at (-0.4243,1.3343);\coordinate (B) at (-0.7660,-0.6428);
+\coordinate (C) at (0.1736,-0.9848);\coordinate (D) at (0.7660,0.6428);
+\coordinate (J) at (-0.3241,0.9460);\coordinate (T) at (2.1260,1.7843);
+\draw[ink!35,line width=0.6pt] (0,0) circle (1);
+\draw[NCB,line width=0.9pt] (A)--(B)--(C)--(D)--cycle;
+\draw[ink!40,line width=0.5pt] (A)--(C) (B)--(T);
+\draw[PT!80,line width=0.6pt] ($(J)!-0.22!(T)$)--(T);
+\draw[warn,line width=1.2pt] (T)--(J) (T)--(A);
+\path (T)--(J) node[pos=0.5,sloped,warn,font=\tiny]{$|$} (T)--(A) node[pos=0.5,sloped,warn,font=\tiny]{$|$};
+\pic[draw=ink!70,angle radius=3.2mm,"$\scriptscriptstyle\alpha$",angle eccentricity=1.6]{angle=C--B--A};
+\pic[draw=ink!70,angle radius=3.2mm,"$\scriptscriptstyle\alpha$",angle eccentricity=1.6]{angle=A--D--C};
+\foreach \p/\pos in {A/above left,B/below left,C/below,D/right,T/above right}\fill (\p) circle (0.9pt) node[\pos,font=#2,inner sep=1pt]{$\p$};
+\fill (J) circle (0.9pt) node[below left,font=#2,inner sep=0.5pt]{$J$};
+\end{tikzpicture}}
+
+\newcommand\sumbox[7]{% x,y,w,h,colour,title,body
+  \draw[#5,line width=0.8pt,fill=#5!6,rounded corners=3pt] (#1,#2) rectangle ++(#3,-#4);
+  \node[font=\scriptsize\bfseries,anchor=north west,text=#5!85!black] at (#1+2,#2-1.5) {#6};
+  \node[font=\fontsize{6.6}{8}\selectfont,anchor=north west,align=left,text width=#3*1mm-4mm] at (#1+2,#2-6) {#7};}
+
+\tikzset{cs/.style={hstep=#1,text width=25mm,minimum height=7mm,font=\fontsize{6.3}{7.3}\selectfont}}
+
+% ---------- extra styles for slides 6-15 ----------
+\tikzset{
+  big/.style={hstep=#1,line width=1.4pt,font=\fontsize{6.6}{7.6}\selectfont\bfseries},
+  cyl/.style={cylinder,shape border rotate=90,aspect=0.25,draw=#1,fill=#1!8,line width=0.8pt,align=center,font=\fontsize{6}{7}\selectfont,minimum width=14mm,minimum height=10mm},
+  chip/.style={draw=#1,fill=#1!10,rounded corners=1.5pt,font=\fontsize{5.6}{6.5}\selectfont,inner sep=1.6pt,text=ink},
+  card/.style={draw=ink!25,fill=white,rounded corners=1.5pt,minimum width=9.6mm,minimum height=9.5mm,inner sep=0.8pt,font=\fontsize{4.3}{5.1}\selectfont,align=center},
+  slot/.style={draw=ink!20,dashed,fill=soft,rounded corners=1.5pt,minimum width=10.6mm,minimum height=25mm},
+  win/.style={draw=ink!40,fill=white,line width=0.6pt,rounded corners=2pt},
+  field/.style={draw=ink!25,fill=white,rounded corners=1pt,font=\fontsize{5.5}{6.5}\selectfont,inner sep=1.5pt,anchor=north west},
+  bar/.style={fill=#1,draw=none,rounded corners=1pt},
+}
+% topic colour stripes
+\definecolor{tDS}{HTML}{3B7DD8}\definecolor{tSH}{HTML}{D8A33B}\definecolor{tHH}{HTML}{3BA87A}\definecolor{tTH}{HTML}{B24C8F}
+% a selection-board card: #1 pos, #2 topic colour, #3 text
+\newcommand\bcard[3]{\node[card] (cc) at #1 {#3};\fill[#2] (cc.north west) rectangle ([yshift=-1mm]cc.north east);}
+\newcommand\cellm[1]{{\symf #1}}
+
+\def\GX{36}\def\GW{25}
+\newcommand\ganttrow[5]{% y, label, colour, x0(weeks), x1(weeks)
+  \node[anchor=east,font=\fontsize{5.8}{6.8}\selectfont,text=#3!80!black] at (\GX-1,#1) {#2};
+  \fill[#3,rounded corners=1pt] (\GX+#4*\GW,#1+1.4) rectangle (\GX+#5*\GW,#1-1.4);}
+
+\newcommand\cmt[4]{\node[draw=#2!50,fill=#2!5,rounded corners=1.5pt,anchor=north west,text width=58mm,font=\fontsize{5.4}{6.6}\selectfont,inner sep=2pt] at #1 {\textbf{\textcolor{#2!80!black}{#3}}\\#4};}
+
+
+\colorlet{PBL}{PB!60}
+\newcommand\cn[1]{\tikz[baseline=-0.6ex,x=1cm,y=1cm,sharp corners,solid]\node[circle,draw=ink!70,line width=0.4pt,inner sep=0.3pt,minimum size=2.6mm,font=\fontsize{4.6}{4.6}\selectfont\bfseries]{#1};}
+
+\tikzset{ps/.style={hstep=#1,font=\fontsize{5.8}{6.8}\selectfont,minimum height=6.8mm}}
+
+\definecolor{aChon}{HTML}{00897B}\definecolor{aLoai}{HTML}{C62828}\definecolor{aSom}{HTML}{D81B60}\definecolor{aDuTru}{HTML}{8E24AA}
+
+\tikzset{rl/.style={hstep=#1,font=\fontsize{5.6}{6.6}\selectfont,text width=27mm,align=left,anchor=west,minimum height=5.6mm}}
+
+\newcommand\dpanel[4]{% x, number, title, body
+  \draw[ink!25,fill=white,rounded corners=2.5pt] (#1,0) rectangle ++(34,-60);
+  \node[circle,fill=ink,text=white,font=\scriptsize\bfseries,minimum size=6mm,inner sep=0] at (#1+5,-5.5) {#2};
+  \node[anchor=west,font=\scriptsize\bfseries,text width=24mm,align=left] at (#1+9,-5.5) {#3};
+  \node[anchor=north west,font=\fontsize{6}{7.4}\selectfont,text width=31mm,align=left] at (#1+1.5,-39) {#4};}
+
+
+\tikzset{seg/.style={draw=#1,fill=#1!10,line width=0.8pt,font=\small\ttfamily\bfseries,inner sep=2pt,minimum height=7mm,anchor=west,text=ink}}
+
+% ---------- guide extras ----------
+\definecolor{QT}{HTML}{37474F}
+\newcommand\fsz[2]{\fontsize{#1}{#2}\selectfont}
+\newcommand\rtag[1]{\tikz[baseline=-0.6ex]\node[tag=#1,font=\fsz{8}{9}\bfseries,inner sep=2.2pt]{#1};}
+\newcommand\soon{\tikz[baseline=-0.6ex]\node[draw=warn,text=warn,rounded corners=1pt,font=\fsz{5}{6}\bfseries,inner sep=1.2pt]{SẮP CÓ};}
+\newcommand\kbd[1]{\tikz[baseline=-0.6ex]\node[draw=ink!40,fill=soft,rounded corners=1pt,font=\fsz{5.6}{6.4}\ttfamily,inner sep=1.3pt]{#1};}
+\tikzset{
+  btn/.style={fill=NCB,text=white,rounded corners=1.5pt,font=\fsz{5.6}{6.4}\bfseries,inner sep=2pt},
+  sel/.style={draw=ink!35,fill=white,rounded corners=1pt,font=\fsz{4.8}{5.6},inner sep=1.2pt},
+  pchip/.style={fill=ink!8,rounded corners=1.5pt,font=\fsz{4.8}{5.6},inner sep=1.2pt},
+  wchip/.style={fill=warn!12,text=warn!80!black,rounded corners=1.5pt,font=\fsz{4.8}{5.6},inner sep=1.2pt},
+  callout/.style={draw=#1,fill=#1!6,rounded corners=1.5pt,font=\fsz{5.6}{6.8},align=left,inner sep=2pt,text=ink},
+  cline/.style={#1,line width=0.6pt,-{Stealth[length=1.6mm]}},
+  gbar/.style={fill=NCB!10,draw=none},
+}
+% a browser window with title bar: #1 lower-left x, #2 top y, #3 width, #4 height
+\newcommand\browser[4]{%
+  \draw[win] (#1,#2) rectangle ++(#3,-#4);
+  \fill[ink!8] (#1,#2) rectangle ++(#3,-3.2);
+  \fill[warn!70] (#1+2,#2-1.6) circle (0.55); \fill[VP!80] (#1+3.8,#2-1.6) circle (0.55); \fill[PB!80] (#1+5.6,#2-1.6) circle (0.55);
+  \node[draw=ink!20,fill=white,rounded corners=1pt,font=\fsz{3.8}{4},inner sep=0.8pt,minimum width=#3*0.4mm] at (#1+#3/2,#2-1.6) {script.google.com};}
