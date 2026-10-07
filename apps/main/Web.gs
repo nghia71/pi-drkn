@@ -2,8 +2,12 @@
 function doGet(e) {
   var email = verifyEntry_(e && e.parameter);
   if (!email) {
-    return HtmlService.createHtmlOutput('<div style="font:16px system-ui;padding:24px">' +
-      '<p>Không xác thực được. Hãy vào hệ thống từ <b>đường dẫn đăng nhập</b> (đường dẫn chỉ có hiệu lực 10 phút).</p></div>')
+    // Đường dẫn đã hết hạn (tải lại trang, dấu trang cũ…) hoặc bị sửa: đưa về trang đăng nhập.
+    var signin = PropertiesService.getScriptProperties().getProperty('SIGNIN_URL');
+    var btn = signin ? '<p><a target="_top" href="' + signin.replace(/"/g, '&quot;') + '" style="display:inline-block;padding:10px 20px;' +
+      'background:#1a73e8;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">Đăng nhập lại</a></p>' : '';
+    return HtmlService.createHtmlOutput('<div style="font:16px system-ui,sans-serif;padding:24px">' +
+      '<p>Phiên vào hệ thống đã hết hạn hoặc không hợp lệ. Hãy vào lại từ <b>đường dẫn đăng nhập</b>.</p>' + btn + '</div>')
       .setTitle('Pi — Đề ra kỳ này');
   }
   var u = findRow_('Users', 'email', email);

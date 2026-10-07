@@ -47,6 +47,9 @@ Mở dự án đăng nhập → Project Settings → Script properties → thêm
 
 Chạy hàm `checkConfig` để kiểm tra.
 
+Trong dự án **chính**, thêm Script property `SIGNIN_URL` = địa chỉ /exec của dự án đăng nhập
+(để trang "hết hạn" có nút Đăng nhập lại).
+
 ## 6. Người dùng
 Mở Sheet → tab `Users` → mỗi người một dòng: `email`, `ten`, `vai_tro` (TBT, PT, NCB, PB, VP, BTK, Quản trị —
 nhiều vai trò cách nhau dấu phẩy), `hoat_dong` = TRUE.
