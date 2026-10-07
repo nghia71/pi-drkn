@@ -19,7 +19,9 @@ function rows_(name) {
 
 function findRow_(name, key, value) {
   var all = rows_(name);
-  for (var i = 0; i < all.length; i++) if (String(all[i][key]) === String(value)) return { row: all[i]._row, data: all[i] };
+  // email: so khớp không phân biệt hoa/thường và bỏ khoảng trắng (người nhập tay vào Sheet hay gõ thừa)
+  var norm = key === 'email' ? function (v) { return String(v).trim().toLowerCase(); } : String;
+  for (var i = 0; i < all.length; i++) if (norm(all[i][key]) === norm(value)) return { row: all[i]._row, data: all[i] };
   return null;
 }
 
