@@ -36,8 +36,14 @@ function ensureTabs_(ss) {
     var cols = SCHEMA[name];
     var head = sh.getRange(1, 1, 1, cols.length);
     var cur = head.getValues()[0];
-    if (cur.join('') === '') { head.setValues([cols]).setFontWeight('bold'); sh.setFrozenRows(1); }
-    else if (cur.join('|') !== cols.join('|')) Logger.log('CẢNH BÁO: tab ' + name + ' có cột khác mô hình — không ghi đè.');
+    if (cur.join('') === '') { head.setValues([cols]).setFontWeight('bold'); sh.setFrozenRows(1); return; }
+    if (cur.join('|') === cols.join('|')) return;
+    // mô hình thêm cột ở CUỐI tab (ví dụ Checks.ket_qua): tiêu đề cũ là phần đầu của mô hình thì chỉ ghi thêm tiêu đề cột mới
+    var n = cur.length; while (n > 0 && cur[n - 1] === '') n--;
+    if (cur.slice(0, n).join('|') === cols.slice(0, n).join('|')) {
+      sh.getRange(1, n + 1, 1, cols.length - n).setValues([cols.slice(n)]).setFontWeight('bold');
+      Logger.log('Tab ' + name + ': thêm cột ' + cols.slice(n).join(', '));
+    } else Logger.log('CẢNH BÁO: tab ' + name + ' có cột khác mô hình — không ghi đè.');
   });
   var def = ss.getSheetByName('Sheet1') || ss.getSheetByName('Trang tính1');
   if (def && ss.getSheets().length > 1) ss.deleteSheet(def);

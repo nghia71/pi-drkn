@@ -33,5 +33,16 @@ Bài chưa xác định được hồ sơ gốc dùng mã tạm (ví dụ `SL09-
 | PB | chỉ bài được giao trong kỳ đang mở; không thấy tác giả khi BLIND_REVIEW=true | nhận xét |
 | Quản trị | mọi thứ; "Xem như vai trò…" để thử giao diện | người dùng, nhập hàng loạt |
 
+**Hai loại sửa** (chọn khi bấm Lưu): *sửa nhỏ* (chính tả, định dạng, bổ sung dữ liệu thiếu) chỉ ghi Revisions;
+*sửa nội dung toán* (công thức, đáp số, lập luận) bắt buộc ghi vị trí và lý do, thêm một dòng Corrections
+"chờ tác giả xác nhận" — đoạn trước/sau được tách tự động từ hai bản. Đổi trạng thái sửa đổi không tự đổi văn bản.
+
+**Quyết định trên trang bài** (NCB, PT, TBT, Quản trị): thêm/đóng mục cần kiểm tra (đóng phải ghi `ket_qua`),
+thêm xung đột, ghi cách giải quyết; xung đột loại *mức, tác giả, trùng bài* chỉ TBT đặt "đã giải quyết", người khác chuyển "chờ TBT".
+Đổi trạng thái bài: PT, TBT, Quản trị. Các danh sách trạng thái nằm ở đầu `apps/main/Schema.gs` (CHECK_STATUSES, CONFLICT_STATUSES,
+TBT_CONFLICTS, CORRECTION_STATUSES) — đổi quy ước thì sửa ở đó. Mọi thao tác được ghi vào Audit (ai, khi nào).
+
+Thêm cột vào mô hình: chỉ thêm ở **cuối** tab; chạy lại `setup()` để ghi tiêu đề cột mới (dữ liệu cũ giữ nguyên).
+
 Lịch sử sửa đề/lời giải (tab Revisions) chỉ những vai trò thấy mọi bài xem được — PB không xem, vì các bản trước gần với bản gốc của tác giả.
 Sửa dùng khoá lạc quan: gửi kèm `phien_ban` đang xem; nếu người khác vừa lưu thì bị từ chối, không ghi đè. Lưu mà không đổi gì thì không tạo phiên bản mới.
