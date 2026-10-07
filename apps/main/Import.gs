@@ -8,14 +8,34 @@
  */
 var IMPORT_CHUNK = 15;
 
-/** Chạy từ trình soạn thảo: nhập tệp mới nhất tên "pi-drkn-import….json" trong Drive của quản trị. */
+/**
+ * Chạy từ trình soạn thảo: nhập MỌI tệp "pi-drkn-import….json" chưa nhập xong trong Drive của quản trị, cũ trước mới sau.
+ * Tệp đã nhập xong được ghi nhớ (Script property IMPORT_DONE_<id>) nên lần sau bỏ qua; bài đã có thì vẫn bỏ qua như cũ.
+ * Nếu gần hết thời gian, dừng và báo — chạy lại để nhập tiếp.
+ */
 function importLatest() {
   adminOnly_();
-  var it = DriveApp.searchFiles("title contains 'pi-drkn-import' and trashed = false"), best = null;
-  while (it.hasNext()) { var f = it.next(); if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f; }
-  if (!best) throw new Error('Không thấy tệp pi-drkn-import….json trong Drive.');
-  Logger.log('Tệp: ' + best.getName());
-  return importBatch(best.getId());
+  var prefix = (TEST_CONF && TEST_CONF.IMPORT_PREFIX) || 'pi-drkn-import';
+  var props = PropertiesService.getScriptProperties(), files = [];
+  var it = DriveApp.searchFiles("title contains '" + prefix + "' and trashed = false");
+  while (it.hasNext()) files.push(it.next());
+  files.sort(function (a, b) { return a.getLastUpdated() - b.getLastUpdated(); });
+  var todo = files.filter(function (f) { return !props.getProperty('IMPORT_DONE_' + f.getId()); });
+  if (!todo.length) { Logger.log('Không có tệp nào chờ nhập.'); return 'Không có tệp nào chờ nhập.'; }
+  var t0 = Date.now(), out = [];
+  for (var k = 0; k < todo.length; k++) {
+    if (Date.now() - t0 > 4 * 60 * 1000) { out.push('TẠM DỪNG — chạy lại để nhập tiếp ' + (todo.length - k) + ' tệp.'); break; }
+    var f = todo[k];
+    Logger.log('Tệp: ' + f.getName());
+    var msg = importBatch(f.getId());
+    while (msg.indexOf('xong:') !== 0 && Date.now() - t0 < 4 * 60 * 1000) msg = importBatch(f.getId());   // tệp lớn: nhiều đợt 15 bài
+    out.push(f.getName() + ': ' + msg);
+    if (msg.indexOf('xong:') === 0) props.setProperty('IMPORT_DONE_' + f.getId(), String(Date.now()));
+    else { out.push('TẠM DỪNG — chạy lại để nhập tiếp.'); break; }
+  }
+  var summary = out.join('\n');
+  Logger.log(summary);
+  return summary;
 }
 
 function importBatch(fileId) {

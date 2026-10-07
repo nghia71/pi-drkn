@@ -15,7 +15,8 @@ var SCHEMA = {
   Authors: ['tac_gia_id', 'ten_in', 'don_vi', 'lien_he', 'ghi_chu'],            // hạn chế: VP, PT, TBT, Quản trị
   Users: ['email', 'ten', 'vai_tro', 'hoat_dong', 'ghi_chu'],
   Rounds: ['ky', 'trang_thai', 'm', 'han_phan_bien', 'khoa_luc', 'ghi_chu'],
-  Shortlist: ['ky', 'ma_bai', 'vi_tri', 'phuong_an', 'quyet_dinh', 'nguoi', 'ngay'],
+  Shortlist: ['ky', 'ma_bai', 'vi_tri', 'phuong_an', 'quyet_dinh', 'nguoi', 'ngay', 'trang_thai_truoc', 'muc_truoc'],   // bảng chọn bài (Board.gs)
+  Issues: ['so', 'trang_thai', 'nguoi_duyet', 'duyet_luc', 'ghi_chu'],                                                   // thêm 2026-10
   Assignments: ['ky', 'ma_bai', 'email', 'giao_luc', 'han', 'xong', 'moi_luc', 'nhac'],   // moi_luc, nhac: thêm 2026-10
   Reviews: ['id', 'ky', 'ma_bai', 'email', 'muc_de_nghi', 'diem', 'nhan_xet', 'ngay'],
   Comments: ['id', 'ma_bai', 'email', 'tra_loi_cho', 'noi_dung', 'ngay'],

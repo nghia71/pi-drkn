@@ -16,7 +16,8 @@ main{max-width:920px;margin:0 auto;padding:12px 16px 60px}
 .c{text-align:center}.r{text-align:right} .dm{display:block;overflow-x:auto;overflow-y:hidden}
 .fig{display:inline-block;border:1px dashed var(--line);color:var(--mut);font:13px system-ui,sans-serif;padding:6px 10px}
 code.unk{color:var(--bad)} .props{font:13px/1.45 system-ui,sans-serif} .props h4{margin:8px 0 2px;font-size:12px;color:var(--mut);text-transform:uppercase}
-.cm{border-top:1px solid var(--line);padding:6px 0} .err{position:fixed;top:8px;right:8px;background:var(--bad);color:#fff;padding:8px 12px;border-radius:6px;font:13px system-ui;z-index:9}
+.cm{border-top:1px solid var(--line);padding:6px 0} #toasts{position:fixed;top:8px;right:8px;left:8px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;z-index:9;pointer-events:none}
+.err{background:var(--bad);color:#fff;padding:8px 12px;border-radius:6px;font:13px system-ui;max-width:min(520px,100%);pointer-events:auto}
 details summary{cursor:pointer;font:13px system-ui,sans-serif;color:var(--acc);margin-top:12px}
 button.sm{font-size:12px;padding:1px 8px;margin:0 0 0 6px;vertical-align:1px} button.pri{background:var(--acc);color:var(--bg);border-color:var(--acc)}
 button:disabled{opacity:.6;cursor:default} .sm-t{font:12px system-ui,sans-serif;margin:4px 0}
@@ -36,7 +37,7 @@ h2.pg{font:600 17px system-ui,sans-serif;margin:4px 0}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:end;font:13px system-ui,sans-serif;margin:6px 0} .row label{display:flex;flex-direction:column;gap:2px}
 .row input,.rv select{font:13px system-ui,sans-serif;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg);padding:4px 6px}
 table.as{border-collapse:collapse;font:13px system-ui,sans-serif;width:100%;margin:6px 0} table.as th,table.as td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:left}
-table.as th{color:var(--mut);font-weight:500} table.as .code{white-space:nowrap} .tbl-wrap{overflow-x:auto}
+table.as th{color:var(--mut);font-weight:500} table.as select{max-width:100%;font:13px system-ui,sans-serif} td.nw{white-space:nowrap} table.as .code{white-space:nowrap} .tbl-wrap{overflow-x:auto}
 .rv{font:13px system-ui,sans-serif} .rv h3{margin-top:0} .rv .rec label{margin-right:12px} .rv-pv:not(:empty){border:1px dashed var(--line);border-radius:6px;padding:4px 8px;margin-top:4px;font:15px/1.5 "Noto Serif",serif}
 .rev summary{font-size:12px;margin-top:4px} pre{white-space:pre-wrap;font:12px ui-monospace,Menlo,monospace}
 </style>

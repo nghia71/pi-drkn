@@ -57,8 +57,10 @@ Gửi cho mọi người **địa chỉ /exec của dự án đăng nhập**. L�
 
 ## 7. Nhập dữ liệu ban đầu (nếu có)
 Trên máy: `python3 tools/convert/stage.py pi-drkn-import-ky10.json <các tệp bản ghi…>` (tệp ra là dữ liệu thật — để ngoài kho mã).
-Tải tệp lên Drive của tài khoản quản trị (không chia sẻ), rồi trong dự án chính chạy `importLatest`
-nhiều lần cho tới khi log báo "xong". Bài đã có thì bỏ qua.
+Tải tệp lên Drive của tài khoản quản trị (không chia sẻ), rồi trong dự án chính chạy `importLatest`.
+Một lần chạy nhập **mọi** tệp tên `pi-drkn-import…` chưa nhập xong (cũ trước, mới sau); tệp đã nhập xong được ghi nhớ
+(Script property `IMPORT_DONE_<id>`) và lần sau bỏ qua. Nếu log báo TẠM DỪNG (sắp hết 6 phút) thì chạy lại.
+Bài đã có (cùng mã) thì bỏ qua, nên chạy thừa cũng không sao.
 
 ## Kiểm thử trước khi đẩy
 ```
@@ -84,5 +86,10 @@ Script properties (không bắt buộc):
 - `REMINDER_HOUR` — giờ chạy nhắc mỗi ngày (mặc định `8`; đổi thì chạy lại `installReminderTrigger`);
 - `TIMEZONE` — múi giờ tính ngày (mặc định `Asia/Ho_Chi_Minh`).
 
-## 10. Kiểm thử
+## 10. Bảng chọn bài
+Sau lần triển khai có tính năng này: chạy `setup` (tạo tab `Issues`, thêm cột `trang_thai_truoc`, `muc_truoc` vào tab Shortlist).
+Script property (không bắt buộc) `BOARD_LAYOUT` — mức của từng vị trí theo thứ tự in, cách nhau dấu phẩy;
+mặc định `B,B,B,B,A,A,A,A,A,A` (4 bài B rồi 6 bài A).
+
+## 11. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.

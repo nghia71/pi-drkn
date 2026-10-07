@@ -49,6 +49,18 @@ chọn / sửa rồi chọn / không chọn; nhận xét) — một phiếu cho 
 Thảo luận: phản biện thấy nhận xét của nhau nhưng **ẩn danh** ("Bạn", "Phản biện 1, 2…", "Ban biên tập"; không có email).
 Ngày hạn được lưu như chữ `NNNN-TT-NN` (không để Sheets đổi thành kiểu ngày). Cột `nhac` ghi các mốc đã nhắc (ví dụ `3,1`).
 
+**Bảng chọn bài** (tab Issues, Shortlist): mỗi số báo (ví dụ `10/2026`) một bảng, các vị trí theo thứ tự in, mức của vị trí theo
+`BOARD_LAYOUT`. PT, Quản trị lập bảng, xếp/bỏ/đổi chỗ, gửi TBT; TBT duyệt hoặc trả lại (bắt buộc ghi lý do); PT, TBT, Quản trị mở lại.
+Khi TBT duyệt: các bài được chọn thành SL-OK và nhận mức của vị trí (trạng thái, mức cũ ghi ở `trang_thai_truoc`, `muc_truoc`);
+mở lại một bảng đã duyệt thì trả các bài về như cũ. Bài không được chọn giữ nguyên trạng thái (thường là SL) — còn dùng cho số sau;
+SL-Fail chỉ khi TBT loại hẳn. Một bài chỉ nằm trong một bảng.
+Số báo, tên kỳ dạng `10/2026` được lưu như chữ (Sheets không đổi thành ngày); mọi ghi sửa chỉ ghi đúng các ô thay đổi.
+
+**Hình vẽ** (quy ước của Nghĩa, 2026-10-07; dựng hình ở mục "Hình" sau này):
+1. Bài cũ, đã qua vài vòng mà mất hình: vẽ lại và hiển thị.
+2. Bài mới, hình dựng được từ văn bản mà không mâu thuẫn với đề hay lời giải: vẽ.
+3. Bài mới, hình không dựng được từ văn bản hoặc mâu thuẫn: ghi một mục **Cần kiểm tra** (Checks) cho bài.
+
 Thêm cột vào mô hình: chỉ thêm ở **cuối** tab; chạy lại `setup()` để ghi tiêu đề cột mới (dữ liệu cũ giữ nguyên).
 
 Lịch sử sửa đề/lời giải (tab Revisions) chỉ những vai trò thấy mọi bài xem được — PB không xem, vì các bản trước gần với bản gốc của tác giả.

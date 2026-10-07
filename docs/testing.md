@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 77 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 86 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (77 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (86 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -160,6 +160,7 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 8.2 | Bản vá: sửa đúng một chỗ, ghi Corrections + Revisions, giữ bản gốc; chạy lại không nhân đôi | QT |
 | 8.3 | Bản vá không rõ chỗ sửa (0 hoặc nhiều chỗ khớp) thì báo lỗi, không đổi gì | QT |
 | 8.4 | Bản vá sửa đề không biến ô khác bắt đầu bằng "=" thành công thức | QT |
+| 8.5 | Nhập: một lần chạy nhập mọi tệp chờ (cũ trước), chạy lại thì báo không còn tệp; tệp mới sau đó được nhập riêng | QT |
 
 **9. Nhật ký truy cập**
 
@@ -201,6 +202,19 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 13.8 | Thảo luận ẩn danh: phản biện thấy "Bạn", "Phản biện 1", "Ban biên tập" — không có email nào; ban biên tập thấy email | T1+T2 |
 | 13.9 | Bỏ giao bài: phản biện mất quyền xem, phiếu đã nộp vẫn giữ; trang Kỳ phản biện của PB chỉ có bài của mình | T1 |
 | 13.10 | Đổi hạn: chỉ PT, Quản trị; ngày sai bị từ chối; mốc nhắc tính theo hạn mới | QT |
+| 13.11 | Kỳ phản biện tên "10/2026" (dạng ngày) vẫn giữ nguyên chữ qua giao bài, thư mời, đóng kỳ | QT |
+
+**14. Bảng chọn bài**
+
+| Mã | Kịch bản | Tài khoản |
+|---|---|---|
+| 14.1 | PT lập bảng cho một số báo; số "10/2026" lưu như chữ; bố cục mặc định 4 bài B rồi 6 bài A; NCB, TBT, PB không lập được | T1 |
+| 14.2 | Xếp bài: vị trí ngoài bố cục, bài đã đăng, bài ở bảng khác bị từ chối; đặt vào chỗ có bài thì thay; đặt lại bài đã có thì chuyển chỗ | QT |
+| 14.3 | Gửi TBT: phải đủ bài; khi chờ duyệt không sửa được; TBT trả lại phải ghi lý do; số báo không bị đổi thành ngày | T1 |
+| 14.4 | TBT duyệt: bài được chọn thành SL-OK và nhận mức của vị trí; bài khác giữ nguyên; PT không duyệt được | T1 |
+| 14.5 | Mở lại sau khi duyệt để thay bài: trạng thái, mức trả về như trước; bài bị thay giữ trạng thái cũ; duyệt lại thì bài mới thành SL-OK | T1 |
+| 14.6 | Đổi chỗ hai vị trí: thứ tự đổi, mức đi theo vị trí | QT |
+| 14.7 | Trang bảng chọn bài: mỗi bài kèm tóm tắt phiếu phản biện, chấm kiểm tra/xung đột và bảng đang giữ bài | QT |
 
 <!-- bảng tự sinh: hết -->
 
@@ -354,7 +368,8 @@ Bước 7: chip trạng thái đổi thành SL; ô trạng thái của TBT có "
 **Trước khi bắt đầu.** Sau lần triển khai có tính năng này: `setup()` và `installReminderTrigger()` (mục 9 của setup.md).
 `resetPractice` (T1, T2 là PB; kỳ K-THU có hạn 14 ngày nữa).
 **Các bước.**
-1. *(QT)* Nút **Kỳ phản biện** → Mở kỳ mới: tên `PB-THU-2`, hạn = 3 ngày nữa → Mở kỳ.
+1. *(QT)* Nút **Kỳ phản biện** → Mở kỳ mới: tên `PB-THU-2`, hạn = 3 ngày nữa **theo giờ Việt Nam** (dòng đầu trang ghi "hôm nay là …";
+   sau khi mở, kỳ phải hiện "còn 3 ngày") → Mở kỳ.
 2. *(QT)* Ở kỳ PB-THU-2: giao THU-03 cho T1, rồi THU-03 cho T2, rồi THU-01 cho T1 (ô Giao bài / cho / Giao).
 3. *(QT)* Bấm **Gửi thư mời (2 người chưa mời)**.
 4. *(T1, T2)* Mở hộp thư của mình.
@@ -371,12 +386,32 @@ Bước 5: lần đầu nhắc "Hãy chọn đề nghị"; sau khi xong, phiếu
 Bước 6: nhận xét của T1 ghi **Phản biện 1**, của mình ghi **Bạn**; không thấy email của ai; không có mục Phiếu phản biện của người khác.
 Bước 7: QT thấy phiếu của T1 kèm email; Thảo luận có email thật; bảng kỳ: 3 phân công · 1 phiếu · 1 xong.
 Bước 8: lần 1 gửi thư "Nhắc: còn 3 ngày" cho T1 (còn THU-01) và T2 — không gửi cho bài đã xong; cột Đã nhắc "3 ngày"; lần 2 không gửi gì.
+Execution log giải thích từng kỳ: "Hôm nay … (Asia/Ho_Chi_Minh)", "Kỳ PB-THU-2: hạn …, còn 3 ngày → nhắc 2 người (bỏ qua: …)".
+Nếu log ghi "còn 2 ngày" (hoặc 4): hạn chưa đúng 3 ngày theo giờ Việt Nam — dùng **Lưu hạn** để sửa rồi chạy lại.
 Bước 9: kỳ hiện "đóng", không còn nút; T1 không còn thấy THU-03 (vẫn thấy THU-01, THU-02 của kỳ K-THU).
+
+### B14 — Bảng chọn bài: lập, xếp, gửi, trả lại, duyệt, mở lại
+**Tình huống.** PT xếp bài cho một số báo; TBT trả lại một lần rồi duyệt; sau đó cần thay bài. Chỉ dùng **bài luyện** — không động tới bài thật.
+**Trước khi bắt đầu.** Sau lần triển khai có tính năng này: `setup()` (mục 10 của setup.md).
+`resetPractice`. Script properties → thêm tạm `BOARD_LAYOUT` = `B,B` (bảng 2 vị trí). Sheet → tab Users → T1 = `PT`, T2 = `TBT`.
+**Các bước.**
+1. *(T1)* Nút **Bảng chọn bài** → Lập bảng cho số báo `THU-99/2026` (số báo bắt đầu bằng THU- là bảng luyện).
+2. *(T1)* Vị trí 1 chọn **THU-02**, vị trí 2 chọn **THU-01** (chỉ chọn bài THU-…; danh sách có cả bài thật).
+3. *(T1)* Bấm ↓ ở vị trí 1 (đổi chỗ); bấm × ở vị trí 2 rồi chọn lại THU-02. Bấm **Gửi TBT duyệt**.
+4. *(T2)* **Bảng chọn bài** → **Trả lại…**, ghi `Đổi chỗ hai bài` → Trả lại.
+5. *(T1)* Mở lại trang Bảng chọn bài: thấy ghi chú; đổi chỗ; Gửi TBT duyệt.
+6. *(T2)* **Duyệt** → bấm lần nữa. ← Danh sách: THU-01, THU-02 có chip SL-OK.
+7. *(T2)* **Mở lại để sửa…** → bấm lần nữa. ← Danh sách.
+8. *(QT)* Xoá Script property `BOARD_LAYOUT`. `resetPractice` (xoá bảng THU-99/2026, đặt lại vai trò T1, T2).
+**Vì sao quan trọng.** Bảng chọn bài thay danh sách gửi qua email; quyết định của TBT được ghi lại và trạng thái bài đi theo quyết định.
+**Bạn sẽ thấy.** Bước 2: cột Phiếu phản biện tóm tắt các phiếu; cột Lưu ý báo bài còn mục cần kiểm tra / xung đột / khác mức.
+Bước 3: sau khi gửi, không còn ô chọn hay nút sửa. Bước 6: nút đổi thành "Bấm lần nữa để duyệt…"; sau khi duyệt, hai bài là SL-OK, mức B.
+Bước 7: hai bài trở về trạng thái Mới. VP, NCB, BTK (nếu thử) chỉ xem được bảng, không có nút.
 
 ---
 
 ## Những gì chưa kiểm thử được (vì chưa có)
 
-- Bảng chọn bài (PT đề xuất, TBT duyệt) và khoá kỳ (đang dựng — sẽ thêm kịch bản khi có).
+- Khoá kỳ: đánh số in, xuất LaTeX (đang dựng — sẽ thêm kịch bản khi có).
 - Trigger nhắc hạn chạy thật lúc 8 giờ sáng: kiểm thử tự động gọi thẳng `sendReminders` với ngày giả; trên Google, xem trang Executions sau một ngày.
 - Hai người ghi thật sự cùng một lúc trên Google (khoá ghi của Apps Script) — chỉ kiểm thử được phần "người lưu sau được báo".

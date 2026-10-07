@@ -11,6 +11,9 @@ function sheetValue(v) {
   if (v.startsWith('=')) return { v: '#ERROR!', f: v };
   // Sheets tự đổi chuỗi trông như ngày tháng thành kiểu Date
   if (/^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?)?$/.test(v.trim())) return { v: new Date(v.trim()), f: '' };
+  // "10/2026", "7/10/2026" cũng bị đổi thành ngày
+  const mdy = v.trim().match(/^(\d{1,2})\/(?:(\d{1,2})\/)?(\d{4})$/);
+  if (mdy) return { v: new Date(Date.UTC(+mdy[3], +mdy[1] - 1, mdy[2] ? +mdy[2] : 1)), f: '' };
   if (/^(TRUE|FALSE)$/i.test(v.trim())) return { v: v.trim().toUpperCase() === 'TRUE', f: '' };
   if (/^[+-]?\d+(\.\d+)?$/.test(v.trim()) && v.trim().length < 16) return { v: Number(v), f: '' };
   return { v: v, f: '' };
@@ -34,6 +37,7 @@ class Range {
     for (let i = 0; i < this.nr; i++) { const row = []; for (let j = 0; j < this.nc; j++) { const x = (this.sh.cells[this.r - 1 + i] || [])[this.c - 1 + j]; row.push(x ? x.v : ''); } out.push(row); }
     return out;
   }
+  setValue(v) { return this.setValues([[v]]); }
   setValues(vals) {
     if (vals.length !== this.nr || vals.some(r => r.length !== this.nc)) throw new Error('Kích thước dữ liệu không khớp vùng ô');
     vals.forEach((row, i) => row.forEach((v, j) => {
@@ -131,7 +135,8 @@ function makeEnv(opts) {
       createFolder: name => ({ getId: () => 'folder-' + crypto.randomUUID(), getName: () => name }),
       createFile: (name, content) => { const id = 'f-' + crypto.randomUUID(); files[id] = { name, content, trashed: false, t: Date.now() }; return fileObj(id); },
       getFileById: id => { if (!files[id]) throw new Error('Không có tệp'); return fileObj(id); },
-      searchFiles: () => { const ids = Object.keys(files).filter(i => !files[i].trashed); let k = 0; return { hasNext: () => k < ids.length, next: () => fileObj(ids[k++]) }; }
+      searchFiles: q => { const m = String(q || '').match(/title contains '([^']*)'/);
+        const ids = Object.keys(files).filter(i => !files[i].trashed && (!m || files[i].name.indexOf(m[1]) >= 0)); let k = 0; return { hasNext: () => k < ids.length, next: () => fileObj(ids[k++]) }; }
     }
   };
   function fileObj(id) {
