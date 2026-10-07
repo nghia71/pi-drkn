@@ -296,6 +296,16 @@ function defineTests_() {
     eq_(d.checks.length + d.corrections.length + d.log.length, 0);
     var l = call_(login_(A.T1), 'listProblems'); eq_(l[0].checks + l[0].conflicts + l[1].checks + l[1].conflicts, 0, 'không lộ số mục');
   });
+  test_('3.12', 'Tải gộp (bundle) cho trang: đúng như từng bài — phản biện chỉ bài được giao, ẩn danh; không có bản gốc', 'T1+QT', function () {
+    var b = call_(login_(A.T1), 'bundle', {});
+    eq_(codes_(b.rows), ['TEST-01', 'TEST-02']); eq_(Object.keys(b.details).sort(), ['TEST-01', 'TEST-02']);
+    lacks_(JSON.stringify(b), FX_AUTHOR, 'lộ tên tác giả'); lacks_(JSON.stringify(b), '.docx', 'lộ tên tệp');
+    ok_(b.details['TEST-01'].limited, 'phản biện nhận bản rút gọn');
+    var q = call_(login_(A.QT), 'bundle', {});
+    eq_(Object.keys(q.details).length, 5); eq_(q.details['TEST-01'].author.ten_in, FX_AUTHOR);
+    eq_(q.details['TEST-01'].problem.de_bai_goc, undefined, 'không gửi bản gốc'); eq_(q.details['TEST-01'].checks.length, 1);
+    ok_(!rows_('Audit').some(function (a) { return a.hanh_dong === 'xem'; }), 'tải gộp không tính là mở bài');
+  });
   test_('3.9', 'Bộ lọc chủ đề / mức / trạng thái', 'QT', function () {
     var tok = login_(A.QT);
     eq_(codes_(call_(tok, 'listProblems', { chu_de: 'ĐS' })), ['TEST-01', 'TEST-05']);

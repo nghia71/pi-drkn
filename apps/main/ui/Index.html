@@ -58,6 +58,14 @@ Promise.resolve(ME0).then(function (me) {
 
 // Nút Quay lại / Tiến của trình duyệt: dùng lịch sử của Apps Script (trang chạy trong khung của Google).
 // Không có phần này, nút Quay lại rời khỏi hệ thống, về trang "Xin chào".
+// Đo thời gian (chỉ hiện cho Quản trị, góc dưới trang) — để biết chậm ở đâu.
+function timing(what, t0) {
+  var ms = Date.now() - t0; console.log('[đo] ' + what + ': ' + ms + ' ms');
+  if (!ME || ME.roles.indexOf('Quản trị') < 0) return;
+  var el = document.getElementById('timing');
+  if (!el) { el = document.createElement('div'); el.id = 'timing'; el.style.cssText = 'position:fixed;right:8px;bottom:6px;font:11px system-ui;color:#888;background:#fff8;padding:2px 6px'; document.body.appendChild(el); }
+  el.textContent = what + ': ' + (ms / 1000).toFixed(1) + ' s';
+}
 function nav(state) { try { google.script.history.push(state, {}, state.ma || ''); } catch (e) {} }
 try {
   google.script.history.replace({}, {}, '');
@@ -73,8 +81,11 @@ var ALL = null, LIST_Y = 0;
 function loadList() {
   var L = document.getElementById('list');
   L.innerHTML = '<p class="mut">Đang tải…</p>'; showList();
-  call('listProblems', {}).then(function (rows) {
-    ALL = rows || []; LROWS = {}; ALL.forEach(function (p) { LROWS[p.ma_bai] = p; });
+  var t0 = Date.now();
+  call('bundle', {}).then(function (b) {
+    ALL = (b && b.rows) || []; LROWS = {}; ALL.forEach(function (p) { LROWS[p.ma_bai] = p; });
+    PCACHE = (b && b.details) || {};
+    timing('tải danh sách + ' + ALL.length + ' bài', t0);
     renderList();
   });
 }
@@ -109,7 +120,10 @@ function openProblem(ma) {
   if (PCACHE[ma]) renderProblem(ma, PCACHE[ma], false);
   else if (LROWS[ma]) renderProblem(ma, { problem: LROWS[ma], comments: [], limited: true, partial: true }, true);
   else P.innerHTML = '<p class="mut">Đang tải…</p>';
+  var t0 = Date.now();
   call('getProblem', { ma_bai: ma }).then(function (d) {
+    timing('làm mới ' + ma, t0);
+    if (d && d.problem) { delete d.problem.de_bai_goc; delete d.problem.loi_giai_goc; }
     if (!d) { alertBox('Không tải được bài ' + ma + '. Hãy thử lại.'); return; }
     var same = PCACHE[ma] && JSON.stringify(PCACHE[ma]) === JSON.stringify(d);
     PCACHE[ma] = d;

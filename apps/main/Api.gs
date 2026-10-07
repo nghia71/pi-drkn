@@ -9,11 +9,13 @@ var EDITORS = ['NCB', 'PT', 'Quản trị'];
 var CONTACT_VIEWERS = ['VP', 'PT', 'TBT', 'Quản trị'];
 var ALL_PROBLEMS_VIEWERS = ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'];
 
-var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1 };
+var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1 };
 
 function api(token, method, args) {
   READ_MEMO_ = READ_ONLY_[method] ? {} : null;
   try {
+    if (method === 'bundle') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
+                                        'Checks', 'Conflicts', 'ConversionLog', 'Comments']);
     if (method === 'listProblems') prefetch_(['Users', 'Problems', 'Authors', 'Checks', 'Conflicts', 'Rounds', 'Assignments']);
     if (method === 'getProblem') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
                                             'Checks', 'Conflicts', 'ConversionLog', 'Comments']);
@@ -28,6 +30,7 @@ function api_(token, method, args) {
     case 'me': return { email: w.email, name: w.name, roles: w.roles, eff: w.eff };
     case 'listProblems': return listProblems_(w, args);
     case 'getProblem': return getProblem_(w, args.ma_bai);
+    case 'bundle': return bundle_(w);
     case 'saveText': return saveText_(w, args);
     case 'addComment': return addComment_(w, args);
     case 'addCheck': return addProp_(w, 'Checks', args);
@@ -81,7 +84,21 @@ function countBy_(tab, pred) {
   return m;
 }
 
-function getProblem_(w, ma) {
+/**
+ * Một lần gọi cho cả trang: danh sách + chi tiết mọi bài người này được xem (cùng quy tắc với getProblem_).
+ * Trình duyệt giữ sẵn, nên mở bài hiện ngay; mỗi lần mở bài vẫn gọi getProblem (chạy nền) để ghi nhật ký và lấy thảo luận mới.
+ */
+function bundle_(w) {
+  var rows = listProblems_(w, {}), details = {};
+  rows.forEach(function (p) {
+    var d = getProblem_(w, p.ma_bai, true);
+    if (d.problem) { delete d.problem.de_bai_goc; delete d.problem.loi_giai_goc; }   // giao diện không dùng; bớt dung lượng
+    details[p.ma_bai] = d;
+  });
+  return { rows: rows, details: details };
+}
+
+function getProblem_(w, ma, noAudit) {
   var full = has_(w, ALL_PROBLEMS_VIEWERS);
   var assigned = assignedSet_(w);
   // kiểm tra quyền TRƯỚC khi tra bài: người không có quyền không phân biệt được "không có bài" với "không được xem"
@@ -104,7 +121,7 @@ function getProblem_(w, ma) {
     var a = findRow_('Authors', 'tac_gia_id', p.tac_gia_id);
     out.author = a ? { ten_in: a.data.ten_in, don_vi: a.data.don_vi, lien_he: has_(w, CONTACT_VIEWERS) ? a.data.lien_he : undefined } : null;
   }
-  audit_(w.email, 'xem', ma);
+  if (!noAudit) audit_(w.email, 'xem', ma);
   return out;
 }
 

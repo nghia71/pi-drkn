@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 50 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 51 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (50 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (51 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -99,6 +99,7 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 3.9 | Bộ lọc chủ đề / mức / trạng thái | QT |
 | 3.10 | Phân công gõ email có chữ hoa vẫn có hiệu lực | T2 |
 | 3.11 | Người có hai vai trò (PB + NCB) nhận quyền rộng hơn | T1 |
+| 3.12 | Tải gộp (bundle) cho trang: đúng như từng bài — phản biện chỉ bài được giao, ẩn danh; không có bản gốc | T1+QT |
 
 **4. Sửa đề / lời giải**
 
