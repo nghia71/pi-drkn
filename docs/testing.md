@@ -178,7 +178,7 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 
 | Mã | Kịch bản | Tài khoản |
 |---|---|---|
-| 11.1 | resetPractice tạo 3 bài luyện + kỳ K-THU, chạy lại không nhân đôi, không chạm bài thật | QT |
+| 11.1 | resetPractice tạo 10 bài luyện (4 B, 6 A) + kỳ K-THU, chạy lại không nhân đôi, không chạm bài thật | QT |
 | 11.2 | Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy | T1+T2 |
 
 **12. Hàm quản trị**
@@ -231,8 +231,9 @@ thì đúng các kịch bản tương ứng báo LỖI.
 ### Bài luyện tập và nút đặt lại
 
 Trình soạn thảo dự án chính → chọn `resetPractice` → Run. Việc này:
-- xoá mọi dòng THU-… và kỳ K-THU cũ, rồi tạo lại ba bài luyện (bịa) THU-01 (ĐS), THU-02 (HH), THU-03 (SH);
-- mở kỳ luyện tập K-THU: THU-01 → T1; THU-02 → T1 và T2; THU-03 → không ai;
+- xoá mọi dòng THU-… (bài, bảng chọn bài, số in đã ghi…) và kỳ K-THU cũ, rồi tạo lại mười bài luyện (bịa) THU-01 … THU-10
+  (THU-01…THU-04 mức B, THU-05…THU-10 mức A — đủ một bảng chọn bài 10 vị trí);
+- mở kỳ luyện tập K-THU: THU-01 → T1; THU-02 → T1 và T2; THU-03 … THU-10 → không ai;
 - đặt T1, T2 làm PB.
 
 Không bài thật nào bị đụng tới. Ban biên tập (TBT, NCB…) không thấy bài luyện; chỉ Quản trị và người được giao thấy.
@@ -393,20 +394,21 @@ Bước 9: kỳ hiện "đóng", không còn nút; T1 không còn thấy THU-03 
 ### B14 — Bảng chọn bài: lập, xếp, gửi, trả lại, duyệt, mở lại
 **Tình huống.** PT xếp bài cho một số báo; TBT trả lại một lần rồi duyệt; sau đó cần thay bài. Chỉ dùng **bài luyện** — không động tới bài thật.
 **Trước khi bắt đầu.** Sau lần triển khai có tính năng này: `setup()` (mục 10 của setup.md).
-`resetPractice`. Script properties → thêm tạm `BOARD_LAYOUT` = `B,B` (bảng 2 vị trí). Sheet → tab Users → T1 = `PT`, T2 = `TBT`.
+`resetPractice` (tạo đủ 10 bài luyện THU-01 … THU-10). Sheet → tab Users → T1 = `PT`, T2 = `TBT`. Không cần đổi `BOARD_LAYOUT` (bố cục mặc định 4 B, 6 A).
 **Các bước.**
 1. *(T1)* Nút **Bảng chọn bài** → Lập bảng cho số báo `THU-99/2026` (số báo bắt đầu bằng THU- là bảng luyện).
-2. *(T1)* Vị trí 1 chọn **THU-02**, vị trí 2 chọn **THU-01** (chỉ chọn bài THU-…; danh sách có cả bài thật).
+2. *(T1)* Vị trí 1 chọn **THU-02**, vị trí 2 chọn **THU-01**, vị trí 3 → 10 lần lượt chọn THU-03 … THU-10 (chỉ chọn bài THU-…; danh sách có cả bài thật).
+   Nút **Gửi TBT duyệt** chỉ bấm được khi đủ 10 bài — bên cạnh nút ghi vị trí còn trống.
 3. *(T1)* Bấm ↓ ở vị trí 1 (đổi chỗ); bấm × ở vị trí 2 rồi chọn lại THU-02. Bấm **Gửi TBT duyệt**.
 4. *(T2)* **Bảng chọn bài** → **Trả lại…**, ghi `Đổi chỗ hai bài` → Trả lại.
 5. *(T1)* Mở lại trang Bảng chọn bài: thấy ghi chú; đổi chỗ; Gửi TBT duyệt.
 6. *(T2)* **Duyệt** → bấm lần nữa. ← Danh sách: THU-01, THU-02 có chip SL-OK.
 7. *(T2)* **Mở lại để sửa…** → bấm lần nữa. ← Danh sách.
-8. *(QT)* Xoá Script property `BOARD_LAYOUT`. `resetPractice` (xoá bảng THU-99/2026, đặt lại vai trò T1, T2).
+8. *(QT)* `resetPractice` (xoá bảng THU-99/2026, đưa mười bài luyện về như mới, đặt lại vai trò T1, T2).
 **Vì sao quan trọng.** Bảng chọn bài thay danh sách gửi qua email; quyết định của TBT được ghi lại và trạng thái bài đi theo quyết định.
 **Bạn sẽ thấy.** Bước 2: cột Phiếu phản biện tóm tắt các phiếu; cột Lưu ý báo bài còn mục cần kiểm tra / xung đột / khác mức.
-Bước 3: sau khi gửi, không còn ô chọn hay nút sửa. Bước 6: nút đổi thành "Bấm lần nữa để duyệt…"; sau khi duyệt, hai bài là SL-OK, mức B.
-Bước 7: hai bài trở về trạng thái Mới. VP, NCB, BTK (nếu thử) chỉ xem được bảng, không có nút.
+Bước 3: sau khi gửi, không còn ô chọn hay nút sửa. Bước 6: nút đổi thành "Bấm lần nữa để duyệt…"; sau khi duyệt, mười bài là SL-OK; THU-01…THU-04 mức B, THU-05…THU-10 mức A (mức của vị trí).
+Bước 7: mười bài trở về trạng thái Mới. VP, NCB, BTK (nếu thử) chỉ xem được bảng, không có nút.
 
 ---
 

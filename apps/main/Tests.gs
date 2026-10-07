@@ -74,6 +74,7 @@ function runOne_(t) {
     if (t.fresh) seed_();
     TEST_CONF.BLIND_REVIEW = 'true';
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
+    delete TEST_CONF.EXPORT_FOLDER_ID; delete TEST_CONF.FIG_FOLDER_ID;
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
   TK.results.push([t.id, t.title, t.who, ok ? 'ĐẠT' : 'LỖI', msg, Date.now() - t1]);
@@ -675,26 +676,36 @@ function defineTests_() {
   });
 
   // 11. Bài luyện tập (dùng cho kiểm thử bằng tay)
-  test_('11.1', 'resetPractice tạo 3 bài luyện + kỳ K-THU, chạy lại không nhân đôi, không chạm bài thật', 'QT', function () {
+  test_('11.1', 'resetPractice tạo 10 bài luyện (4 B, 6 A) + kỳ K-THU, chạy lại không nhân đôi, không chạm bài thật', 'QT', function () {
     resetPractice(); resetPractice();
-    eq_(rows_('Problems').filter(function (p) { return p.ma_bai.indexOf('THU-') === 0; }).length, 3);
+    eq_(rows_('Problems').filter(function (p) { return p.ma_bai.indexOf('THU-') === 0; }).length, 10);
+    eq_(rows_('Problems').filter(function (p) { return p.ma_bai.indexOf('THU-') === 0 && p.muc === 'B'; }).length, 4, 'đủ cho bố cục mặc định');
     eq_(rows_('Problems').filter(function (p) { return p.ma_bai.indexOf('TEST-') === 0; }).length, 5, 'bài khác giữ nguyên');
     eq_(rows_('Assignments').filter(function (a) { return a.ky === 'K-THU'; }).length, 3);
     eq_(rows_('Rounds').filter(function (r) { return r.ky === 'K-THU'; }).length, 1);
     eq_(daysUntil_(dateOnly_(findRow_('Rounds', 'ky', 'K-THU').data.han_phan_bien)), 14, 'kỳ luyện có hạn 14 ngày');
     // bảng chọn bài luyện (số báo THU-…) cũng được dọn
-    TEST_CONF.BOARD_LAYOUT = 'B,B'; var tok = login_(A.QT);
-    call_(tok, 'newBoard', { so: 'THU-99/2026' }); call_(tok, 'place', { so: 'THU-99/2026', vi_tri: 1, ma_bai: 'THU-01' });
+    // … và một bảng luyện đủ 10 vị trí (bố cục mặc định), đã khoá kỳ — Published của bài luyện cũng được dọn
+    var tok = login_(A.QT), so = 'THU-99/2026';
+    call_(tok, 'newBoard', { so: so });
+    ['THU-01', 'THU-02', 'THU-03', 'THU-04', 'THU-05', 'THU-06', 'THU-07', 'THU-08', 'THU-09', 'THU-10']
+      .forEach(function (m, i) { call_(tok, 'place', { so: so, vi_tri: i + 1, ma_bai: m }); });
+    call_(tok, 'submitBoard', { so: so });
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' }); call_(login_(A.T1), 'approveBoard', { so: so });
+    var ex = DriveApp.createFolder('Pi ĐRKN — kiểm thử xuất (xoá được)'); TEST_CONF.EXPORT_FOLDER_ID = ex.getId();
+    try { call_(tok, 'closeIssue', { so: so, bat_dau: '9001', xac_nhan: true }); } finally { ex.setTrashed(true); }
+    eq_(rows_('Published').length, 10);
     call_(tok, 'newBoard', { so: '10/2026' });
     resetPractice();
     eq_(rows_('Issues').map(function (i) { return String(i.so); }), ['10/2026'], 'chỉ xoá bảng luyện');
-    eq_(rows_('Shortlist').length, 0);
+    eq_(rows_('Shortlist').length, 0); eq_(rows_('Published').length, 0);
+    eq_(findRow_('Problems', 'ma_bai', 'THU-01').data.trang_thai, 'Mới', 'bài luyện trở lại như mới');
   });
   test_('11.2', 'Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy', 'T1+T2', function () {
     resetPractice();
     eq_(codes_(call_(login_(A.T1), 'listProblems')).filter(function (c) { return c.indexOf('THU-') === 0; }), ['THU-01', 'THU-02']);
     eq_(codes_(call_(login_(A.T2), 'listProblems')).filter(function (c) { return c.indexOf('THU-') === 0; }), ['THU-02']);
-    eq_(call_(login_(A.QT), 'listProblems').length, 8);
+    eq_(call_(login_(A.QT), 'listProblems').length, 15);
     setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'NCB' });
     putRows_('Assignments', []);
     eq_(call_(login_(A.T1), 'listProblems').length, 5, 'TBT không thấy bài luyện');
@@ -986,6 +997,141 @@ function defineTests_() {
     eq_(by['TEST-01'].checks, 1); eq_(by['TEST-01'].conflicts, 1); eq_(by['TEST-01'].bang, '');
   });
 
+  // 15. Khoá kỳ: số in, tệp .tex chỉ có đề bài, Published, PL
+  var L4 = function () { TEST_CONF.BOARD_LAYOUT = 'B,B,A,A'; };
+  /** Bảng 10/2026 đã duyệt: TEST-04 (TH), TEST-02 (HH) ở vị trí B; TEST-01 (ĐS), TEST-03 (SH) ở vị trí A. QT = Quản trị, T1 = TBT. */
+  var approved4 = function () {
+    L4(); setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    var pt = login_(A.QT);
+    call_(pt, 'newBoard', { so: '10/2026' });
+    placeAll(pt, '10/2026', ['TEST-04', 'TEST-02', 'TEST-01', 'TEST-03']);
+    call_(pt, 'submitBoard', { so: '10/2026' }); call_(login_(A.T1), 'approveBoard', { so: '10/2026' });
+    return pt;
+  };
+  /** Thư mục Drive tạm cho tệp xuất (và thư mục hình), xoá sau kịch bản. */
+  var withFolders = function (fn) {
+    var ex = DriveApp.createFolder('Pi ĐRKN — kiểm thử xuất (xoá được)'), fig = DriveApp.createFolder('Pi ĐRKN — kiểm thử hình (xoá được)');
+    TEST_CONF.EXPORT_FOLDER_ID = ex.getId(); TEST_CONF.FIG_FOLDER_ID = fig.getId();
+    try { fn(ex, fig); } finally { ex.setTrashed(true); fig.setTrashed(true); }
+  };
+  var zipNames = function (url) {
+    var id = String(url).replace(/^.*\/d\/([^/?]+).*$/, '$1');
+    var out = {}; Utilities.unzip(DriveApp.getFileById(id).getBlob()).forEach(function (b) { out[b.getName()] = b; });
+    return out;
+  };
+  test_('15.1', 'Xem trước khoá kỳ: chỉ bảng đã duyệt; thứ tự B rồi A, trong mức SH, ĐS, HH, TH; Published trống thì không gợi ý số; NCB, PB, BTK không xem được', 'QT', function () {
+    L4(); var pt = login_(A.QT);
+    call_(pt, 'newBoard', { so: '10/2026' });
+    throws_(function () { call_(pt, 'closePreview', { so: '10/2026' }); }, 'đã được TBT duyệt');
+    putRows_('Issues', []); putRows_('Shortlist', []);
+    approved4();
+    var v = call_(pt, 'closePreview', { so: '10/2026' });
+    eq_(v.goi_y, null); eq_(v.bat_dau, null); eq_(v.tex, '');
+    eq_(v.items.map(function (i) { return i.ma_bai; }), ['TEST-02', 'TEST-04', 'TEST-03', 'TEST-01']);
+    v = call_(pt, 'closePreview', { so: '10/2026', bat_dau: 'P1041' });
+    eq_(v.items.map(function (i) { return i.so_in; }), ['P1041', 'P1042', 'P1043', 'P1044']);
+    eq_(v.blockers, []);
+    ok_(v.warnings.some(function (x) { return x.indexOf('TEST-01: còn 1 mục cần kiểm tra') === 0; }), 'báo mục cần kiểm tra');
+    ok_(v.warnings.some(function (x) { return x.indexOf('TEST-01: còn 1 xung đột mở') === 0; }), 'báo xung đột mở');
+    ['NCB', 'PB', 'BTK'].forEach(function (r) {
+      setUsers_({ QT: 'Quản trị', T1: r, T2: 'PB' });
+      throws_(function () { call_(login_(A.T1), 'closePreview', { so: '10/2026' }); }, 'Không có quyền');
+    });
+  });
+  test_('15.2', 'Số in gợi ý = số lớn nhất trong Published + 1', 'QT', function () {
+    approved4();
+    putRows_('Published', [{ ma_bai: 'CU-1', so_tap_chi: "'9/2026", so_in: 'P1040', ngay: now_() },
+                           { ma_bai: 'CU-2', so_tap_chi: "'9/2026", so_in: 'P0999', ngay: now_() }]);
+    var v = call_(login_(A.QT), 'closePreview', { so: '10/2026' });
+    eq_(v.goi_y, 1041); eq_(v.items[0].so_in, 'P1041'); has_s_(v.tex, '\\setcounter{stthuc}{1040}');
+  });
+  test_('15.3', 'Khoá kỳ: phải xác nhận lưu ý; ghi Published, bài thành PL kèm số in; bảng "đã khoá", không mở lại, không sửa, không khoá lần hai', 'T1', function () {
+    approved4();
+    withFolders(function () {
+      var tbt = login_(A.T1);
+      throws_(function () { call_(tbt, 'closeIssue', { so: '10/2026', bat_dau: '1041' }); }, 'cần xác nhận');
+      eq_(rows_('Published').length, 0, 'chưa ghi gì');
+      var r = call_(tbt, 'closeIssue', { so: '10/2026', bat_dau: '1041', xac_nhan: true });
+      eq_(r.so_in, ['TEST-02 → P1041', 'TEST-04 → P1042', 'TEST-03 → P1043', 'TEST-01 → P1044']);
+      var pub = rows_('Published');
+      eq_(pub.map(function (x) { return [x.ma_bai, x.so_tap_chi, x.so_in]; }),
+          [['TEST-02', '10/2026', 'P1041'], ['TEST-04', '10/2026', 'P1042'], ['TEST-03', '10/2026', 'P1043'], ['TEST-01', '10/2026', 'P1044']]);
+      var g = function (m) { return findRow_('Problems', 'ma_bai', m).data; };
+      eq_([g('TEST-02').trang_thai, g('TEST-02').so_in, g('TEST-02').dang], ['PL', 'P1041', '10/2026']);
+      var i = findRow_('Issues', 'so', '10/2026').data; eq_(i.trang_thai, 'đã khoá'); ok_(i.tep, 'có đường dẫn tệp xuất'); ok_(i.khoa_luc);
+      ok_(auditHas_('khoá kỳ', 'TEST-02 → P1041'));
+      throws_(function () { call_(tbt, 'reopenBoard', { so: '10/2026' }); }, 'đã khoá kỳ');
+      throws_(function () { call_(login_(A.QT), 'unplace', { so: '10/2026', vi_tri: 1 }); }, 'mở lại trước khi sửa');
+      throws_(function () { call_(tbt, 'closeIssue', { so: '10/2026', bat_dau: '1051', xac_nhan: true }); }, 'đã được TBT duyệt');
+      eq_(rows_('Published').length, 4);
+      eq_(call_(tbt, 'boards').boards[0].trang_thai, 'đã khoá');
+    });
+  });
+  test_('15.4', 'Số in trùng với Published hoặc không hợp lệ bị từ chối, không ghi gì', 'QT', function () {
+    approved4();
+    putRows_('Published', [{ ma_bai: 'CU-1', so_tap_chi: "'9/2026", so_in: 'P1042', ngay: now_() }]);
+    withFolders(function (ex) {
+      var pt = login_(A.QT);
+      throws_(function () { call_(pt, 'closeIssue', { so: '10/2026', bat_dau: '1041', xac_nhan: true }); }, 'Số in đã dùng: P1042 (CU-1)');
+      throws_(function () { call_(pt, 'closeIssue', { so: '10/2026', bat_dau: 'abc', xac_nhan: true }); }, 'số nguyên dương');
+      throws_(function () { call_(pt, 'closeIssue', { so: '10/2026', bat_dau: '0', xac_nhan: true }); }, 'số nguyên dương');
+      eq_(rows_('Published').length, 1); eq_(findRow_('Problems', 'ma_bai', 'TEST-02').data.trang_thai, 'SL-OK');
+      eq_(findRow_('Issues', 'so', '10/2026').data.trang_thai, 'đã duyệt');
+      ok_(!ex.getFilesByName('de-ra-ky-nay-10-2026.zip').hasNext(), 'không lưu tệp xuất');
+    });
+  });
+  test_('15.5', 'Thiếu tên tác giả để in hoặc đề trống thì chặn khoá (dù đã xác nhận)', 'QT', function () {
+    approved4();
+    var hit = findRow_('Authors', 'tac_gia_id', 'TG2'); update_('Authors', hit.row, { ten_in: ' ' });
+    var pt = login_(A.QT), v = call_(pt, 'closePreview', { so: '10/2026', bat_dau: '1041' });
+    eq_(v.blockers, ['TEST-04: thiếu tên tác giả để in']);
+    throws_(function () { call_(pt, 'closeIssue', { so: '10/2026', bat_dau: '1041', xac_nhan: true }); }, 'thiếu tên tác giả');
+    update_('Authors', hit.row, { ten_in: 'Người Viết Khác' });
+    var p = findRow_('Problems', 'ma_bai', 'TEST-03'); update_('Problems', p.row, { de_bai: '' });
+    throws_(function () { call_(pt, 'closeIssue', { so: '10/2026', bat_dau: '1041', xac_nhan: true }); }, 'TEST-03: đề bài trống');
+    eq_(rows_('Published').length, 0);
+  });
+  test_('15.6', 'Tệp .tex: chỉ đề bài, theo mẫu cột (setcounter, thụt dòng, dòng tác giả); không lời giải, ghi chú, liên hệ; **đậm**/*nghiêng* ngoài công thức; NFC', 'QT', function () {
+    approved4();
+    var p = findRow_('Problems', 'ma_bai', 'TEST-02');
+    var au = findRow_('Authors', 'tac_gia_id', 'TG2'); update_('Authors', au.row, { ten_in: 'Người Vie\u0302\u0301t Khác' });
+    update_('Problems', p.row, { de_bai: 'Cho **tam giác** $a*b*c$ và *đẹp* cafe\u0301.\n\\begin{enumerate}\n\\item Ý một.\n\\end{enumerate}' });
+    var t = call_(login_(A.QT), 'closePreview', { so: '10/2026', bat_dau: '1041' }).tex;
+    has_s_(t, '\\input{structure/dinhdang}'); has_s_(t, '\\setcounter{stthuc}{1040}'); has_s_(t, '\\graphicspath{{pic/}}');
+    eq_(t.split('\\thachthuc (Mức $B$)').length - 1, 2); eq_(t.split('\\thachthuc (Mức $A$)').length - 1, 2);
+    has_s_(t, '\n\\thachthuc (Mức $B$)\n  Cho \\textbf{tam giác} $a*b*c$ và \\emph{đẹp} caf\u00e9.\n  \\begin{enumerate}\n    \\item Ý một.\n  \\end{enumerate}\n');
+    has_s_(t, '\\begin{flushright}\n\\textit{' + FX_AUTHOR + ' (Trường Thử)}\n\\end{flushright}');
+    has_s_(t, '\\textit{Người Viết Khác}\n');
+    ['Lời giải thử', 'Đề gốc', FX_CONTACT, 'mục cần kiểm tra', 'Tên in ' + FX_AUTHOR, '\\usepackage{mathrsfs}\n\\usepackage'].forEach(function (x) { lacks_(t, x); });
+    lacks_(t, 'e\u0301', 'phải ở dạng NFC');
+    ok_(t.indexOf('P1041 — Mức B — Hình học — TEST-02') < t.indexOf('P1042 — Mức B — Tổ hợp — TEST-04'), 'thứ tự');
+    has_s_(t.slice(-16), '\\end{document}\n');
+  });
+  test_('15.7', 'Hình: TikZ đặt ngay trong tệp; hình ảnh vào pic/ của zip; hình thiếu được báo; BTK tải lại được tệp của số đã khoá', 'QT', function () {
+    approved4();
+    var set = function (m, h) { var p = findRow_('Problems', 'ma_bai', m); update_('Problems', p.row, { hinh: h }); };
+    set('TEST-02', '\\begin{tikzpicture}\\draw (0,0)--(1,1);\\end{tikzpicture}');
+    set('TEST-03', 'hinh-thu.png'); set('TEST-01', 'khong-co.png');
+    withFolders(function (ex, fig) {
+      fig.createFile(Utilities.newBlob('ảnh thử', 'image/png', 'hinh-thu.png'));
+      var pt = login_(A.QT);
+      var r = call_(pt, 'closeIssue', { so: '10/2026', bat_dau: '7', xac_nhan: true });
+      eq_(r.missing_pics, ['khong-co.png']); eq_(r.name, 'de-ra-ky-nay-10-2026.zip');
+      var z = zipNames(r.url);
+      eq_(Object.keys(z).sort(), ['de-ra-ky-nay-10-2026.tex', 'pic/hinh-thu.png']);
+      eq_(z['pic/hinh-thu.png'].getDataAsString(), 'ảnh thử');
+      var t = z['de-ra-ky-nay-10-2026.tex'].getDataAsString();
+      has_s_(t, '\\setcounter{stthuc}{6}');
+      has_s_(t, '\\begin{center}\n\\begin{tikzpicture}\\draw (0,0)--(1,1);\\end{tikzpicture}\n\\end{center}');
+      has_s_(t, '\\includegraphics[width=0.45\\textwidth]{hinh-thu.png}');
+      setUsers_({ QT: 'Quản trị', T1: 'BTK', T2: 'PB' });
+      var e = call_(login_(A.T1), 'exportOf', { so: '10/2026' });
+      eq_(e.url, r.url); eq_(e.tex, t, 'tệp tải lại giống tệp đã lưu');
+      setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'PB' });
+      throws_(function () { call_(login_(A.T1), 'exportOf', { so: '10/2026' }); }, 'Không có quyền');
+    });
+  });
+
   // 10. Hiển thị công thức (bộ hiển thị chạy trong Apps Script, giống trình duyệt)
   test_('10.1', 'Bộ hiển thị: macro của Pi, công thức, chặn HTML', 'QT', function () {
     var h = renderInGas_('Cho \\dtr $(O)$. <b>đậm giả</b> \\textbf{đậm thật}');
@@ -1008,7 +1154,8 @@ function renderInGas_(src) {
  * Giống "practice teams" của MCC: ba bài bịa THU-01..03 và kỳ "K-THU" sống trong dữ liệu THẬT để kiểm thử
  * bằng trình duyệt với ba tài khoản thật. Chỉ Quản trị và người được giao thấy chúng.
  * resetPractice(): xoá mọi dòng THU-… / K-THU rồi tạo lại; không chạm bài thật. Chạy trước mỗi buổi kiểm thử tay.
- *   THU-01 → giao T1;  THU-02 → giao T1 và T2;  THU-03 → không giao ai.  T1, T2 được đặt vai trò PB.
+ *   THU-01 → giao T1;  THU-02 → giao T1 và T2;  THU-03…THU-10 → không giao ai.  T1, T2 được đặt vai trò PB.
+ *   10 bài (4 mức B, 6 mức A) — đủ một bảng chọn bài theo bố cục mặc định (B14, B15).
  */
 var PRACTICE_PREFIX = 'THU-', PRACTICE_ROUND = 'K-THU';
 
@@ -1035,9 +1182,17 @@ function resetPractice() {
   var t = now_();
   [['THU-01', 'ĐS', 'Bài luyện 1 (bịa, để kiểm thử): Cho $a,b>0$ và $a+b=2$. Chứng minh $ab\\le 1$.', 'Theo AM-GM, $ab\\le\\left(\\frac{a+b}{2}\\right)^2=1$.'],
    ['THU-02', 'HH', 'Bài luyện 2 (bịa, để kiểm thử): Tam giác $ABC$ vuông tại $A$. Chứng minh $BC^2=AB^2+AC^2$.', 'Định lý Pythagore.\n\n$$BC^2=AB^2+AC^2.$$'],
-   ['THU-03', 'SH', 'Bài luyện 3 (bịa, để kiểm thử): Tìm số nguyên dương $n$ nhỏ nhất để $n^2+1$ chia hết cho $5$.', '$n=2$.']]
+   ['THU-03', 'SH', 'Bài luyện 3 (bịa, để kiểm thử): Tìm số nguyên dương $n$ nhỏ nhất để $n^2+1$ chia hết cho $5$.', '$n=2$.'],
+   // THU-04…THU-10: cho đủ một bảng chọn bài 10 vị trí (4 B, 6 A) — không giao phản biện
+   ['THU-04', 'TH', 'Bài luyện 4 (bịa, để kiểm thử): Có bao nhiêu cách xếp $3$ bạn vào $3$ ghế?', '$3!=6$.'],
+   ['THU-05', 'SH', 'Bài luyện 5 (bịa, để kiểm thử): Chứng minh $n^3-n$ chia hết cho $6$ với mọi số nguyên $n$.', '$n^3-n=(n-1)n(n+1)$.', 'A'],
+   ['THU-06', 'ĐS', 'Bài luyện 6 (bịa, để kiểm thử): Giải phương trình $x^2-5x+6=0$.', '$x=2$ hoặc $x=3$.', 'A'],
+   ['THU-07', 'HH', 'Bài luyện 7 (bịa, để kiểm thử): Hình vuông cạnh $2$ có đường chéo dài bao nhiêu?', '$2\\sqrt2$.', 'A'],
+   ['THU-08', 'TH', 'Bài luyện 8 (bịa, để kiểm thử): Có bao nhiêu tập con của tập $\\{1,2,3\\}$?', '$2^3=8$.', 'A'],
+   ['THU-09', 'ĐS', 'Bài luyện 9 (bịa, để kiểm thử): Cho $x>0$. Chứng minh $x+\\frac1x\\ge 2$.', 'AM-GM.', 'A'],
+   ['THU-10', 'SH', 'Bài luyện 10 (bịa, để kiểm thử): Tìm ước chung lớn nhất của $12$ và $18$.', '$6$.', 'A']]
   .forEach(function (b) {
-    append_('Problems', { ma_bai: b[0], chu_de: b[1], muc: 'B', trang_thai: 'Mới', loai: 'thử', tac_gia_id: 'THU-TG',
+    append_('Problems', { ma_bai: b[0], chu_de: b[1], muc: b[4] || 'B', trang_thai: 'Mới', loai: 'thử', tac_gia_id: 'THU-TG',
                           de_bai: b[2], loi_giai: b[3], de_bai_goc: b[2], loi_giai_goc: b[3], phien_ban: 1, cap_nhat: t, nguoi_cap_nhat: 'resetPractice' });
     append_('Provenance', { ma_bai: b[0], thu_muc: '(bài luyện)', tep_goc: 'Tác Giả Luyện Tập - ' + b[0] + '.docx', kenh: 'kiểm thử' });
   });
@@ -1051,7 +1206,7 @@ function resetPractice() {
     if (hit) update_('Users', hit.row, { vai_tro: 'PB', hoat_dong: true });
     else append_('Users', { email: u, ten: 'Tài khoản thử ' + (k + 1), vai_tro: 'PB', hoat_dong: true, ghi_chu: 'kiểm thử' });
   });
-  var msg = 'Đã đặt lại bài luyện tập (xoá ' + removed + ' dòng cũ): THU-01 → ' + users[0] + '; THU-02 → ' + users[0] + ', ' + users[1] + '; THU-03 → không ai.';
+  var msg = 'Đã đặt lại bài luyện tập (xoá ' + removed + ' dòng cũ): THU-01 → ' + users[0] + '; THU-02 → ' + users[0] + ', ' + users[1] + '; THU-03…THU-10 → không ai.';
   audit_(Session.getEffectiveUser().getEmail(), 'resetPractice', msg);
   Logger.log(msg);
   return msg;

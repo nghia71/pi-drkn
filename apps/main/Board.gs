@@ -1,7 +1,8 @@
 /**
  * BẢNG CHỌN BÀI theo số báo (ví dụ "10/2026"): PT xếp bài vào các vị trí, gửi TBT; TBT duyệt hoặc trả lại.
  *
- * Tab Issues:    so (số báo, khoá), trang_thai ('đang chọn' | 'chờ duyệt' | 'đã duyệt'), nguoi_duyet, duyet_luc, ghi_chu
+ * Tab Issues:    so (số báo, khoá), trang_thai ('đang chọn' | 'chờ duyệt' | 'đã duyệt' | 'đã khoá'), nguoi_duyet, duyet_luc, ghi_chu,
+ *                khoa_luc, tep (tệp zip chế bản — xem Close.gs)
  * Tab Shortlist: ky (= số báo), ma_bai, vi_tri (1…N, thứ tự in sau này), phuong_an (mức của vị trí: A/B),
  *                quyet_dinh ('chọn' khi đã duyệt), nguoi, ngay, trang_thai_truoc, muc_truoc
  *
@@ -13,7 +14,7 @@
  *  - Một bài chỉ nằm trong một bảng chưa khoá.
  */
 var BOARD_MANAGERS = ['PT', 'Quản trị'];
-var BOARD_STATES = ['đang chọn', 'chờ duyệt', 'đã duyệt'];
+var BOARD_STATES = ['đang chọn', 'chờ duyệt', 'đã duyệt', 'đã khoá'];
 
 function boardLayout_() {
   var raw = String(conf_('BOARD_LAYOUT') || 'B,B,B,B,A,A,A,A,A,A');
@@ -62,9 +63,9 @@ function boardsView_(w) {
                         checks: openChecks[p.ma_bai] || 0, conflicts: openConfl[p.ma_bai] || 0, bang: active[p.ma_bai] || '' };
   });
   return {
-    layout: layout, manage: has_(w, BOARD_MANAGERS), tbt: has_(w, ['TBT']), reopen: has_(w, BOARD_MANAGERS.concat(['TBT'])),
+    layout: layout, manage: has_(w, BOARD_MANAGERS), tbt: has_(w, ['TBT']), reopen: has_(w, BOARD_MANAGERS.concat(['TBT'])), close: has_(w, CLOSERS), btk: has_(w, ['BTK']),
     boards: issues.map(function (i) {
-      return { so: String(i.so), trang_thai: i.trang_thai, nguoi_duyet: i.nguoi_duyet, duyet_luc: i.duyet_luc || '', ghi_chu: i.ghi_chu,
+      return { so: String(i.so), trang_thai: i.trang_thai, nguoi_duyet: i.nguoi_duyet, duyet_luc: i.duyet_luc || '', ghi_chu: i.ghi_chu, khoa_luc: i.khoa_luc || '', tep: i.tep || '',
                rows: boardRows_(i.so).map(function (r) { return { vi_tri: Number(r.vi_tri), ma_bai: r.ma_bai, muc_vi_tri: r.phuong_an }; }) };
     }),
     problems: Object.keys(probs).map(function (k) { return probs[k]; })
@@ -184,6 +185,7 @@ function reopenBoard_(w, a) {
   need_(w, BOARD_MANAGERS.concat(['TBT']));
   var hit = issueRow_(a.so);
   if (hit.data.trang_thai === 'đang chọn') return true;
+  if (hit.data.trang_thai === 'đã khoá') throw new Error('Số ' + a.so + ' đã khoá kỳ (đã đánh số in) — không mở lại được.');
   var wasApproved = hit.data.trang_thai === 'đã duyệt', t = now_();
   withLock_(function () {
     if (wasApproved) boardRows_(a.so).forEach(function (r) {
