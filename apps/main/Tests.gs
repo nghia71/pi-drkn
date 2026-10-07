@@ -166,7 +166,16 @@ function login_(email) {
   if (!m) throw new Error('không vào được hệ thống với ' + email + ': ' + html.replace(/<[^>]+>/g, ' ').slice(0, 160));
   return m[1];
 }
-function call_(tok, method, args) { return api(tok, method, args || {}); }
+/** Gọi API như trình duyệt. Kiểm tra luôn: kết quả phải là JSON thuần (google.script.run trả null nếu có Date…). */
+function call_(tok, method, args) {
+  var r = api(tok, method, args || {});
+  (function walk(x, path) {
+    if (x === null || typeof x !== 'object') { if (typeof x === 'function') throw new Error('kết quả có hàm ở ' + path); return; }
+    if (Object.prototype.toString.call(x) === '[object Date]') throw new Error('kết quả có kiểu Date ở ' + path + ' — trình duyệt sẽ nhận null');
+    Object.keys(x).forEach(function (k) { walk(x[k], path + '.' + k); });
+  })(r, method);
+  return r;
+}
 function codes_(list) { return list.map(function (p) { return p.ma_bai; }).sort(); }
 function auditHas_(action, detailPart) {
   return rows_('Audit').some(function (a) { return a.hanh_dong === action && (!detailPart || String(a.chi_tiet).indexOf(detailPart) >= 0); });

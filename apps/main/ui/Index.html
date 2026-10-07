@@ -28,6 +28,7 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
 </main>
 <script>
 var TOKEN = <?= token ?>;
+var ME0 = JSON.parse(<?= meJson ?>);
 function call(method, args) {
   return new Promise(function (ok, fail) {
     google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { alertBox(e.message || e); fail(e); }).api(TOKEN, method, args || {});
@@ -42,63 +43,91 @@ function showMe(me) {
   ME = me;
   document.getElementById('me').textContent = me.email + ' · ' + me.eff.join(', ');
 }
-call('me').then(function (me) {
+Promise.resolve(ME0).then(function (me) {
   showMe(me);
   if (me.roles.indexOf('Quản trị') >= 0) {
     var s = document.getElementById('view-as'); s.hidden = false;
     ['TBT', 'PT', 'NCB', 'PB', 'VP', 'BTK'].forEach(function (r) { var o = document.createElement('option'); o.value = r; o.textContent = 'Xem như ' + r; s.appendChild(o); });
     // Không tải lại trang: trang chạy trong khung cách ly của Google, location.reload() làm trang trắng.
     s.onchange = function () {
-      call('viewAs', { role: s.value }).then(function () { return call('me'); }).then(function (m) { showMe(m); loadList(); });
+      call('viewAs', { role: s.value }).then(function () { return call('me'); }).then(function (m) { showMe(m); PCACHE = {}; LIST_Y = 0; loadList(); });
     };
   }
   loadList();
 });
-['f-topic', 'f-level', 'f-status'].forEach(function (id) { document.getElementById(id).onchange = loadList; });
+['f-topic', 'f-level', 'f-status'].forEach(function (id) { document.getElementById(id).onchange = function () { LIST_Y = 0; renderList(); }; });
 
+// Danh sách: tải mọi bài MỘT lần, lọc ngay trên trình duyệt; mở bài rồi quay lại thì danh sách vẫn nguyên (không tải lại).
+var ALL = null, LIST_Y = 0;
 function loadList() {
-  var L = document.getElementById('list'); L.hidden = false; document.getElementById('page').hidden = true;
-  L.innerHTML = '<p class="mut">Đang tải…</p>';
-  call('listProblems', { chu_de: val('f-topic'), muc: val('f-level'), trang_thai: val('f-status') }).then(function (rows) {
-    L.innerHTML = rows.length ? '' : '<p class="mut">Không có bài nào.</p>';
-    rows.forEach(function (p) {
-      var c = document.createElement('article'); c.className = 'card';
-      var r = PiRender.render(p.de_bai || '');
-      c.innerHTML = '<div class="head"><a href="#" class="code">' + esc(p.ma_bai) + '</a>' + chip(p.chu_de) + chip(p.muc && 'Mức ' + p.muc) +
-        chip(p.trang_thai) + (p.checks ? '<span class="chip w">cần kiểm tra ' + p.checks + '</span>' : '') +
-        (p.conflicts ? '<span class="chip w">xung đột mở ' + p.conflicts + '</span>' : '') + '<span class="au">' + esc(p.tac_gia) + '</span></div>' +
-        '<div class="tx">' + r.html + '</div>';
-      c.querySelector('.code').onclick = function (e) { e.preventDefault(); openProblem(p.ma_bai); };
-      L.appendChild(c);
-    });
-    typeset(L);
+  var L = document.getElementById('list');
+  L.innerHTML = '<p class="mut">Đang tải…</p>'; showList();
+  call('listProblems', {}).then(function (rows) {
+    ALL = rows || []; LROWS = {}; ALL.forEach(function (p) { LROWS[p.ma_bai] = p; });
+    renderList();
   });
+}
+function showList() {
+  document.getElementById('page').hidden = true; document.getElementById('list').hidden = false;
+  window.scrollTo(0, LIST_Y);
+}
+function renderList() {
+  var L = document.getElementById('list'), t = val('f-topic'), m = val('f-level'), st = val('f-status');
+  var rows = (ALL || []).filter(function (p) { return (!t || p.chu_de === t) && (!m || p.muc === m) && (!st || p.trang_thai === st); });
+  L.innerHTML = rows.length ? '' : '<p class="mut">Không có bài nào.</p>';
+  rows.forEach(function (p) {
+    var c = document.createElement('article'); c.className = 'card';
+    var r = PiRender.render(p.de_bai || '');
+    c.innerHTML = '<div class="head"><a href="#" class="code">' + esc(p.ma_bai) + '</a>' + chip(p.chu_de) + chip(p.muc && 'Mức ' + p.muc) +
+      chip(p.trang_thai) + (p.checks ? '<span class="chip w">cần kiểm tra ' + p.checks + '</span>' : '') +
+      (p.conflicts ? '<span class="chip w">xung đột mở ' + p.conflicts + '</span>' : '') + '<span class="au">' + esc(p.tac_gia) + '</span></div>' +
+      '<div class="tx">' + r.html + '</div>';
+    c.querySelector('.code').onclick = function (e) { e.preventDefault(); LIST_Y = window.scrollY; openProblem(p.ma_bai); };
+    L.appendChild(c);
+  });
+  typeset(L);
 }
 function val(id) { return document.getElementById(id).value; }
 function chip(t) { return t ? '<span class="chip">' + esc(t) + '</span>' : ''; }
 
+// Bộ nhớ tạm phía trình duyệt: mở lại bài / danh sách hiện ngay, rồi cập nhật khi máy chủ trả lời.
+var PCACHE = {}, LCACHE = {}, LROWS = {};
 function openProblem(ma) {
   var P = document.getElementById('page'); document.getElementById('list').hidden = true; P.hidden = false;
-  P.innerHTML = '<p class="mut">Đang tải…</p>';
+  window.scrollTo(0, 0);
+  if (PCACHE[ma]) renderProblem(ma, PCACHE[ma], false);
+  else if (LROWS[ma]) renderProblem(ma, { problem: LROWS[ma], comments: [], limited: true, partial: true }, true);
+  else P.innerHTML = '<p class="mut">Đang tải…</p>';
   call('getProblem', { ma_bai: ma }).then(function (d) {
-    var p = d.problem, de = PiRender.render(p.de_bai), lg = p.loi_giai ? PiRender.render(p.loi_giai) : null;
-    var warn = de.warnings.concat(lg ? lg.warnings : []);
-    P.innerHTML = '<p><a href="#" id="back">← Danh sách</a></p>' +
-      '<div class="head"><span class="code">' + esc(p.ma_bai) + '</span>' + chip(p.chu_de) + chip(p.muc && 'Mức ' + p.muc) + chip(p.trang_thai) +
-      '<span class="au">' + esc(d.author ? d.author.ten_in + (d.author.don_vi ? ' (' + d.author.don_vi + ')' : '') : '') + '</span></div>' +
-      '<h3>Đề bài</h3><div class="tx">' + de.html + '</div>' +
-      (lg ? '<h3>Lời giải</h3><div class="tx">' + lg.html + '</div>' : '<p class="mut">(không có lời giải)</p>') +
-      (warn.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(warn.join('; ')) + '</p>' : '') +
-      (d.limited ? '' : '<details><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
-      '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
-      '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>';
-    document.getElementById('back').onclick = function (e) { e.preventDefault(); loadList(); };
-    document.getElementById('cm-send').onclick = function () {
-      var t = document.getElementById('cm-new').value.trim(); if (!t) return;
-      call('addComment', { ma_bai: ma, noi_dung: t }).then(function () { openProblem(ma); });
-    };
-    typeset(P);
+    if (!d) { alertBox('Không tải được bài ' + ma + '. Hãy thử lại.'); return; }
+    var same = PCACHE[ma] && JSON.stringify(PCACHE[ma]) === JSON.stringify(d);
+    PCACHE[ma] = d;
+    if (!same && !P.hidden && P.dataset.ma === ma) renderProblem(ma, d, false);
   });
+}
+function renderProblem(ma, d, loading) {
+  var P = document.getElementById('page'); P.dataset.ma = ma;
+  var p = d.problem, de = PiRender.render(p.de_bai || ''), lg = p.loi_giai ? PiRender.render(p.loi_giai) : null;
+  var warn = de.warnings.concat(lg ? lg.warnings : []);
+  P.innerHTML = '<p><a href="#" id="back">← Danh sách</a></p>' +
+    '<div class="head"><span class="code">' + esc(p.ma_bai) + '</span>' + chip(p.chu_de) + chip(p.muc && 'Mức ' + p.muc) + chip(p.trang_thai) +
+    '<span class="au">' + esc(d.author ? d.author.ten_in + (d.author.don_vi ? ' (' + d.author.don_vi + ')' : '') : (p.tac_gia || '')) + '</span></div>' +
+    '<h3>Đề bài</h3><div class="tx">' + de.html + '</div>' +
+    (loading ? '<p class="mut">Đang tải lời giải và thảo luận…</p>' :
+    (lg ? '<h3>Lời giải</h3><div class="tx">' + lg.html + '</div>' : '<p class="mut">(không có lời giải)</p>') +
+    (warn.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(warn.join('; ')) + '</p>' : '') +
+    (d.limited ? '' : '<details><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
+    '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
+    '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>');
+  document.getElementById('back').onclick = function (e) { e.preventDefault(); showList(); };
+  var send = document.getElementById('cm-send');
+  if (send) send.onclick = function () {
+    var t = document.getElementById('cm-new').value.trim(); if (!t) return;
+    send.disabled = true; send.textContent = 'Đang gửi…';
+    call('addComment', { ma_bai: ma, noi_dung: t }).then(function () { delete PCACHE[ma]; openProblem(ma); },
+                                                       function () { send.disabled = false; send.textContent = 'Gửi nhận xét'; });
+  };
+  typeset(P);
 }
 function list(a, f) { return a && a.length ? '<ul>' + a.map(function (x) { return '<li>' + f(x) + '</li>'; }).join('') + '</ul>' : '<p class="mut">—</p>'; }
 function props(d) {

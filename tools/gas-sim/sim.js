@@ -9,6 +9,8 @@ function sheetValue(v) {
   if (typeof v !== 'string') return { v: v, f: '' };
   if (v.startsWith("'")) return { v: v.slice(1), f: '' };
   if (v.startsWith('=')) return { v: '#ERROR!', f: v };
+  // Sheets tự đổi chuỗi trông như ngày tháng thành kiểu Date
+  if (/^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?)?$/.test(v.trim())) return { v: new Date(v.trim()), f: '' };
   if (/^(TRUE|FALSE)$/i.test(v.trim())) return { v: v.trim().toUpperCase() === 'TRUE', f: '' };
   if (/^[+-]?\d+(\.\d+)?$/.test(v.trim()) && v.trim().length < 16) return { v: Number(v), f: '' };
   return { v: v, f: '' };
@@ -104,6 +106,18 @@ function makeEnv(opts) {
         return t;
       }
     },
+    Sheets: opts.sheetsApi ? { Spreadsheets: { Values: { batchGet: (id, req) => {
+      const ss = spreadsheets[id]; if (!ss) throw new Error('Không có Sheet');
+      const fmt = v => v instanceof Date ? (v.getMonth() + 1) + '/' + v.getDate() + '/' + v.getFullYear() + ' ' + v.toTimeString().slice(0, 8)
+                     : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : String(v);
+      return { valueRanges: req.ranges.map(r => {
+        const m = r.match(/^'(.+)'!A2:([A-Z]+)$/); const sh = ss.getSheetByName(m[1]);
+        const ncol = m[2].split('').reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0), n = sh.getLastRow();
+        if (n < 2) return { range: r };
+        const vals = sh.getRange(2, 1, n - 1, ncol).getValues().map(row => { const o = row.map(fmt); while (o.length && o[o.length - 1] === '') o.pop(); return o; });
+        return { range: r, values: vals };
+      }) };
+    } } } } : undefined,
     DriveApp: {
       createFolder: name => ({ getId: () => 'folder-' + crypto.randomUUID(), getName: () => name }),
       createFile: (name, content) => { const id = 'f-' + crypto.randomUUID(); files[id] = { name, content, trashed: false, t: Date.now() }; return fileObj(id); },
