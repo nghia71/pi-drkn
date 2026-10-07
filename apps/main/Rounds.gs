@@ -93,11 +93,12 @@ function roundsView_(w) {
                    xong: truthy_(a.xong), moi_luc: a.moi_luc || '', nhac: String(a.nhac || ''),
                    phieu: reviews.some(function (v) { return String(v.ky) === String(r.ky) && v.ma_bai === a.ma_bai && sameEmail_(v.email, a.email); }) };
         });
-        return { ky: String(r.ky), trang_thai: r.trang_thai, han_phan_bien: dateOnly_(r.han_phan_bien), khoa_luc: r.khoa_luc || '',
+        var han = dateOnly_(r.han_phan_bien);
+        return { ky: String(r.ky), trang_thai: r.trang_thai, han_phan_bien: han, con_ngay: han ? daysUntil_(han) : null, khoa_luc: r.khoa_luc || '',
                  ghi_chu: r.ghi_chu, assignments: as };
       }),
       reviewers: has_(w, ROUND_MANAGERS) ? reviewers_() : [],
-      reminderDays: reminderDays_()
+      reminderDays: reminderDays_(), today: today_(), timezone: tz_()
     };
   }
   return { manage: false, rounds: [], reviewers: [], mine: myAssignments_(w) };
@@ -245,19 +246,28 @@ function markDone_(w, a) {
  */
 function sendReminders() {
   var days = reminderDays_(), sent = 0;
+  // Nhật ký giải thích (Execution log khi chạy từ trình soạn thảo): hôm nay theo múi giờ nào, mỗi kỳ còn mấy ngày, ai được / không được nhắc.
+  var note = function (m) { Logger.log(m); };
+  note('Hôm nay ' + today_() + ' (' + tz_() + '); nhắc khi còn ' + days.join(' hoặc ') + ' ngày.');
   rows_('Rounds').filter(function (r) { return r.trang_thai === 'mở'; }).forEach(function (r) {
-    var by = {};
+    var by = {}, skip = { xong: 0, chuaMoi: 0, khongDungMoc: 0, daNhac: 0, khongHan: 0 };
     assignmentsOf_(r.ky).forEach(function (a) {
-      if (truthy_(a.xong) || !a.moi_luc) return;                       // chưa mời thì chưa nhắc
-      var han = dateOnly_(a.han) || dateOnly_(r.han_phan_bien), d = daysUntil_(han);
-      var done = String(a.nhac || '').split(',').map(function (x) { return x.trim(); });
-      if (days.indexOf(d) < 0 || done.indexOf(String(d)) >= 0) return;
+      if (truthy_(a.xong)) { skip.xong++; return; }
+      if (!a.moi_luc) { skip.chuaMoi++; return; }                       // chưa mời thì chưa nhắc
+      var han = dateOnly_(a.han) || dateOnly_(r.han_phan_bien);
+      if (!han) { skip.khongHan++; return; }
+      var d = daysUntil_(han), done = String(a.nhac || '').split(',').map(function (x) { return x.trim(); });
+      if (days.indexOf(d) < 0) { skip.khongDungMoc++; return; }
+      if (done.indexOf(String(d)) >= 0) { skip.daNhac++; return; }
       var e = String(a.email).trim().toLowerCase();
       (by[e] = by[e] || { d: d, han: han, rows: [] }).rows.push({ row: a._row, nhac: done.filter(String).concat([String(d)]).join(',') });
     });
-    var people = Object.keys(by);
+    var people = Object.keys(by), rh = dateOnly_(r.han_phan_bien);
+    note('Kỳ ' + r.ky + ': hạn ' + (rh || '(chưa có)') + (rh ? ', còn ' + daysUntil_(rh) + ' ngày' : '') + ' → nhắc ' + people.length + ' người' +
+         ' (bỏ qua: ' + skip.xong + ' đã xong, ' + skip.chuaMoi + ' chưa mời, ' + skip.khongDungMoc + ' chưa tới mốc, ' + skip.daNhac + ' đã nhắc mốc này, ' +
+         skip.khongHan + ' không có hạn).');
     if (!people.length) return;
-    if (mailQuota_() < people.length) { console.warn('sendReminders: hết hạn mức thư, để hôm sau'); return; }
+    if (mailQuota_() < people.length) { note('Hết hạn mức thư hôm nay — để hôm sau.'); return; }
     people.forEach(function (e) {
       var x = by[e];
       sendMail_(e, '[Pi — Đề ra kỳ này] Nhắc: còn ' + x.d + ' ngày — kỳ ' + r.ky,

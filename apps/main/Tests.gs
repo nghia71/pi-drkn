@@ -799,6 +799,8 @@ function defineTests_() {
     TEST_CONF.TODAY = '2026-10-19'; eq_(sendReminders(), 1, '1 ngày: nhắc lần hai');
     eq_(findRow_('Assignments', 'ma_bai', 'TEST-01').data.nhac, '3,1');
     eq_(TEST_OUTBOX.filter(function (m) { return m.to === A.T2; }).length, 0, 'T2 đã xong / bài mới chưa mời: không nhắc');
+    var v = call_(login_(A.QT), 'rounds'); eq_(v.today, '2026-10-19');
+    eq_(v.rounds.filter(function (r) { return r.ky === 'K-MO'; })[0].con_ngay, 1, 'trang Kỳ phản biện cho biết còn mấy ngày');
     TEST_CONF.REMINDER_DAYS = '2'; TEST_CONF.TODAY = '2026-10-18';
     putRows_('Assignments', [{ ky: 'K-MO', ma_bai: 'TEST-01', email: A.T1, moi_luc: now_(), xong: false }]);
     eq_(sendReminders(), 1, 'REMINDER_DAYS=2');

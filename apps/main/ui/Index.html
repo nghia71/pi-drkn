@@ -445,10 +445,11 @@ function openRounds() {
   return call('rounds', {}).then(function (v) { RV = v; renderRounds(); });
 }
 function renderRounds() {
-  var R = document.getElementById('rounds'), v = RV, today = new Date().toISOString().slice(0, 10);
+  var R = document.getElementById('rounds'), v = RV, today = v.today || new Date().toISOString().slice(0, 10);
   var probs = (ALL || []).filter(function (p) { return p.ma_bai.indexOf('THU-') !== 0 || (ME && ME.roles.indexOf('Quản trị') >= 0); });
   var h = '<p><a href="#" id="r-back">← Danh sách</a></p><h2 class="pg">Kỳ phản biện</h2>' +
-    '<p class="mut sm-t">Nhắc hạn tự động ' + esc((v.reminderDays || []).join(' và ')) + ' ngày trước hạn (cho người đã được mời, chưa đánh dấu xong).</p>';
+    '<p class="mut sm-t">Nhắc hạn tự động ' + esc((v.reminderDays || []).join(' và ')) + ' ngày trước hạn (cho người đã được mời, chưa đánh dấu xong). ' +
+    'Ngày tính theo giờ ' + esc(v.timezone === 'Asia/Ho_Chi_Minh' ? 'Việt Nam' : v.timezone) + ': hôm nay là ' + esc(vnDate(v.today)) + '.</p>';
   if (v.manage) h += '<div class="card"><h3>Mở kỳ mới</h3><div class="row"><label>Tên kỳ <input id="r-ky" placeholder="ví dụ: PB-10/2026"></label>' +
     '<label>Hạn <input id="r-han" type="date" min="' + today + '"></label><label>Ghi chú <input id="r-gc"></label>' +
     '<button class="pri" data-r="open">Mở kỳ</button></div></div>';
@@ -460,7 +461,7 @@ function renderRounds() {
     var notInvited = {}; as.forEach(function (a) { if (!a.moi_luc) notInvited[a.email] = 1; });
     var nInv = Object.keys(notInvited).length;
     h += '<div class="card rd" data-ky="' + escA(r.ky) + '"><div class="head"><b class="code">' + esc(r.ky) + '</b>' + chip(r.trang_thai) +
-      '<span>' + (r.han_phan_bien ? 'hạn ' + esc(vnDate(r.han_phan_bien)) : 'chưa có hạn') + '</span><span class="mut">· ' + as.length + ' phân công · ' + ph + ' phiếu · ' + done + ' xong</span>' +
+      '<span>' + (r.han_phan_bien ? 'hạn ' + esc(vnDate(r.han_phan_bien)) + (open ? ' (' + (r.con_ngay > 0 ? 'còn ' + r.con_ngay + ' ngày' : r.con_ngay === 0 ? 'hôm nay' : 'đã qua') + ')' : '') : 'chưa có hạn') + '</span><span class="mut">· ' + as.length + ' phân công · ' + ph + ' phiếu · ' + done + ' xong</span>' +
       (r.ghi_chu ? '<span class="mut">· ' + esc(r.ghi_chu) + '</span>' : '') + '</div>';
     if (man) h += '<div class="row"><label>Đổi hạn <input type="date" data-k="han" value="' + escA(r.han_phan_bien) + '" min="' + today + '"></label>' +
       '<button class="sm" data-r="deadline">Lưu hạn</button>' +

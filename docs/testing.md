@@ -354,7 +354,8 @@ Bước 7: chip trạng thái đổi thành SL; ô trạng thái của TBT có "
 **Trước khi bắt đầu.** Sau lần triển khai có tính năng này: `setup()` và `installReminderTrigger()` (mục 9 của setup.md).
 `resetPractice` (T1, T2 là PB; kỳ K-THU có hạn 14 ngày nữa).
 **Các bước.**
-1. *(QT)* Nút **Kỳ phản biện** → Mở kỳ mới: tên `PB-THU-2`, hạn = 3 ngày nữa → Mở kỳ.
+1. *(QT)* Nút **Kỳ phản biện** → Mở kỳ mới: tên `PB-THU-2`, hạn = 3 ngày nữa **theo giờ Việt Nam** (dòng đầu trang ghi "hôm nay là …";
+   sau khi mở, kỳ phải hiện "còn 3 ngày") → Mở kỳ.
 2. *(QT)* Ở kỳ PB-THU-2: giao THU-03 cho T1, rồi THU-03 cho T2, rồi THU-01 cho T1 (ô Giao bài / cho / Giao).
 3. *(QT)* Bấm **Gửi thư mời (2 người chưa mời)**.
 4. *(T1, T2)* Mở hộp thư của mình.
@@ -371,6 +372,8 @@ Bước 5: lần đầu nhắc "Hãy chọn đề nghị"; sau khi xong, phiếu
 Bước 6: nhận xét của T1 ghi **Phản biện 1**, của mình ghi **Bạn**; không thấy email của ai; không có mục Phiếu phản biện của người khác.
 Bước 7: QT thấy phiếu của T1 kèm email; Thảo luận có email thật; bảng kỳ: 3 phân công · 1 phiếu · 1 xong.
 Bước 8: lần 1 gửi thư "Nhắc: còn 3 ngày" cho T1 (còn THU-01) và T2 — không gửi cho bài đã xong; cột Đã nhắc "3 ngày"; lần 2 không gửi gì.
+Execution log giải thích từng kỳ: "Hôm nay … (Asia/Ho_Chi_Minh)", "Kỳ PB-THU-2: hạn …, còn 3 ngày → nhắc 2 người (bỏ qua: …)".
+Nếu log ghi "còn 2 ngày" (hoặc 4): hạn chưa đúng 3 ngày theo giờ Việt Nam — dùng **Lưu hạn** để sửa rồi chạy lại.
 Bước 9: kỳ hiện "đóng", không còn nút; T1 không còn thấy THU-03 (vẫn thấy THU-01, THU-02 của kỳ K-THU).
 
 ---
