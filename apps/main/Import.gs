@@ -10,6 +10,7 @@ var IMPORT_CHUNK = 15;
 
 /** Chạy từ trình soạn thảo: nhập tệp mới nhất tên "pi-drkn-import….json" trong Drive của quản trị. */
 function importLatest() {
+  adminOnly_();
   var it = DriveApp.searchFiles("title contains 'pi-drkn-import' and trashed = false"), best = null;
   while (it.hasNext()) { var f = it.next(); if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f; }
   if (!best) throw new Error('Không thấy tệp pi-drkn-import….json trong Drive.');
@@ -18,6 +19,7 @@ function importLatest() {
 }
 
 function importBatch(fileId) {
+  adminOnly_();
   var props = PropertiesService.getScriptProperties();
   var key = 'IMPORT_' + fileId;
   var start = Number(props.getProperty(key) || 0);

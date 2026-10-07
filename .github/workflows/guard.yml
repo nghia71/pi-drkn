@@ -14,3 +14,5 @@ jobs:
           node-version: 20
       - name: Unit tests (invented problems only)
         run: node tests/render.test.js
+      - name: Server tests on the Apps Script simulator (invented data only)
+        run: node tools/gas-sim/run-tests.js

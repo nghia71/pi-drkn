@@ -66,3 +66,11 @@ python3 scripts/guard.py --all
 node tests/render.test.js
 python3 tools/render-test/check.py <tệp nhập.json>      # hiển thị hàng loạt, dữ liệu không rời máy
 ```
+
+## 8. Bản vá dữ liệu (kết quả đọc kiểm tra, sửa lỗi chép…)
+Chuẩn bị tệp `pi-drkn-patch-….json` (ngoài kho mã), tải lên Drive của tài khoản quản trị (không chia sẻ), rồi trong dự án chính
+chạy `applyPatchLatest`. Chạy lại an toàn (thao tác đã áp dụng không lặp lại). Sửa đổi chỉ chạm bản biên tập, có ghi
+Corrections + Revisions; bản gốc của tác giả không đổi. Dạng tệp: xem đầu `apps/main/Patch.gs`.
+
+## 9. Kiểm thử
+Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.

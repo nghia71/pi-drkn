@@ -14,3 +14,9 @@
    cột `lien_he` của tab Authors (chỉ VP, PT, TBT, Quản trị xem). Thông tin của học sinh chưa đủ 18 tuổi cũng vậy.
 6. **Không dùng dịch vụ ngoài** (trình biên dịch LaTeX trực tuyến, AI công cộng…) với bài chưa đăng.
 7. Mỗi lần xem/sửa bài được ghi vào tab Audit.
+8. **Phản biện chỉ nhận văn bản đã biên tập và thảo luận** của bài được giao — không nhận nguồn, tên tệp, xung đột, sửa đổi,
+   bản gốc (những thứ có thể lộ tác giả).
+9. Văn bản người dùng gõ (đề, nhận xét) là dữ liệu: khi hiển thị, mọi thẻ HTML bị vô hiệu; khi ghi vào Sheet, nội dung bắt đầu
+   bằng `=`, `+`, `-`, `@` được lưu như chữ, không thành công thức.
+10. Các hàm chạy từ trình soạn thảo (setup, setUser, nhập, vá, kiểm thử) từ chối mọi lời gọi không phải của chủ dự án,
+    kể cả khi gọi từ trang web.

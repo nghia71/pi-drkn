@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <?!= include_('ui/Styles') ?>
 <script>
-window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, startup: { typeset: false } };
+window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, startup: { typeset: false } };
 </script>
 <?!= include_('ui/RenderJs') ?>
 <script>window.MathJax.tex.macros = PiRender.MATH_MACROS;</script>
@@ -83,7 +83,7 @@ function openProblem(ma) {
       '<h3>Đề bài</h3><div class="tx">' + de.html + '</div>' +
       (lg ? '<h3>Lời giải</h3><div class="tx">' + lg.html + '</div>' : '<p class="mut">(không có lời giải)</p>') +
       (warn.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(warn.join('; ')) + '</p>' : '') +
-      '<details><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>' +
+      (d.limited ? '' : '<details><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
       '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
       '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>';
     document.getElementById('back').onclick = function (e) { e.preventDefault(); loadList(); };

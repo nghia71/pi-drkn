@@ -1,8 +1,20 @@
 /** Truy cập Sheet: đọc/ghi theo tên cột. Mọi ghi đều qua LockService để tránh ghi chồng. */
+/** Bộ kiểm thử đặt DB_OVERRIDE = id Sheet kiểm thử để mọi đọc/ghi đi vào đó, không chạm dữ liệu thật. */
+var DB_OVERRIDE = null;
+/** Bộ kiểm thử đặt TEST_CONF = {KHOÁ: giá trị} để thử các cấu hình (BLIND_REVIEW…) mà không đổi Script properties. */
+var TEST_CONF = null;
+var SS_MEMO_ = {};
+
+function conf_(key) {
+  if (TEST_CONF && Object.prototype.hasOwnProperty.call(TEST_CONF, key)) return TEST_CONF[key];
+  return PropertiesService.getScriptProperties().getProperty(key);
+}
+
 function sheet_(name) {
-  var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  var id = DB_OVERRIDE || PropertiesService.getScriptProperties().getProperty('SHEET_ID');
   if (!id) throw new Error('Chưa chạy setup().');
-  var sh = SpreadsheetApp.openById(id).getSheetByName(name);
+  var ss = SS_MEMO_[id] || (SS_MEMO_[id] = SpreadsheetApp.openById(id));
+  var sh = ss.getSheetByName(name);
   if (!sh) throw new Error('Thiếu tab ' + name);
   return sh;
 }
@@ -25,16 +37,26 @@ function findRow_(name, key, value) {
   return null;
 }
 
+/**
+ * Giá trị ghi vào ô: văn bản bắt đầu bằng = + - @ sẽ bị Google Sheets hiểu là CÔNG THỨC (ví dụ một nhận xét "=IMPORTXML(…)").
+ * Thêm dấu ' ở đầu để Sheets lưu nguyên văn; khi đọc lại, dấu ' không xuất hiện trong giá trị.
+ */
+function cell_(v) {
+  if (v === undefined || v === null) return '';
+  if (typeof v === 'string' && /^[=+\-@]/.test(v)) return "'" + v;
+  return v;
+}
+function rowOf_(name, obj) { return SCHEMA[name].map(function (c) { return cell_(obj[c]); }); }
+
 function append_(name, obj) {
-  var cols = SCHEMA[name];
-  withLock_(function () { sheet_(name).appendRow(cols.map(function (c) { return obj[c] === undefined ? '' : obj[c]; })); });
+  withLock_(function () { sheet_(name).appendRow(rowOf_(name, obj)); });
 }
 
 function update_(name, row, patch) {
   var cols = SCHEMA[name], sh = sheet_(name);
   withLock_(function () {
     var cur = sh.getRange(row, 1, 1, cols.length).getValues()[0];
-    cols.forEach(function (c, j) { if (patch[c] !== undefined) cur[j] = patch[c]; });
+    cols.forEach(function (c, j) { if (patch[c] !== undefined) cur[j] = cell_(patch[c]); });
     sh.getRange(row, 1, 1, cols.length).setValues([cur]);
   });
 }

@@ -16,7 +16,8 @@ chỉ người đã đăng nhập và có vai trò mới xem được qua ứng 
   (`.gitignore` + hook `pre-commit` + kiểm tra tự động trên GitHub, xem `scripts/guard.py`).
 - Không có mã định danh hay bí mật trong mã: ID của Sheet/thư mục, ID triển khai, khoá `SECRET`
   được lưu trong *Script properties* của dự án Apps Script (đặt bằng hàm `setup`).
-- Bài kiểm thử chỉ dùng **bài toán bịa** (`tests/fixtures`).
+- Bài kiểm thử chỉ dùng **bài toán bịa** (`tests/fixtures`, `apps/main/Tests.gs`). Cách kiểm thử: `docs/testing.md`;
+  chạy nhanh trên máy: `scripts/test-all.sh`.
 - Biên dịch hình TikZ (nếu dùng GitHub Actions) chạy trong một kho **riêng tư** khác, vì có nội dung bài.
 
 ## Cấu trúc
@@ -25,9 +26,10 @@ chỉ người đã đăng nhập và có vai trò mới xem được qua ứng 
 apps/signin/      Ứng dụng đăng nhập (chạy dưới quyền người truy cập, chỉ xin quyền đọc email)
 apps/main/        Ứng dụng chính (chạy dưới quyền chủ sở hữu; Sheet, quyền theo vai trò, trang web)
 apps/main/ui/     Giao diện (HTML/JS), gồm pi-render.js: hiển thị LaTeX + macro của Pi bằng MathJax
+tools/gas-sim/    Bản mô phỏng Apps Script để chạy bộ kiểm thử máy chủ trên máy
 tools/convert/    Công cụ chạy trên máy: chuyển .docx/.doc (MathType, công thức Word) sang LaTeX
 tools/render-test Kiểm tra hiển thị hàng loạt bằng trình duyệt không giao diện
-scripts/          guard.py (chặn dữ liệu), deploy.sh
+scripts/          guard.py (chặn dữ liệu), deploy.sh, test-all.sh
 docs/             Hướng dẫn cài đặt, chính sách dữ liệu, mô hình dữ liệu
 tests/            Kiểm thử với bài bịa
 ```

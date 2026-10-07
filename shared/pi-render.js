@@ -85,6 +85,8 @@
     s = s.replace(/\\\(([\s\S]+?)\\\)/g, function (_, t) { return keep(t, false); });
     s = s.replace(/(^|[^\\])\$((?:\\\$|[^$])+?)\$/g, function (_, p, t) { return p + keep(t, false); });
     if (/(^|[^\\])\$/.test(s)) warnings.push('dấu $ lẻ (công thức chưa đóng)');
+    // văn bản ngoài công thức là dữ liệu, không phải HTML: thoát mọi ký tự HTML trước khi dựng thẻ của ta
+    s = esc(s);
     // 2. markdown (records converted from Word by pandoc)
     s = s.replace(/\\\*/g, '*').replace(/\\([\[\]_#&%])/g, '$1');
     s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<i>$2</i>');

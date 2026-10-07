@@ -7,6 +7,7 @@ cd "$(dirname "$0")/.."
 
 python3 scripts/guard.py --all
 node tests/render.test.js
+node tools/gas-sim/run-tests.js | tail -1   # bộ kiểm thử máy chủ trên bản mô phỏng; lỗi thì dừng, không đẩy
 
 # giao diện cần pi-render.js dưới dạng tệp HTML của Apps Script
 { echo '<script>'; cat shared/pi-render.js; echo '</script>'; } > apps/main/ui/RenderJs.html

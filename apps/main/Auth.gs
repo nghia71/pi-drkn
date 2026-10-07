@@ -6,7 +6,7 @@ var LINK_TTL_MS = 10 * 60 * 1000;
 var SESSION_TTL_S = 6 * 60 * 60;
 
 function verifyEntry_(p) {
-  var secret = PropertiesService.getScriptProperties().getProperty('SECRET');
+  var secret = conf_('SECRET');
   if (!secret || !p || !p.u || !p.t || !p.s) return null;
   var expected = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(p.u + '|' + p.t, secret));
   if (!safeEqual_(expected, p.s)) return null;
@@ -34,12 +34,33 @@ function who_(token) {
   var raw = token && CacheService.getScriptCache().get('s:' + token);
   if (!raw) throw new Error('Phiên làm việc đã hết hạn — hãy vào lại từ đường dẫn đăng nhập.');
   var s = JSON.parse(raw);
-  var u = findRow_('Users', 'email', s.email);
-  if (!u || u.data.hoat_dong === false || String(u.data.hoat_dong).toUpperCase() === 'FALSE') throw new Error('Tài khoản chưa có vai trò trong hệ thống.');
+  var u = activeUser_(s.email);
+  if (!u) throw new Error('Tài khoản chưa có vai trò trong hệ thống.');
   var roles = String(u.data.vai_tro).split(',').map(function (r) { return r.trim(); }).filter(String);
   // "Xem như vai trò…": chỉ Quản trị, chỉ để thử giao diện
   var eff = (s.viewAs && roles.indexOf('Quản trị') >= 0) ? [s.viewAs] : roles;
   return { email: s.email, name: u.data.ten, roles: roles, eff: eff, token: token };
+}
+
+/** Dòng Users của email nếu người đó đang hoạt động (hoat_dong khác FALSE) và có ít nhất một vai trò; ngược lại null. */
+function activeUser_(email) {
+  var u = findRow_('Users', 'email', email);
+  if (!u) return null;
+  if (u.data.hoat_dong === false || String(u.data.hoat_dong).trim().toUpperCase() === 'FALSE') return null;
+  if (!String(u.data.vai_tro || '').trim()) return null;
+  return u;
+}
+
+/**
+ * Hàm chạy từ trình soạn thảo (setup, setUser, nhập, vá, kiểm thử…) là hàm toàn cục, nên trang web cũng gọi được qua
+ * google.script.run. Chặn: chỉ chạy khi người gọi chính là chủ dự án (trong trình soạn thảo hai địa chỉ trùng nhau;
+ * khách vào trang web thì Google trả địa chỉ của khách hoặc chuỗi rỗng).
+ */
+function adminOnly_() {
+  var active = (TEST_CONF && Object.prototype.hasOwnProperty.call(TEST_CONF, 'ACTIVE_USER')) ? TEST_CONF.ACTIVE_USER
+             : Session.getActiveUser().getEmail();
+  var owner = Session.getEffectiveUser().getEmail();
+  if (!active || String(active).toLowerCase() !== String(owner).toLowerCase()) throw new Error('Chỉ chạy được từ trình soạn thảo bằng tài khoản chủ.');
 }
 
 function has_(w, list) { return w.eff.some(function (r) { return list.indexOf(r) >= 0; }); }

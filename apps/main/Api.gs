@@ -30,22 +30,25 @@ function assignedSet_(w) {
   var open = rows_('Rounds').filter(function (r) { return r.trang_thai === 'mở'; }).map(function (r) { return String(r.ky); });
   var set = {};
   rows_('Assignments').forEach(function (a) {
-    if (a.email === w.email && open.indexOf(String(a.ky)) >= 0) set[a.ma_bai] = true;
+    if (String(a.email).trim().toLowerCase() === w.email && open.indexOf(String(a.ky)) >= 0) set[a.ma_bai] = true;
   });
   return set;
 }
 
 function canSee_(w, ma, assigned) {
+  // bài luyện tập (THU-…) chỉ dành cho Quản trị và người được giao — không lẫn vào danh sách của ban biên tập
+  if (String(ma).indexOf('THU-') === 0) return w.roles.indexOf('Quản trị') >= 0 || !!assigned[ma];
   if (has_(w, ALL_PROBLEMS_VIEWERS)) return true;
   return has_(w, ['PB']) && !!assigned[ma];
 }
 
 function hideAuthor_(w) {
-  return !has_(w, ALL_PROBLEMS_VIEWERS) && PropertiesService.getScriptProperties().getProperty('BLIND_REVIEW') !== 'false';
+  return !has_(w, ALL_PROBLEMS_VIEWERS) && String(conf_('BLIND_REVIEW')) !== 'false';
 }
 
 function listProblems_(w, f) {
-  var assigned = has_(w, ALL_PROBLEMS_VIEWERS) ? {} : assignedSet_(w);
+  var full = has_(w, ALL_PROBLEMS_VIEWERS);
+  var assigned = assignedSet_(w);
   var authors = {};
   if (!hideAuthor_(w)) rows_('Authors').forEach(function (a) { authors[a.tac_gia_id] = a.ten_in; });
   var openChecks = countBy_('Checks', function (c) { return c.trang_thai !== 'xong'; });
@@ -55,8 +58,8 @@ function listProblems_(w, f) {
       (!f.chu_de || p.chu_de === f.chu_de) && (!f.muc || p.muc === f.muc) && (!f.trang_thai || p.trang_thai === f.trang_thai);
   }).map(function (p) {
     return { ma_bai: p.ma_bai, chu_de: p.chu_de, muc: p.muc, trang_thai: p.trang_thai, dang: p.dang, so_in: p.so_in,
-             tac_gia: hideAuthor_(w) ? '' : (authors[p.tac_gia_id] || ''), checks: openChecks[p.ma_bai] || 0,
-             conflicts: openConfl[p.ma_bai] || 0, de_bai: p.de_bai };
+             tac_gia: hideAuthor_(w) ? '' : (authors[p.tac_gia_id] || ''),
+             checks: full ? (openChecks[p.ma_bai] || 0) : 0, conflicts: full ? (openConfl[p.ma_bai] || 0) : 0, de_bai: p.de_bai };
   });
 }
 
@@ -67,20 +70,28 @@ function countBy_(tab, pred) {
 }
 
 function getProblem_(w, ma) {
+  var full = has_(w, ALL_PROBLEMS_VIEWERS);
+  var assigned = assignedSet_(w);
+  // kiểm tra quyền TRƯỚC khi tra bài: người không có quyền không phân biệt được "không có bài" với "không được xem"
+  if (!canSee_(w, ma, assigned)) throw new Error('Không có quyền xem bài này.');
   var hit = findRow_('Problems', 'ma_bai', ma);
   if (!hit) throw new Error('Không có bài ' + ma);
-  var assigned = has_(w, ALL_PROBLEMS_VIEWERS) ? {} : assignedSet_(w);
-  if (!canSee_(w, ma, assigned)) throw new Error('Không có quyền xem bài này.');
   var p = hit.data, of = function (tab) { return rows_(tab).filter(function (r) { return r.ma_bai === ma; }); };
-  var out = { problem: p, provenance: of('Provenance')[0] || null, corrections: of('Corrections'), checks: of('Checks'),
-              conflicts: of('Conflicts'), log: of('ConversionLog'), comments: of('Comments'),
-              canEdit: has_(w, EDITORS) };
+  var out;
+  if (full) {
+    out = { problem: p, provenance: of('Provenance')[0] || null, corrections: of('Corrections'), checks: of('Checks'),
+            conflicts: of('Conflicts'), log: of('ConversionLog'), comments: of('Comments'), canEdit: has_(w, EDITORS) };
+  } else {
+    // Phản biện chỉ nhận văn bản đã biên tập và thảo luận: nguồn, tên tệp, xung đột, sửa đổi có thể lộ tác giả.
+    out = { problem: { ma_bai: p.ma_bai, chu_de: p.chu_de, muc: p.muc, trang_thai: p.trang_thai, de_bai: p.de_bai,
+                       loi_giai: p.loi_giai, hinh: p.hinh, phien_ban: p.phien_ban },
+            provenance: null, corrections: [], checks: [], conflicts: [], log: [], comments: of('Comments'), canEdit: false, limited: true };
+  }
   if (hideAuthor_(w)) { delete out.problem.tac_gia_id; out.author = null; }
   else {
     var a = findRow_('Authors', 'tac_gia_id', p.tac_gia_id);
     out.author = a ? { ten_in: a.data.ten_in, don_vi: a.data.don_vi, lien_he: has_(w, CONTACT_VIEWERS) ? a.data.lien_he : undefined } : null;
   }
-  if (!has_(w, ALL_PROBLEMS_VIEWERS)) { delete out.problem.de_bai_goc; delete out.problem.loi_giai_goc; }
   audit_(w.email, 'xem', ma);
   return out;
 }
@@ -97,17 +108,16 @@ function saveText_(w, a) {
     var patch = { phien_ban: cur + 1, cap_nhat: now_(), nguoi_cap_nhat: w.email };
     patch[a.truong] = a.noi_dung;
     var sh = sheet_('Problems'), cols = SCHEMA.Problems, row = sh.getRange(hit.row, 1, 1, cols.length).getValues()[0];
-    cols.forEach(function (c, j) { if (patch[c] !== undefined) row[j] = patch[c]; });
+    cols.forEach(function (c, j) { if (patch[c] !== undefined) row[j] = cell_(patch[c]); });
     sh.getRange(hit.row, 1, 1, cols.length).setValues([row]);
-    sheet_('Revisions').appendRow(SCHEMA.Revisions.map(function (c) {
-      return { id: newId_(), ma_bai: a.ma_bai, truong: a.truong, phien_ban: cur + 1, cu: hit.data[a.truong], moi: a.noi_dung, email: w.email, ngay: now_() }[c];
-    }));
+    sheet_('Revisions').appendRow(rowOf_('Revisions', { id: newId_(), ma_bai: a.ma_bai, truong: a.truong, phien_ban: cur + 1,
+      cu: hit.data[a.truong], moi: a.noi_dung, email: w.email, ngay: now_() }));
     return { phien_ban: cur + 1 };
   });
 }
 
 function addComment_(w, a) {
-  var assigned = has_(w, ALL_PROBLEMS_VIEWERS) ? {} : assignedSet_(w);
+  var assigned = assignedSet_(w);
   if (!canSee_(w, a.ma_bai, assigned)) throw new Error('Không có quyền.');
   if (!a.noi_dung || String(a.noi_dung).length > 20000) throw new Error('Nội dung trống hoặc quá dài.');
   var c = { id: newId_(), ma_bai: a.ma_bai, email: w.email, tra_loi_cho: a.tra_loi_cho || '', noi_dung: a.noi_dung, ngay: now_() };
