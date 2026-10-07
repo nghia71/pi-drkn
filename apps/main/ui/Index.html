@@ -38,13 +38,19 @@ function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').repla
 function typeset(el) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]); else setTimeout(function () { typeset(el); }, 300); }
 
 var ME;
-call('me').then(function (me) {
+function showMe(me) {
   ME = me;
   document.getElementById('me').textContent = me.email + ' · ' + me.eff.join(', ');
+}
+call('me').then(function (me) {
+  showMe(me);
   if (me.roles.indexOf('Quản trị') >= 0) {
     var s = document.getElementById('view-as'); s.hidden = false;
     ['TBT', 'PT', 'NCB', 'PB', 'VP', 'BTK'].forEach(function (r) { var o = document.createElement('option'); o.value = r; o.textContent = 'Xem như ' + r; s.appendChild(o); });
-    s.onchange = function () { call('viewAs', { role: s.value }).then(function () { location.reload(); }); };
+    // Không tải lại trang: trang chạy trong khung cách ly của Google, location.reload() làm trang trắng.
+    s.onchange = function () {
+      call('viewAs', { role: s.value }).then(function () { return call('me'); }).then(function (m) { showMe(m); loadList(); });
+    };
   }
   loadList();
 });
