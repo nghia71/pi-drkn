@@ -5,6 +5,24 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 
+// Tệp zip tối thiểu (lưu, không nén) để kiểm thử Utilities.zip; đọc lại bằng unzipList()
+function crc32(buf) { let c, crc = 0xFFFFFFFF; for (let n = 0; n < buf.length; n++) { c = (crc ^ buf[n]) & 0xFF; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(entries) {
+  const parts = [], central = []; let off = 0;
+  entries.forEach(e => {
+    const name = Buffer.from(e.name, 'utf8'), data = e.data, crc = crc32(data);
+    const h = Buffer.alloc(30); h.writeUInt32LE(0x04034b50, 0); h.writeUInt16LE(20, 4); h.writeUInt16LE(0x0800, 6); h.writeUInt32LE(crc, 14);
+    h.writeUInt32LE(data.length, 18); h.writeUInt32LE(data.length, 22); h.writeUInt16LE(name.length, 26);
+    parts.push(h, name, data);
+    const c = Buffer.alloc(46); c.writeUInt32LE(0x02014b50, 0); c.writeUInt16LE(20, 4); c.writeUInt16LE(20, 6); c.writeUInt16LE(0x0800, 8); c.writeUInt32LE(crc, 16);
+    c.writeUInt32LE(data.length, 20); c.writeUInt32LE(data.length, 24); c.writeUInt16LE(name.length, 28); c.writeUInt32LE(off, 42);
+    central.push(c, name); off += 30 + name.length + data.length;
+  });
+  const cd = Buffer.concat(central), end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10); end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(off, 16);
+  return Buffer.concat(parts.concat([cd, end]));
+}
+
 function sheetValue(v) {
   if (typeof v !== 'string') return { v: v, f: '' };
   if (v.startsWith("'")) return { v: v.slice(1), f: '' };
@@ -94,6 +112,13 @@ function makeEnv(opts) {
       DigestAlgorithm: { SHA_256: 'sha256' },
       base64EncodeWebSafe: a => fromBytes(a).toString('base64').replace(/\+/g, '-').replace(/\//g, '_'),
       sleep: () => {},
+      newBlob: (data, type, name) => blob(Buffer.from(typeof data === 'string' ? data : Buffer.from(data)), type, name),
+      unzip: z => { const b = z.getBytes(), out = []; let i = 0;
+        while (b.readUInt32LE(i) === 0x04034b50) { const n = b.readUInt16LE(i + 26), sz = b.readUInt32LE(i + 18), x = b.readUInt16LE(i + 28);
+          const name = b.slice(i + 30, i + 30 + n).toString('utf8'), data = b.slice(i + 30 + n + x, i + 30 + n + x + sz);
+          out.push(blob(data, 'application/octet-stream', name)); i += 30 + n + x + sz; }
+        return out; },
+      zip: (blobs, name) => blob(zipStore(blobs.map(b => ({ name: b.getName(), data: b.getBytes() }))), 'application/zip', name || 'archive.zip'),
       // chỉ hỗ trợ mẫu 'yyyy-MM-dd' (đủ cho mã hiện tại)
       formatDate: (d, tz, fmt) => {
         if (fmt !== 'yyyy-MM-dd') throw new Error('formatDate mô phỏng chỉ hỗ trợ yyyy-MM-dd');
@@ -132,17 +157,40 @@ function makeEnv(opts) {
       }) };
     } } } } : undefined,
     DriveApp: {
-      createFolder: name => ({ getId: () => 'folder-' + crypto.randomUUID(), getName: () => name }),
-      createFile: (name, content) => { const id = 'f-' + crypto.randomUUID(); files[id] = { name, content, trashed: false, t: Date.now() }; return fileObj(id); },
+      createFolder: name => folderObj(newFolder(name, null)),
+      getFolderById: id => { if (!folders[id]) throw new Error('Không có thư mục ' + id); return folderObj(id); },
+      createFile: (name, content) => addFile(name, content, null),
       getFileById: id => { if (!files[id]) throw new Error('Không có tệp'); return fileObj(id); },
       searchFiles: q => { const m = String(q || '').match(/title contains '([^']*)'/);
         const ids = Object.keys(files).filter(i => !files[i].trashed && (!m || files[i].name.indexOf(m[1]) >= 0)); let k = 0; return { hasNext: () => k < ids.length, next: () => fileObj(ids[k++]) }; }
     }
   };
+  // Drive mô phỏng: tệp (nội dung chữ hoặc byte), thư mục, blob, zip
+  const folders = {};
+  function newFolder(name, parent) { const id = 'folder-' + crypto.randomUUID(); folders[id] = { name, parent, trashed: false }; return id; }
+  function addFile(name, content, parent) {
+    if (content && content._blob) { name = name || content.getName(); content = content._bytes; }
+    const id = 'f-' + crypto.randomUUID(); files[id] = { name, content, parent, trashed: false, t: Date.now() }; return fileObj(id);
+  }
+  function blob(bytes, type, name) {
+    const b = { _blob: true, _bytes: Buffer.isBuffer(bytes) ? bytes : Buffer.from(String(bytes), 'utf8'), _type: type || 'text/plain', _name: name || '' };
+    b.getBytes = () => b._bytes; b.getDataAsString = () => b._bytes.toString('utf8'); b.getName = () => b._name;
+    b.setName = n => { b._name = n; return b; }; b.getContentType = () => b._type; return b;
+  }
+  function folderObj(id) {
+    const f = folders[id];
+    return { getId: () => id, getName: () => f.name, getUrl: () => 'https://drive.google.com/drive/folders/' + id,
+             createFile: (a, c) => (a && a._blob ? addFile(a.getName(), a, id) : addFile(a, c, id)),
+             createFolder: n => folderObj(newFolder(n, id)), setTrashed: v => { f.trashed = v; },
+             getFilesByName: n => { const ids = Object.keys(files).filter(i => files[i].parent === id && files[i].name === n && !files[i].trashed); let k = 0;
+                                    return { hasNext: () => k < ids.length, next: () => fileObj(ids[k++]) }; } };
+  }
   function fileObj(id) {
     const f = files[id];
+    const bytes = () => (Buffer.isBuffer(f.content) ? f.content : Buffer.from(String(f.content), 'utf8'));
     return { getId: () => id, getName: () => f.name, getLastUpdated: () => new Date(f.t), setTrashed: v => { f.trashed = v; },
-             getBlob: () => ({ getDataAsString: () => f.content }) };
+             getUrl: () => 'https://drive.google.com/file/d/' + id, getParentId_: () => f.parent,
+             getBlob: () => blob(bytes(), 'application/octet-stream', f.name) };
   }
   const ctx = vm.createContext(env);
   ctx.__withTpl = t => { ctx.__tpl = t; return ctx; };

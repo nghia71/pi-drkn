@@ -598,9 +598,19 @@ function renderBoards() {
           (edit ? '<td class="nw"><button class="sm" data-b="up" data-pos="' + pos + '"' + (pos > 1 ? '' : ' disabled') + ' title="Lên">↑</button>' +
                   '<button class="sm" data-b="down" data-pos="' + pos + '"' + (pos < v.layout.length ? '' : ' disabled') + ' title="Xuống">↓</button>' +
                   '<button class="sm" data-b="remove" data-pos="' + pos + '" title="Bỏ khỏi bảng">×</button></td>' : '') + '</tr>';
+      }).join('') +
+      // bài nằm ở vị trí ngoài bố cục (ví dụ BOARD_LAYOUT bị rút ngắn sau khi xếp): hiện ra để bỏ, nếu không thì không gửi được
+      b.rows.filter(function (r) { return r.vi_tri > v.layout.length; }).map(function (r) {
+        return '<tr class="w"><td>' + r.vi_tri + '</td><td>ngoài bố cục</td><td><span class="code">' + esc(r.ma_bai) + '</span></td><td colspan="5">' +
+          'Vị trí này không còn trong bố cục (' + v.layout.length + ' vị trí) — bỏ bài khỏi bảng.</td>' +
+          (edit ? '<td class="nw"><button class="sm" data-b="remove" data-pos="' + r.vi_tri + '" title="Bỏ khỏi bảng">×</button></td>' : '') + '</tr>';
       }).join('') + '</table></div>';
+    var missing = v.layout.map(function (lv, i) { return i + 1; }).filter(function (q) { return !at[q]; });
+    var extra = b.rows.filter(function (r) { return r.vi_tri > v.layout.length; }).length;
+    var why = (missing.length ? 'Còn trống vị trí ' + missing.join(', ') + '.' : '') + (extra ? ' Có ' + extra + ' bài ở vị trí ngoài bố cục — bỏ ra trước.' : '');
     var act = [];
-    if (edit) act.push('<button class="pri" data-b="submit"' + (filled === v.layout.length ? '' : ' disabled title="Chưa đủ bài"') + '>Gửi TBT duyệt</button>');
+    if (edit) act.push('<button class="pri" data-b="submit"' + (why ? ' disabled title="' + escA(why) + '"' : '') + '>Gửi TBT duyệt</button>' +
+                       (why ? ' <span class="mut sm-t">' + esc(why) + '</span>' : ''));
     if (v.tbt && b.trang_thai === 'chờ duyệt') {
       act.push('<button class="pri" data-b="approve" data-warn="' + warn + '">Duyệt</button>');
       act.push('<button data-b="return">Trả lại…</button>');
