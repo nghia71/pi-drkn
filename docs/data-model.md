@@ -32,3 +32,6 @@ Bài chưa xác định được hồ sơ gốc dùng mã tạm (ví dụ `SL09-
 | BTK | mọi bài | — (xuất bản khoá kỳ) |
 | PB | chỉ bài được giao trong kỳ đang mở; không thấy tác giả khi BLIND_REVIEW=true | nhận xét |
 | Quản trị | mọi thứ; "Xem như vai trò…" để thử giao diện | người dùng, nhập hàng loạt |
+
+Lịch sử sửa đề/lời giải (tab Revisions) chỉ những vai trò thấy mọi bài xem được — PB không xem, vì các bản trước gần với bản gốc của tác giả.
+Sửa dùng khoá lạc quan: gửi kèm `phien_ban` đang xem; nếu người khác vừa lưu thì bị từ chối, không ghi đè. Lưu mà không đổi gì thì không tạo phiên bản mới.

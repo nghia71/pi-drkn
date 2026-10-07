@@ -97,7 +97,8 @@ function update_(name, row, patch) {
   var cols = SCHEMA[name], sh = sheet_(name);
   withLock_(function () {
     var cur = sh.getRange(row, 1, 1, cols.length).getValues()[0];
-    cols.forEach(function (c, j) { if (patch[c] !== undefined) cur[j] = cell_(patch[c]); });
+    // mọi ô của dòng qua cell_ (đọc ra "=…" thì ghi lại vẫn phải là chữ, không thành công thức)
+    cols.forEach(function (c, j) { cur[j] = cell_(patch[c] !== undefined ? patch[c] : cur[j]); });
     sh.getRange(row, 1, 1, cols.length).setValues([cur]);
   });
 }

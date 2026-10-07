@@ -52,11 +52,10 @@ Hết kỳ, bài rời khỏi danh sách của bạn.}{%
 • Lọc danh sách, xử lý các bài có \emph{cần kiểm tra}.\\
 • Đối chiếu bản gốc khi mục \emph{Đối chiếu nguyên bản} còn „chưa".\\
 • Trả lời thảo luận; báo dòng \emph{Cảnh báo hiển thị}.\\
-• Cần sửa văn bản: ghi vào Thảo luận của bài — Quản trị cập nhật (cho tới khi có ô sửa).}{%
-• \textbf{Sửa đề, lời giải ngay trên trang}, xem trước công thức. Nếu người khác vừa sửa, hệ thống báo — không ghi đè.\\[1mm]
+• \textbf{Sửa đề, lời giải}: nút \textbf{Sửa}, xem trước bên phải, \textbf{Lưu}. Ai vừa lưu trước thì hệ thống báo, không ghi đè.\\
+• \textbf{Lịch sử sửa}: cuối mục Nguồn \& chỉnh sửa.}{%
 • Thêm / đóng mục cần kiểm tra, xung đột.\\[1mm]
-• Biểu mẫu \textbf{Nhập bài}: tải hồ sơ, hệ thống tạo mã bài.\\[1mm]
-• Xem lịch sử sửa của từng bài.}
+• Biểu mẫu \textbf{Nhập bài}: tải hồ sơ, hệ thống tạo mã bài.}
 \end{frame}
 
 %======================================================== NGUỒN & CHỈNH SỬA
@@ -94,6 +93,7 @@ Hết kỳ, bài rời khỏi danh sách của bạn.}{%
 • Giải quyết xung đột trong phạm vi PT (số hiệu, bản chép khác nhau, trùng bài…); xung đột \emph{mức}, \emph{tác giả} chuyển TBT quyết định.\\[1mm]
 • Liên hệ tác giả khi NCB cần hỏi (thông tin liên hệ chỉ dùng trong hệ thống, không chép ra đề, lời giải).\\[1mm]
 • Nhận người mới: báo Quản trị email và vai trò của họ.\\[1mm]
+• Sửa đề, lời giải ngay trên trang (như NCB).\\[1mm]
 • Đổi trạng thái bài (Mới → SL → SL-OK / SL-Fail → PL): hiện báo Quản trị, cho tới khi có nút.}{%
 • Nút \textbf{đổi trạng thái}, thêm xung đột.\\[1mm]
 • \textbf{Mở kỳ phản biện}: chọn bài, giao cho phản biện, đặt hạn; email mời tự gửi.\\[1mm]
@@ -186,7 +186,7 @@ Dòng đỏ „Phiên làm việc đã hết hạn — hãy vào lại…" & tab
 „Không có quyền xem bài này" & bài không giao cho bạn, hoặc kỳ đã đóng & báo PT nếu bạn cần bài đó\\
 Trang trắng & trình duyệt tải lại khung trang & đóng tab, vào lại từ đường dẫn đăng nhập\\
 Công thức hiện nguyên \texttt{\$…\$}, hoặc dòng \emph{Cảnh báo hiển thị} & lệnh \LaTeX\ hệ thống chưa hiển thị được & ghi vào Thảo luận của bài để NCB xử lý\\
-„Bài vừa được người khác sửa (phiên bản n)" \soon & hai người sửa cùng lúc & mở lại bài, sửa tiếp trên bản mới\\
+„Bài vừa được người khác sửa (phiên bản n) — bản của bạn CHƯA được lưu" & hai người sửa cùng lúc & bản bạn gõ vẫn trong ô; so với bản mới hiện bên dưới, gộp rồi bấm \textbf{Lưu} lần nữa\\
 Dải xanh „This application was created by a Google Apps Script user" & thông báo chuẩn của Google & bấm \no\ để đóng\\\hline
 \end{tabular}}
 \end{frame}
@@ -195,7 +195,6 @@ Dải xanh „This application was created by a Google Apps Script user" & thôn
 \begin{frame}[label=sapco]{Đang làm tiếp — hướng dẫn sẽ được cập nhật}
 \begin{tikzpicture}[x=1mm,y=1mm]
 \foreach \t/\who/\d [count=\i] in {
-  {Sửa đề, lời giải trên trang}/{NCB, PT}/{xem trước công thức; báo khi người khác vừa sửa; giữ lịch sử},
   {Nút trạng thái, cần kiểm tra, xung đột}/{TBT, PT, NCB}/{ghi quyết định ngay trên trang bài},
   {Biểu mẫu Nhập bài}/{VP, NCB, PT}/{tải hồ sơ, hệ thống tạo mã bài},
   {Kỳ phản biện}/{PT, PB}/{giao bài, hạn, ô chấm, email mời và nhắc},

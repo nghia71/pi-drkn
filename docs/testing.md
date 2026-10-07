@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 51 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 57 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (51 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (57 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -110,6 +110,12 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 4.3 | PB, TBT, VP, BTK không sửa được đề | T1 |
 | 4.4 | Không ai sửa được bản gốc của tác giả hay trường khác qua API | QT |
 | 4.5 | Sửa bài không tồn tại bị từ chối | QT |
+| 4.6 | Lịch sử sửa: người chuẩn bị bài xem được (mới nhất trước); phản biện không xem được, kể cả bài được giao | T1+T2 |
+| 4.7 | Lưu mà không đổi gì: phiên bản giữ nguyên, không thêm lịch sử | T1 |
+| 4.8 | Văn bản quá dài (gần giới hạn một ô của Sheets) bị từ chối, bài không đổi | QT |
+| 4.9 | Sửa đề hay đổi trạng thái không biến ô khác bắt đầu bằng "=" thành công thức | T1 |
+| 4.10 | Người chuẩn bị bài không sửa được bài luyện tập (không thấy thì không sửa) | T1 |
+| 4.11 | Mỗi lần sửa được ghi vào nhật ký (ai, bài, phiên bản) | T1 |
 
 **5. Thảo luận**
 
@@ -279,11 +285,30 @@ Bước 2: thấy lại mọi bài.
 **Bạn sẽ thấy.** Công thức hiện đầy đủ, không có dòng "Cảnh báo hiển thị". Ở 2026-09-11a: mục Sửa đổi có dòng
 "4∛6/3 → 2∛6/3 … chờ tác giả xác nhận" (sau khi áp dụng bản vá đọc kiểm tra). Trên điện thoại: đọc được, công thức dài cuộn ngang được.
 
+### B11 — Sửa đề, xem trước, hai người cùng sửa, lịch sử
+**Tình huống.** Người chuẩn bị bài sửa văn bản trên trang; một người khác lưu trước.
+**Trước khi bắt đầu.** `resetPractice`. Dùng QT trong **hai tab** (mỗi tab vào từ đường dẫn đăng nhập — mỗi tab là một phiên riêng).
+**Các bước.**
+1. *(QT, tab 1)* Mở THU-01. Dưới mã bài có dòng "Phiên bản 1 · sửa lần cuối …". Bấm **Sửa** cạnh "Đề bài".
+2. *(QT, tab 1)* Trong ô bên trái, thêm vào cuối đề: ` Khi nào có dấu bằng?` và một công thức `$a=b=1$`. Ô bên phải hiện công thức sau chưa tới 1 giây.
+3. *(QT, tab 2)* Mở THU-01, bấm **Sửa** cạnh "Đề bài", gõ thêm một chữ bất kỳ (chưa lưu).
+4. *(QT, tab 1)* Bấm **Lưu**.
+5. *(QT, tab 2)* Bấm **Lưu**.
+6. *(QT, tab 2)* Bấm **Lưu** lần nữa.
+7. *(QT, tab 1)* Bấm **Sửa** cạnh "Lời giải", gõ một chữ, bấm **Huỷ**, rồi bấm **Huỷ** lần nữa.
+8. *(QT, tab 1)* Mở "Nguồn & chỉnh sửa" → cuối mục, bấm **Xem lịch sử** → mở dòng trên cùng.
+9. *(QT)* Sheet → tab Problems, dòng THU-01: cột `de_bai_goc` không đổi.
+10. *(T1)* Mở THU-01: không có nút Sửa, không có "Nguồn & chỉnh sửa".
+**Vì sao quan trọng.** Hai người sửa cùng lúc không được ghi đè lặng lẽ; mọi lần sửa có dấu vết; bản gốc của tác giả không đổi.
+**Bạn sẽ thấy.** Bước 4: đề mới hiện, dòng trên ghi "Phiên bản 2". Bước 5: thông báo đỏ "Bài vừa được người khác sửa (phiên bản 2) — bản của bạn CHƯA được lưu",
+chữ trong ô vẫn còn, bên dưới có khung vàng so sánh (chữ bỏ gạch đỏ, chữ thêm tô xanh). Bước 6: lưu được, "Phiên bản 3".
+Bước 7: lần Huỷ đầu nhắc "Có thay đổi chưa lưu — bấm Huỷ lần nữa để bỏ"; lần hai trở lại như cũ, không có phiên bản mới.
+Bước 8: hai dòng (phiên bản 3, 2), mỗi dòng ghi ai, khi nào và phần khác nhau.
+
 ---
 
 ## Những gì chưa kiểm thử được (vì chưa có)
 
-- Giao diện sửa đề/lời giải (API đã có và được kiểm thử tự động ở nhóm 4; trang web chưa có ô sửa).
 - Quy trình kỳ chọn bài: mở kỳ, phân công, chấm, đóng kỳ thành shortlist (đang dựng — sẽ thêm kịch bản khi có).
 - Gửi email thông báo.
 - Hai người ghi thật sự cùng một lúc trên Google (khoá ghi của Apps Script) — chỉ kiểm thử được phần "người lưu sau được báo".

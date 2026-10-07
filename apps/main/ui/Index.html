@@ -71,6 +71,7 @@ try {
   google.script.history.replace({}, {}, '');
   google.script.history.setChangeHandler(function (e) {
     var ma = e && e.state && e.state.ma;
+    if (dirtyEdit()) { var cur = document.getElementById('page').dataset.ma; nav({ ma: cur }); alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; }
     if (ma) openProblem(ma); else showList();
   });
 } catch (e) {}
@@ -127,24 +128,36 @@ function openProblem(ma) {
     if (!d) { alertBox('Không tải được bài ' + ma + '. Hãy thử lại.'); return; }
     var same = PCACHE[ma] && JSON.stringify(PCACHE[ma]) === JSON.stringify(d);
     PCACHE[ma] = d;
-    if (!same && !P.hidden && P.dataset.ma === ma) renderProblem(ma, d, false);
+    if (!same && !P.hidden && P.dataset.ma === ma && !busyTyping()) renderProblem(ma, d, false);
   });
 }
 function renderProblem(ma, d, loading) {
   var P = document.getElementById('page'); P.dataset.ma = ma;
   var p = d.problem, de = PiRender.render(p.de_bai || ''), lg = p.loi_giai ? PiRender.render(p.loi_giai) : null;
   var warn = de.warnings.concat(lg ? lg.warnings : []);
+  var ed = d.canEdit && !loading;
+  var btn = function (f) { return ed ? ' <button class="sm" data-edit="' + f + '">Sửa</button>' : ''; };
   P.innerHTML = '<p><a href="#" id="back">← Danh sách</a></p>' +
     '<div class="head"><span class="code">' + esc(p.ma_bai) + '</span>' + chip(p.chu_de) + chip(p.muc && 'Mức ' + p.muc) + chip(p.trang_thai) +
     '<span class="au">' + esc(d.author ? d.author.ten_in + (d.author.don_vi ? ' (' + d.author.don_vi + ')' : '') : (p.tac_gia || '')) + '</span></div>' +
-    '<h3>Đề bài</h3><div class="tx">' + de.html + '</div>' +
+    (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(p.cap_nhat) : '') + '</p>' : '') +
+    '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx">' + de.html + '</div></div>' +
     (loading ? '<p class="mut">Đang tải lời giải và thảo luận…</p>' :
-    (lg ? '<h3>Lời giải</h3><div class="tx">' + lg.html + '</div>' : '<p class="mut">(không có lời giải)</p>') +
+    '<div id="sec-loi_giai">' + (lg ? '<h3>Lời giải' + btn('loi_giai') + '</h3><div class="tx">' + lg.html + '</div>'
+                                    : '<h3>Lời giải' + btn('loi_giai') + '</h3><p class="mut">(không có lời giải)</p>') + '</div>' +
     (warn.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(warn.join('; ')) + '</p>' : '') +
     (d.limited ? '' : '<details><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
     '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
     '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>');
-  document.getElementById('back').onclick = function (e) { e.preventDefault(); nav({}); showList(); };
+  document.getElementById('back').onclick = function (e) {
+    e.preventDefault();
+    if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; }
+    nav({}); showList();
+  };
+  EDITORS = {};
+  P.querySelectorAll('[data-edit]').forEach(function (b) { b.onclick = function () { openEditor(ma, b.getAttribute('data-edit')); }; });
+  var hb = document.getElementById('hist-load');
+  if (hb) hb.onclick = function () { loadHistory(ma); };
   var send = document.getElementById('cm-send');
   if (send) send.onclick = function () {
     var t = document.getElementById('cm-new').value.trim(); if (!t) return;
@@ -162,7 +175,119 @@ function props(d) {
     '<h4>Sửa đổi</h4>' + list(d.corrections, function (c) { return '<b>' + esc(c.vi_tri) + '</b>: ' + esc(c.truoc) + ' → ' + esc(c.sau) + ' (' + esc(c.ly_do) + '; ' + esc(c.trang_thai) + ')'; }) +
     '<h4>Cần kiểm tra</h4>' + list(d.checks, function (c) { return esc(c.noi_dung) + ' [' + esc(c.trang_thai) + ']'; }) +
     '<h4>Xung đột</h4>' + list(d.conflicts, function (c) { return '<b>' + esc(c.loai) + '</b> — ' + esc(c.mo_ta) + (c.cach_giai_quyet ? ' ⇒ ' + esc(c.cach_giai_quyet) : '') + ' [' + esc(c.trang_thai) + ']'; }) +
-    '<h4>Nhật ký chuyển đổi</h4>' + list(d.log, function (l) { return esc(l.noi_dung); }) + '</div>';
+    '<h4>Nhật ký chuyển đổi</h4>' + list(d.log, function (l) { return esc(l.noi_dung); }) +
+    '<h4>Lịch sử sửa đề / lời giải</h4><div id="hist"><button class="sm" id="hist-load">Xem lịch sử</button></div></div>';
+}
+
+/* ---------- Sửa đề / lời giải (NCB, PT, Quản trị) ----------
+ * Khoá lạc quan: gửi kèm phiên bản đang xem; nếu người khác vừa lưu, máy chủ từ chối, bản đang gõ vẫn giữ trong ô,
+ * bản mới nhất hiện bên dưới để người sửa tự gộp rồi lưu lại. Không bao giờ ghi đè lặng lẽ. */
+var EDITORS = {};
+var FIELD_NAME = { de_bai: 'đề bài', loi_giai: 'lời giải' };
+function dirtyEdit() { return Object.keys(EDITORS).some(function (f) { var e = EDITORS[f]; return e && e.ta.value !== e.orig; }); }
+function busyTyping() { var c = document.getElementById('cm-new'); return Object.keys(EDITORS).length > 0 || !!(c && c.value.trim()); }
+function openEditor(ma, field) {
+  var d = PCACHE[ma]; if (!d || EDITORS[field]) return;
+  var sec = document.getElementById('sec-' + field), orig = d.problem[field] == null ? '' : String(d.problem[field]);
+  sec.innerHTML = '<h3>Sửa ' + FIELD_NAME[field] + ' <span class="mut">(LaTeX sạch — ghi chú, lý do sửa ghi ở mục Sửa đổi / Cần kiểm tra, không ghi vào văn bản)</span></h3>' +
+    '<div class="ed"><textarea class="src" spellcheck="false"></textarea><div class="pv tx"></div></div>' +
+    '<div class="edbar"><button class="pri" data-a="save">Lưu</button> <button data-a="cancel">Huỷ</button> <span class="st mut"></span></div><div class="newer"></div>';
+  var ta = sec.querySelector('textarea'), pv = sec.querySelector('.pv'), st = sec.querySelector('.st');
+  ta.value = orig; ta.rows = Math.min(24, Math.max(8, orig.split('\n').length + 2));
+  var e = EDITORS[field] = { ta: ta, orig: orig, base: d.problem.phien_ban, cancelArmed: false };
+  var timer = null, draw = function () {
+    var r = PiRender.render(ta.value);
+    pv.innerHTML = r.html + (r.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(r.warnings.join('; ')) + '</p>' : '');
+    typeset(pv);
+  };
+  ta.oninput = function () { e.cancelArmed = false; st.textContent = ''; clearTimeout(timer); timer = setTimeout(draw, 400); };
+  draw(); ta.focus();
+  sec.querySelector('[data-a=cancel]').onclick = function () {
+    if (ta.value !== e.orig && !e.cancelArmed) { e.cancelArmed = true; st.textContent = 'Có thay đổi chưa lưu — bấm Huỷ lần nữa để bỏ.'; return; }
+    delete EDITORS[field]; closeEditor(ma, field);
+  };
+  var save = sec.querySelector('[data-a=save]');
+  save.onclick = function () {
+    save.disabled = true; st.textContent = 'Đang lưu…'; clearTimeout(timer); draw();
+    var text = ta.value;
+    call('saveText', { ma_bai: ma, truong: field, noi_dung: text, phien_ban: e.base }).then(function (r) {
+      var cur = PCACHE[ma];
+      cur.problem[field] = text; cur.problem.phien_ban = r.phien_ban;
+      if (!r.khong_doi) { cur.problem.cap_nhat = r.cap_nhat; cur.problem.nguoi_cap_nhat = r.nguoi_cap_nhat; }
+      if (field === 'de_bai' && LROWS[ma]) LROWS[ma].de_bai = text;
+      if (EDITORS.de_bai && field !== 'de_bai') EDITORS.de_bai.base = r.phien_ban;      // phiên bản chung cho cả bài
+      if (EDITORS.loi_giai && field !== 'loi_giai') EDITORS.loi_giai.base = r.phien_ban;
+      delete EDITORS[field]; closeEditor(ma, field);
+      if (r.khong_doi) alertBox('Không có thay đổi nào — không tạo phiên bản mới.');
+      if (ALL) renderList();
+    }, function (err) {
+      save.disabled = false; st.textContent = '';
+      if (String(err && err.message || err).indexOf('người khác sửa') < 0) return;
+      // người khác vừa lưu: lấy bản mới nhất, giữ bản đang gõ, để người sửa tự gộp
+      call('getProblem', { ma_bai: ma }).then(function (nd) {
+        if (!nd || !nd.problem) return;
+        delete nd.problem.de_bai_goc; delete nd.problem.loi_giai_goc;
+        PCACHE[ma] = nd; e.base = nd.problem.phien_ban; e.cancelArmed = false;
+        var newer = nd.problem[field] == null ? '' : String(nd.problem[field]);
+        sec.querySelector('.newer').innerHTML = '<div class="conf"><p><b>' + esc(nd.problem.nguoi_cap_nhat || 'Người khác') + '</b> vừa lưu phiên bản ' +
+          esc(nd.problem.phien_ban) + '. Bản bạn đang gõ vẫn còn trong ô ở trên. So với bản mới nhất dưới đây, chép phần cần giữ vào ô rồi bấm Lưu lần nữa ' +
+          '(lần lưu sau sẽ thay bản mới nhất này).</p>' + diffHtml(newer, ta.value) +
+          '<details><summary>Bản mới nhất (mã LaTeX)</summary><pre></pre></details></div>';
+        sec.querySelector('.newer pre').textContent = newer;
+        st.textContent = 'Đã lấy bản mới nhất (phiên bản ' + nd.problem.phien_ban + ').';
+        var v = document.getElementById('ver');
+        if (v) v.textContent = 'Phiên bản ' + nd.problem.phien_ban + (nd.problem.nguoi_cap_nhat ? ' · sửa lần cuối: ' + nd.problem.nguoi_cap_nhat + ', ' + nd.problem.cap_nhat : '');
+        draw();
+      });
+    });
+  };
+}
+
+/** Đóng một ô sửa: vẽ lại riêng phần đó (ô sửa kia, nếu đang mở, giữ nguyên) và dòng phiên bản. */
+function closeEditor(ma, field) {
+  var p = PCACHE[ma].problem, sec = document.getElementById('sec-' + field), t = p[field] ? PiRender.render(p[field]) : null;
+  sec.innerHTML = '<h3>' + (field === 'de_bai' ? 'Đề bài' : 'Lời giải') + ' <button class="sm" data-edit="' + field + '">Sửa</button></h3>' +
+    (t ? '<div class="tx">' + t.html + '</div>' + (t.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(t.warnings.join('; ')) + '</p>' : '')
+       : '<p class="mut">(không có ' + FIELD_NAME[field] + ')</p>');
+  sec.querySelector('[data-edit]').onclick = function () { openEditor(ma, field); };
+  var v = document.getElementById('ver');
+  if (v) v.textContent = 'Phiên bản ' + (p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + p.nguoi_cap_nhat + ', ' + p.cap_nhat : '');
+  typeset(sec);
+}
+
+/* ---------- Lịch sử sửa (tab Revisions) ---------- */
+function loadHistory(ma) {
+  var H = document.getElementById('hist'); H.innerHTML = '<p class="mut">Đang tải…</p>';
+  call('revisions', { ma_bai: ma }).then(function (rs) {
+    if (!rs || !rs.length) { H.innerHTML = '<p class="mut">Chưa có lần sửa nào qua hệ thống.</p>'; return; }
+    H.innerHTML = rs.map(function (r) {
+      return '<details class="rev"><summary>Phiên bản ' + esc(r.phien_ban) + ' · ' + esc(FIELD_NAME[r.truong] || r.truong) + ' · ' + esc(r.email) + ' · ' + esc(r.ngay) + '</summary>' +
+        diffHtml(r.cu == null ? '' : String(r.cu), r.moi == null ? '' : String(r.moi)) + '</details>';
+    }).join('');
+  }, function () { H.innerHTML = '<button class="sm" id="hist-load">Xem lịch sử</button>'; document.getElementById('hist-load').onclick = function () { loadHistory(ma); }; });
+}
+
+/** So sánh hai bản theo từ (mã LaTeX, không hiển thị công thức): phần bỏ gạch đỏ, phần thêm tô xanh. */
+function diffHtml(a, b) {
+  var tok = function (s) { return s.match(/\s+|[^\s]+/g) || []; };
+  var x = tok(a), y = tok(b), n = x.length, m = y.length;
+  if (a === b) return '<p class="mut">(không khác)</p>';
+  if (n * m > 4000000) return '<div class="diff"><p class="mut">Văn bản dài — hiện hai bản:</p><del>' + esc(a) + '</del><br><ins>' + esc(b) + '</ins></div>';
+  var L = [], i, j;
+  for (i = 0; i <= n; i++) L.push(new Uint32Array(m + 1));
+  for (i = n - 1; i >= 0; i--) for (j = m - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  var out = [], push = function (k, t) { var l = out[out.length - 1]; if (l && l.k === k) l.t += t; else out.push({ k: k, t: t }); };
+  i = 0; j = 0;
+  while (i < n && j < m) {
+    if (x[i] === y[j]) { push('=', x[i]); i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) push('-', x[i++]);
+    else push('+', y[j++]);
+  }
+  while (i < n) push('-', x[i++]);
+  while (j < m) push('+', y[j++]);
+  return '<div class="diff">' + out.map(function (o) {
+    return o.k === '=' ? esc(o.t) : o.k === '-' ? '<del>' + esc(o.t) + '</del>' : '<ins>' + esc(o.t) + '</ins>';
+  }).join('') + '</div>';
 }
 </script>
 </body>

@@ -356,6 +356,56 @@ function defineTests_() {
     throws_(function () { call_(login_(A.QT), 'saveText', { ma_bai: 'KHONG-CO', truong: 'de_bai', noi_dung: 'x', phien_ban: 1 }); }, 'Không có bài');
   });
 
+  test_('4.6', 'Lịch sử sửa: người chuẩn bị bài xem được (mới nhất trước); phản biện không xem được, kể cả bài được giao', 'T1+T2', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    var tok = login_(A.T1);
+    call_(tok, 'saveText', { ma_bai: 'TEST-02', truong: 'de_bai', noi_dung: 'Đề lần 1.', phien_ban: 1 });
+    call_(tok, 'saveText', { ma_bai: 'TEST-02', truong: 'loi_giai', noi_dung: 'Lời giải lần 2.', phien_ban: 2 });
+    var h = call_(tok, 'revisions', { ma_bai: 'TEST-02' });
+    eq_(h.map(function (r) { return r.phien_ban; }), [3, 2], 'mới nhất trước');
+    eq_(h[0].truong, 'loi_giai'); eq_(h[0].moi, 'Lời giải lần 2.'); eq_(h[1].cu, 'Đề thử TEST-02: tính $1+1$.'); eq_(h[1].email, A.T1);
+    eq_(call_(tok, 'revisions', { ma_bai: 'TEST-01' }).length, 0, 'bài khác không lẫn vào');
+    var pb = login_(A.T2);
+    var e1 = throws_(function () { call_(pb, 'revisions', { ma_bai: 'TEST-02' }); }, 'Không có quyền');
+    var e2 = throws_(function () { call_(pb, 'revisions', { ma_bai: 'KHONG-CO' }); }, 'Không có quyền');
+    eq_(e1.message, e2.message, 'không phân biệt được bài không tồn tại');
+    throws_(function () { call_(login_(A.QT), 'revisions', { ma_bai: 'KHONG-CO' }); }, 'Không có bài');
+  });
+  test_('4.7', 'Lưu mà không đổi gì: phiên bản giữ nguyên, không thêm lịch sử', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    var r = call_(login_(A.T1), 'saveText', { ma_bai: 'TEST-01', truong: 'de_bai', noi_dung: 'Đề thử TEST-01: tính $1+1$.', phien_ban: 1 });
+    eq_(r.phien_ban, 1); ok_(r.khong_doi, 'phải báo không đổi');
+    eq_(Number(findRow_('Problems', 'ma_bai', 'TEST-01').data.phien_ban), 1); eq_(rows_('Revisions').length, 0);
+  });
+  test_('4.8', 'Văn bản quá dài (gần giới hạn một ô của Sheets) bị từ chối, bài không đổi', 'QT', function () {
+    throws_(function () { call_(login_(A.QT), 'saveText', { ma_bai: 'TEST-01', truong: 'loi_giai', noi_dung: new Array(MAX_TEXT_ + 2).join('a'), phien_ban: 1 }); }, 'quá dài');
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-01').data.loi_giai, 'Lời giải thử TEST-01.');
+  });
+  test_('4.9', 'Sửa đề hay đổi trạng thái không biến ô khác bắt đầu bằng "=" thành công thức', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    var tok = login_(A.T1);
+    call_(tok, 'saveText', { ma_bai: 'TEST-03', truong: 'loi_giai', noi_dung: '=1+1 là đáp số.', phien_ban: 1 });
+    call_(tok, 'saveText', { ma_bai: 'TEST-03', truong: 'de_bai', noi_dung: 'Đề mới.', phien_ban: 2 });
+    var hit = findRow_('Problems', 'ma_bai', 'TEST-03');
+    eq_(hit.data.loi_giai, '=1+1 là đáp số.');
+    eq_(sheet_('Problems').getRange(hit.row, SCHEMA.Problems.indexOf('loi_giai') + 1).getFormula(), '', 'ô lời giải không được thành công thức');
+    call_(login_(A.QT), 'setStatus', { ma_bai: 'TEST-03', trang_thai: 'SL' });
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-03').data.loi_giai, '=1+1 là đáp số.', 'sau khi đổi trạng thái');
+    eq_(sheet_('Problems').getRange(hit.row, SCHEMA.Problems.indexOf('loi_giai') + 1).getFormula(), '', 'đổi trạng thái không được tạo công thức');
+  });
+  test_('4.10', 'Người chuẩn bị bài không sửa được bài luyện tập (không thấy thì không sửa)', 'T1', function () {
+    resetPractice();
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    putRows_('Assignments', []);
+    throws_(function () { call_(login_(A.T1), 'saveText', { ma_bai: 'THU-01', truong: 'de_bai', noi_dung: 'x', phien_ban: 1 }); }, 'Không có quyền');
+    eq_(rows_('Revisions').length, 0);
+  });
+  test_('4.11', 'Mỗi lần sửa được ghi vào nhật ký (ai, bài, phiên bản)', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    call_(login_(A.T1), 'saveText', { ma_bai: 'TEST-04', truong: 'de_bai', noi_dung: 'Đề sửa.', phien_ban: 1 });
+    ok_(auditHas_('sửa', 'TEST-04 de_bai → phiên bản 2'));
+  });
+
   // 5. Thảo luận
   test_('5.1', 'Phản biện nhận xét bài được giao; người khác cùng được giao và quản trị thấy nhận xét', 'T1+T2', function () {
     call_(login_(A.T1), 'addComment', { ma_bai: 'TEST-02', noi_dung: 'Nhận xét của T1: $x^2$' });
