@@ -1,7 +1,9 @@
 \usepackage{fontspec}
-\setsansfont{TeX Gyre Heros}
-\setmainfont{TeX Gyre Heros}
-\newfontfamily\symf{DejaVu Sans}
+% Gọi phông theo TÊN TỆP (có sẵn trong TeX Live / MacTeX), không theo tên phông: trên Mac, phông của MacTeX
+% không cài vào hệ thống nên „TeX Gyre Heros" theo tên không tìm thấy.
+\setsansfont{texgyreheros}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
+\setmainfont{texgyreheros}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]
+\newfontfamily\symf{DejaVuSans}[Extension=.ttf,BoldFont=DejaVuSans-Bold]
 \usepackage{tikz}
 \usetikzlibrary{decorations.pathreplacing,shapes.geometric,shapes.symbols,positioning,arrows.meta,calc,fit,backgrounds,angles,quotes,shadows}
 \usepackage{xcolor}

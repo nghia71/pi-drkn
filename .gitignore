@@ -34,3 +34,11 @@ __pycache__/
 *.pyc
 .DS_Store
 apps/main/ui/RenderJs.html
+# tệp phụ khi dựng slide (docs/guide)
+docs/guide/*.aux
+docs/guide/*.log
+docs/guide/*.nav
+docs/guide/*.out
+docs/guide/*.snm
+docs/guide/*.toc
+docs/guide/*.vrb
