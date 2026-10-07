@@ -9,7 +9,8 @@ var EDITORS = ['NCB', 'PT', 'Quản trị'];
 var CONTACT_VIEWERS = ['VP', 'PT', 'TBT', 'Quản trị'];
 var ALL_PROBLEMS_VIEWERS = ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'];
 
-var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1 };
+var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1 };
+var MAX_TEXT_ = 45000;   // giới hạn một ô của Google Sheets là 50 000 ký tự; chừa chỗ cho dấu ' chặn công thức
 
 function api(token, method, args) {
   READ_MEMO_ = READ_ONLY_[method] ? {} : null;
@@ -32,6 +33,7 @@ function api_(token, method, args) {
     case 'getProblem': return getProblem_(w, args.ma_bai);
     case 'bundle': return bundle_(w);
     case 'saveText': return saveText_(w, args);
+    case 'revisions': return revisions_(w, args.ma_bai);
     case 'addComment': return addComment_(w, args);
     case 'addCheck': return addProp_(w, 'Checks', args);
     case 'addConflict': return addProp_(w, 'Conflicts', args);
@@ -129,20 +131,40 @@ function getProblem_(w, ma, noAudit) {
 function saveText_(w, a) {
   need_(w, EDITORS);
   if (['de_bai', 'loi_giai'].indexOf(a.truong) < 0) throw new Error('Chỉ sửa được de_bai hoặc loi_giai.');
-  return withLock_(function () {
+  if (!canSee_(w, a.ma_bai, assignedSet_(w))) throw new Error('Không có quyền sửa bài này.');
+  var text = String(a.noi_dung == null ? '' : a.noi_dung);
+  if (text.length > MAX_TEXT_) throw new Error('Văn bản quá dài (tối đa ' + MAX_TEXT_ + ' ký tự).');
+  var res = withLock_(function () {
     var hit = findRow_('Problems', 'ma_bai', a.ma_bai);
     if (!hit) throw new Error('Không có bài');
     var cur = Number(hit.data.phien_ban || 0);
-    if (Number(a.phien_ban) !== cur) throw new Error('Bài vừa được người khác sửa (phiên bản ' + cur + '). Hãy tải lại rồi sửa tiếp.');
+    if (Number(a.phien_ban) !== cur) throw new Error('Bài vừa được người khác sửa (phiên bản ' + cur + ') — bản của bạn CHƯA được lưu.');
+    // không đổi gì thì không tăng phiên bản, không thêm lịch sử
+    if (String(hit.data[a.truong]) === text) return { phien_ban: cur, khong_doi: true };
     var patch = { phien_ban: cur + 1, cap_nhat: now_(), nguoi_cap_nhat: w.email };
-    patch[a.truong] = a.noi_dung;
+    patch[a.truong] = text;
     var sh = sheet_('Problems'), cols = SCHEMA.Problems, row = sh.getRange(hit.row, 1, 1, cols.length).getValues()[0];
-    cols.forEach(function (c, j) { if (patch[c] !== undefined) row[j] = cell_(patch[c]); });
+    // ghi lại cả dòng: mọi ô (không chỉ ô sửa) phải qua cell_, kẻo ô khác bắt đầu bằng "=" thành công thức
+    cols.forEach(function (c, j) { row[j] = cell_(patch[c] !== undefined ? patch[c] : row[j]); });
     sh.getRange(hit.row, 1, 1, cols.length).setValues([row]);
     sheet_('Revisions').appendRow(rowOf_('Revisions', { id: newId_(), ma_bai: a.ma_bai, truong: a.truong, phien_ban: cur + 1,
-      cu: hit.data[a.truong], moi: a.noi_dung, email: w.email, ngay: now_() }));
-    return { phien_ban: cur + 1 };
+      cu: hit.data[a.truong], moi: text, email: w.email, ngay: now_() }));
+    return { phien_ban: cur + 1, cap_nhat: patch.cap_nhat, nguoi_cap_nhat: w.email };
   });
+  if (!res.khong_doi) audit_(w.email, 'sửa', a.ma_bai + ' ' + a.truong + ' → phiên bản ' + res.phien_ban);
+  return res;
+}
+
+/**
+ * Lịch sử sửa đề/lời giải của một bài (mới nhất trước). Chỉ những vai trò thấy mọi bài: lịch sử chứa các bản trước,
+ * gần với bản gốc của tác giả, nên phản biện không được xem.
+ */
+function revisions_(w, ma) {
+  if (!has_(w, ALL_PROBLEMS_VIEWERS) || !canSee_(w, ma, assignedSet_(w))) throw new Error('Không có quyền xem bài này.');
+  if (!findRow_('Problems', 'ma_bai', ma)) throw new Error('Không có bài ' + ma);
+  return rows_('Revisions').filter(function (r) { return r.ma_bai === ma; }).map(function (r) {
+    return { id: r.id, truong: r.truong, phien_ban: Number(r.phien_ban) || 0, cu: r.cu, moi: r.moi, email: r.email, ngay: r.ngay };
+  }).sort(function (x, y) { return y.phien_ban - x.phien_ban; });
 }
 
 function addComment_(w, a) {
