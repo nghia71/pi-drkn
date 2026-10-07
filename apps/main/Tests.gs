@@ -73,6 +73,7 @@ function runOne_(t) {
   try {
     if (t.fresh) seed_();
     TEST_CONF.BLIND_REVIEW = 'true';
+    delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; TEST_OUTBOX = [];
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
   TK.results.push([t.id, t.title, t.who, ok ? 'ĐẠT' : 'LỖI', msg, Date.now() - t1]);
@@ -659,6 +660,7 @@ function defineTests_() {
     eq_(rows_('Problems').filter(function (p) { return p.ma_bai.indexOf('TEST-') === 0; }).length, 5, 'bài khác giữ nguyên');
     eq_(rows_('Assignments').filter(function (a) { return a.ky === 'K-THU'; }).length, 3);
     eq_(rows_('Rounds').filter(function (r) { return r.ky === 'K-THU'; }).length, 1);
+    eq_(daysUntil_(dateOnly_(findRow_('Rounds', 'ky', 'K-THU').data.han_phan_bien)), 14, 'kỳ luyện có hạn 14 ngày');
   });
   test_('11.2', 'Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy', 'T1+T2', function () {
     resetPractice();
@@ -697,6 +699,150 @@ function defineTests_() {
     ensureTabs_(SpreadsheetApp.openById(DB_OVERRIDE));
     eq_(sh.getRange(1, 1, 1, 2).getValues()[0], ['ma', 'khac']);
     sh.getRange(1, 1, 1, cols.length).setValues([cols]);
+  });
+
+  // 13. Kỳ phản biện
+  var R = function (role1, role2) { setUsers_({ QT: 'Quản trị', T1: role1 || 'PB', T2: role2 || 'PB' }); };
+  test_('13.1', 'PT mở kỳ: tên trùng, hạn sai dạng hoặc đã qua bị từ chối; chỉ PT, Quản trị mở được; hạn lưu như chữ', 'T1', function () {
+    TEST_CONF.TODAY = '2026-10-10';
+    ['NCB', 'TBT', 'PB', 'VP'].forEach(function (r) {
+      R(r); throws_(function () { call_(login_(A.T1), 'openRound', { ky: 'K-MOI', han_phan_bien: '2026-10-20' }); }, 'Không có quyền');
+    });
+    R('PT'); var tok = login_(A.T1);
+    throws_(function () { call_(tok, 'openRound', { ky: 'K-MO', han_phan_bien: '2026-10-20' }); }, 'Đã có kỳ');
+    throws_(function () { call_(tok, 'openRound', { ky: 'K-MOI', han_phan_bien: '20/10/2026' }); }, 'NNNN-TT-NN');
+    throws_(function () { call_(tok, 'openRound', { ky: 'K-MOI', han_phan_bien: '2026-02-30' }); }, 'không có thật');
+    throws_(function () { call_(tok, 'openRound', { ky: 'K-MOI', han_phan_bien: '2026-10-10' }); }, 'sau hôm nay');
+    throws_(function () { call_(tok, 'openRound', { ky: '=HYPERLINK(1)', han_phan_bien: '2026-10-20' }); }, 'không được bắt đầu');
+    call_(tok, 'openRound', { ky: 'K-MOI', han_phan_bien: '2026-10-20', ghi_chu: 'kỳ thử' });
+    var r = findRow_('Rounds', 'ky', 'K-MOI').data;
+    eq_(r.trang_thai, 'mở'); eq_(typeof r.han_phan_bien, 'string', 'hạn không bị Sheets đổi thành Date'); eq_(r.han_phan_bien, '2026-10-20');
+    var v = call_(tok, 'rounds'); ok_(v.manage); eq_(v.rounds.filter(function (x) { return x.ky === 'K-MOI'; })[0].han_phan_bien, '2026-10-20');
+    ok_(auditHas_('mở kỳ', 'K-MOI'));
+  });
+  test_('13.2', 'Giao bài: chỉ cho người có vai trò PB đang hoạt động; không trùng; không giao vào kỳ đã đóng; PB thấy bài kèm hạn', 'T1+T2', function () {
+    TEST_CONF.TODAY = '2026-10-10';
+    setUsers_({ QT: 'Quản trị', T1: 'PT', T2: 'PB' });
+    var tok = login_(A.T1);
+    call_(tok, 'openRound', { ky: 'K2', han_phan_bien: '2026-10-20' });
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-04', email: A.T1 }); }, 'chưa có vai trò PB');
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-04', email: STRANGER }); }, 'chưa có vai trò PB');
+    throws_(function () { call_(tok, 'assign', { ky: 'K-DONG', ma_bai: 'TEST-04', email: A.T2 }); }, 'đã đóng');
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'KHONG-CO', email: A.T2 }); }, 'Không có bài');
+    call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-04', email: ' ' + A.T2.toUpperCase() + ' ' });
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-04', email: A.T2 }); }, 'Đã giao');
+    var l = call_(login_(A.T2), 'listProblems'), row = l.filter(function (p) { return p.ma_bai === 'TEST-04'; })[0];
+    ok_(row, 'PB thấy bài vừa giao'); eq_(row.giao.han, '2026-10-20'); eq_(row.giao.xong, false);
+    setUsers_({ QT: 'Quản trị', T1: 'PT', T2: { vai_tro: 'PB', hoat_dong: false } });
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-05', email: A.T2 }); }, 'tạm ngưng');
+  });
+  test_('13.3', 'Thư mời: mỗi phản biện một thư, không có đề / tên tác giả; gửi lại không gửi trùng; thiếu hạn mức thì không gửi gì', 'QT', function () {
+    TEST_CONF.TODAY = '2026-10-10';
+    var tok = login_(A.QT);
+    update_('Rounds', findRow_('Rounds', 'ky', 'K-MO').row, { han_phan_bien: "'2026-10-20" });
+    TEST_CONF.MAIL_QUOTA = 1;
+    throws_(function () { call_(tok, 'sendInvites', { ky: 'K-MO' }); }, 'Hạn mức');
+    eq_(TEST_OUTBOX.length, 0); ok_(assignmentsOf_('K-MO').every(function (a) { return !a.moi_luc; }), 'chưa ghi đã mời');
+    TEST_CONF.MAIL_QUOTA = 100;
+    eq_(call_(tok, 'sendInvites', { ky: 'K-MO' }).sent, 2);
+    eq_(TEST_OUTBOX.map(function (m) { return m.to; }).sort(), [A.T1, A.T2].sort());
+    var t1 = TEST_OUTBOX.filter(function (m) { return m.to === A.T1; })[0];
+    has_s_(t1.body, '2 bài'); has_s_(t1.body, '2026-10-20'); has_s_(t1.body, 'https://example.com/dang-nhap'); has_s_(t1.body, A.T1);
+    TEST_OUTBOX.forEach(function (m) { lacks_(m.body, 'Đề thử'); lacks_(m.body, FX_AUTHOR); lacks_(m.body, 'TEST-0'); });
+    eq_(call_(tok, 'sendInvites', { ky: 'K-MO' }).sent, 0); eq_(TEST_OUTBOX.length, 2);
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'sendInvites', { ky: 'K-MO' }); }, 'Không có quyền');
+  });
+  test_('13.4', 'Phiếu phản biện: chỉ người được giao; phải chọn đề nghị; lưu lại thay phiếu cũ; phản biện khác không thấy; TBT thấy mọi phiếu', 'T1+T2', function () {
+    var a = login_(A.T1), b = login_(A.T2);
+    throws_(function () { call_(b, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-01', diem: 'chọn' }); }, 'không được giao');
+    throws_(function () { call_(a, 'submitReview', { ky: 'K-DONG', ma_bai: 'TEST-03', diem: 'chọn' }); }, 'đã đóng');
+    throws_(function () { call_(a, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-02', diem: '' }); }, 'Hãy chọn đề nghị');
+    throws_(function () { call_(a, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-02', diem: 'chọn', muc_de_nghi: 'C' }); }, 'Mức đề nghị');
+    call_(a, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-02', diem: 'sửa rồi chọn', muc_de_nghi: 'B', nhan_xet: 'Bước 2 thiếu $x>0$.' });
+    call_(a, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-02', diem: 'chọn', muc_de_nghi: 'A', nhan_xet: '=đã sửa' });
+    call_(b, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-02', diem: 'không chọn', nhan_xet: 'Trùng bài cũ.' });
+    var rv = rows_('Reviews'); eq_(rv.length, 2, 'lưu lại thay phiếu cũ');
+    var mine = call_(a, 'getProblem', { ma_bai: 'TEST-02' });
+    eq_(mine.reviews, undefined, 'phản biện không nhận phiếu của người khác'); eq_(mine.mine.length, 1);
+    eq_(mine.mine[0].review.diem, 'chọn'); eq_(mine.mine[0].review.nhan_xet, '=đã sửa');
+    lacks_(JSON.stringify(mine), 'Trùng bài cũ', 'phiếu của T2 lọt sang T1');
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    var all = call_(login_(A.T1), 'getProblem', { ma_bai: 'TEST-02' }).reviews;
+    eq_(all.length, 2); eq_(all.map(function (v) { return v.email; }).sort(), [A.T1, A.T2].sort());
+  });
+  test_('13.5', 'Đánh dấu xong: cần phiếu trước; đã xong thì khoá phiếu; bỏ đánh dấu được; PT thấy tiến độ', 'T1', function () {
+    var a = login_(A.T1);
+    throws_(function () { call_(a, 'markDone', { ky: 'K-MO', ma_bai: 'TEST-01' }); }, 'Phiếu phản biện trước');
+    call_(a, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-01', diem: 'chọn', muc_de_nghi: 'A' });
+    call_(a, 'markDone', { ky: 'K-MO', ma_bai: 'TEST-01' });
+    throws_(function () { call_(a, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-01', diem: 'không chọn' }); }, 'đã đánh dấu xong');
+    var v = call_(login_(A.QT), 'rounds').rounds.filter(function (r) { return r.ky === 'K-MO'; })[0];
+    var x = v.assignments.filter(function (y) { return y.ma_bai === 'TEST-01'; })[0]; ok_(x.xong); ok_(x.phieu);
+    eq_(call_(a, 'listProblems').filter(function (p) { return p.ma_bai === 'TEST-01'; })[0].giao.xong, true);
+    call_(a, 'markDone', { ky: 'K-MO', ma_bai: 'TEST-01', xong: false });
+    call_(a, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-01', diem: 'không chọn' });
+    eq_(rows_('Reviews')[0].diem, 'không chọn');
+  });
+  test_('13.6', 'Nhắc hạn: đúng 3 và 1 ngày trước hạn (đổi được bằng REMINDER_DAYS); mỗi mốc một lần; không nhắc người đã xong hoặc chưa mời', 'T1+T2', function () {
+    update_('Rounds', findRow_('Rounds', 'ky', 'K-MO').row, { han_phan_bien: "'2026-10-20" });
+    TEST_CONF.TODAY = '2026-10-10';
+    call_(login_(A.QT), 'sendInvites', { ky: 'K-MO' }); TEST_OUTBOX = [];
+    call_(login_(A.T2), 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-02', diem: 'chọn' });
+    call_(login_(A.T2), 'markDone', { ky: 'K-MO', ma_bai: 'TEST-02' });
+    call_(login_(A.QT), 'assign', { ky: 'K-MO', ma_bai: 'TEST-04', email: A.T2 });      // giao thêm, chưa mời
+    TEST_CONF.TODAY = '2026-10-16'; eq_(sendReminders(), 0, '4 ngày: chưa nhắc');
+    TEST_CONF.TODAY = '2026-10-17'; eq_(sendReminders(), 1, '3 ngày: nhắc T1');
+    eq_(TEST_OUTBOX[0].to, A.T1); has_s_(TEST_OUTBOX[0].subject, 'còn 3 ngày'); has_s_(TEST_OUTBOX[0].body, '2 bài');
+    eq_(sendReminders(), 0, 'chạy lại cùng ngày không gửi trùng');
+    TEST_CONF.TODAY = '2026-10-18'; eq_(sendReminders(), 0);
+    TEST_CONF.TODAY = '2026-10-19'; eq_(sendReminders(), 1, '1 ngày: nhắc lần hai');
+    eq_(findRow_('Assignments', 'ma_bai', 'TEST-01').data.nhac, '3,1');
+    eq_(TEST_OUTBOX.filter(function (m) { return m.to === A.T2; }).length, 0, 'T2 đã xong / bài mới chưa mời: không nhắc');
+    TEST_CONF.REMINDER_DAYS = '2'; TEST_CONF.TODAY = '2026-10-18';
+    putRows_('Assignments', [{ ky: 'K-MO', ma_bai: 'TEST-01', email: A.T1, moi_luc: now_(), xong: false }]);
+    eq_(sendReminders(), 1, 'REMINDER_DAYS=2');
+  });
+  test_('13.7', 'Đóng kỳ: phản biện không còn thấy bài, không nộp phiếu; không giao thêm; chỉ PT, Quản trị đóng được', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'closeRound', { ky: 'K-MO' }); }, 'Không có quyền');
+    setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'PB' });
+    call_(login_(A.QT), 'closeRound', { ky: 'K-MO' });
+    eq_(call_(login_(A.T1), 'listProblems').length, 0);
+    throws_(function () { call_(login_(A.T1), 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-01', diem: 'chọn' }); }, 'đã đóng');
+    throws_(function () { call_(login_(A.QT), 'assign', { ky: 'K-MO', ma_bai: 'TEST-04', email: A.T1 }); }, 'đã đóng');
+    throws_(function () { call_(login_(A.QT), 'closeRound', { ky: 'K-MO' }); }, 'đã đóng');
+    ok_(findRow_('Rounds', 'ky', 'K-MO').data.khoa_luc, 'ghi lúc đóng');
+  });
+  test_('13.8', 'Thảo luận ẩn danh: phản biện thấy "Bạn", "Phản biện 1", "Ban biên tập" — không có email nào; ban biên tập thấy email', 'T1+T2', function () {
+    call_(login_(A.T1), 'addComment', { ma_bai: 'TEST-02', noi_dung: 'Nhận xét của T1' });
+    call_(login_(A.QT), 'addComment', { ma_bai: 'TEST-02', noi_dung: 'Ý kiến ban biên tập' });
+    call_(login_(A.T2), 'addComment', { ma_bai: 'TEST-02', noi_dung: 'Nhận xét của T2' });
+    var d = call_(login_(A.T2), 'getProblem', { ma_bai: 'TEST-02' });
+    eq_(d.comments.map(function (c) { return c.ai; }), ['Phản biện 1', 'Ban biên tập', 'Bạn']);
+    var j = JSON.stringify(d); lacks_(j, A.T1); lacks_(j, A.QT); lacks_(j, '"email"');
+    var b = JSON.stringify(call_(login_(A.T2), 'bundle')); lacks_(b, A.T1, 'tải gộp'); lacks_(b, A.QT, 'tải gộp');
+    eq_(call_(login_(A.QT), 'getProblem', { ma_bai: 'TEST-02' }).comments.map(function (c) { return c.email; }), [A.T1, A.QT, A.T2]);
+  });
+  test_('13.9', 'Bỏ giao bài: phản biện mất quyền xem, phiếu đã nộp vẫn giữ; trang Kỳ phản biện của PB chỉ có bài của mình', 'T1', function () {
+    var a = login_(A.T1);
+    call_(a, 'submitReview', { ky: 'K-MO', ma_bai: 'TEST-01', diem: 'chọn' });
+    var v = call_(a, 'rounds'); eq_(v.manage, false); eq_(v.rounds, []); eq_(v.mine.map(function (m) { return m.ma_bai; }).sort(), ['TEST-01', 'TEST-02']);
+    call_(login_(A.QT), 'unassign', { ky: 'K-MO', ma_bai: 'TEST-01', email: A.T1 });
+    throws_(function () { call_(a, 'getProblem', { ma_bai: 'TEST-01' }); }, 'Không có quyền');
+    eq_(rows_('Reviews').length, 1, 'phiếu giữ nguyên');
+    throws_(function () { call_(login_(A.QT), 'unassign', { ky: 'K-MO', ma_bai: 'TEST-01', email: A.T1 }); }, 'Không có phân công');
+  });
+  test_('13.10', 'Đổi hạn: chỉ PT, Quản trị; ngày sai bị từ chối; mốc nhắc tính theo hạn mới', 'QT', function () {
+    TEST_CONF.TODAY = '2026-10-10';
+    var tok = login_(A.QT);
+    throws_(function () { call_(tok, 'setDeadline', { ky: 'K-MO', han_phan_bien: '2026-10-01' }); }, 'quá khứ');
+    call_(tok, 'setDeadline', { ky: 'K-MO', han_phan_bien: '2026-10-13' });
+    eq_(findRow_('Rounds', 'ky', 'K-MO').data.han_phan_bien, '2026-10-13');
+    call_(tok, 'sendInvites', { ky: 'K-MO' }); TEST_OUTBOX = [];
+    eq_(sendReminders(), 2, 'còn 3 ngày theo hạn mới');
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'setDeadline', { ky: 'K-MO', han_phan_bien: '2026-10-30' }); }, 'Không có quyền');
   });
 
   // 10. Hiển thị công thức (bộ hiển thị chạy trong Apps Script, giống trình duyệt)
@@ -754,7 +900,7 @@ function resetPractice() {
     append_('Provenance', { ma_bai: b[0], thu_muc: '(bài luyện)', tep_goc: 'Tác Giả Luyện Tập - ' + b[0] + '.docx', kenh: 'kiểm thử' });
   });
   if (!findRow_('Authors', 'tac_gia_id', 'THU-TG')) append_('Authors', { tac_gia_id: 'THU-TG', ten_in: 'Tác Giả Luyện Tập', don_vi: '(bịa)', lien_he: '' });
-  append_('Rounds', { ky: PRACTICE_ROUND, trang_thai: 'mở', ghi_chu: 'kỳ luyện tập cho kiểm thử' });
+  append_('Rounds', { ky: PRACTICE_ROUND, trang_thai: 'mở', han_phan_bien: textDate_(addDays_(today_(), 14)), ghi_chu: 'kỳ luyện tập cho kiểm thử' });
   [['THU-01', users[0]], ['THU-02', users[0]], ['THU-02', users[1]]].forEach(function (a) {
     append_('Assignments', { ky: PRACTICE_ROUND, ma_bai: a[0], email: a[1], giao_luc: t });
   });

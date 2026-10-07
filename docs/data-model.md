@@ -42,6 +42,13 @@ thêm xung đột, ghi cách giải quyết; xung đột loại *mức, tác gi�
 Đổi trạng thái bài: PT, TBT, Quản trị. Các danh sách trạng thái nằm ở đầu `apps/main/Schema.gs` (CHECK_STATUSES, CONFLICT_STATUSES,
 TBT_CONFLICTS, CORRECTION_STATUSES) — đổi quy ước thì sửa ở đó. Mọi thao tác được ghi vào Audit (ai, khi nào).
 
+**Kỳ phản biện** (tab Rounds, Assignments, Reviews): PT, Quản trị mở kỳ (tên, hạn), giao bài cho người có vai trò PB,
+gửi thư mời, đổi hạn, đóng kỳ; TBT, NCB xem tiến độ. Phản biện điền **Phiếu phản biện** (mức đề nghị A/B; đề nghị
+chọn / sửa rồi chọn / không chọn; nhận xét) — một phiếu cho mỗi kỳ, bài, người; lưu lại thì thay phiếu cũ — rồi **đánh dấu xong**
+(khoá phiếu). Phản biện chỉ thấy phiếu của mình; TBT, PT, NCB, Quản trị thấy mọi phiếu kèm email.
+Thảo luận: phản biện thấy nhận xét của nhau nhưng **ẩn danh** ("Bạn", "Phản biện 1, 2…", "Ban biên tập"; không có email).
+Ngày hạn được lưu như chữ `NNNN-TT-NN` (không để Sheets đổi thành kiểu ngày). Cột `nhac` ghi các mốc đã nhắc (ví dụ `3,1`).
+
 Thêm cột vào mô hình: chỉ thêm ở **cuối** tab; chạy lại `setup()` để ghi tiêu đề cột mới (dữ liệu cũ giữ nguyên).
 
 Lịch sử sửa đề/lời giải (tab Revisions) chỉ những vai trò thấy mọi bài xem được — PB không xem, vì các bản trước gần với bản gốc của tác giả.

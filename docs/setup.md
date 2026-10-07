@@ -72,5 +72,17 @@ Chuẩn bị tệp `pi-drkn-patch-….json` (ngoài kho mã), tải lên Drive c
 chạy `applyPatchLatest`. Chạy lại an toàn (thao tác đã áp dụng không lặp lại). Sửa đổi chỉ chạm bản biên tập, có ghi
 Corrections + Revisions; bản gốc của tác giả không đổi. Dạng tệp: xem đầu `apps/main/Patch.gs`.
 
-## 9. Kiểm thử
+## 9. Kỳ phản biện: thư mời và nhắc hạn
+Thư mời và thư nhắc gửi từ tài khoản quản trị (MailApp; tài khoản Gmail thường được khoảng 100 người nhận mỗi ngày —
+hệ thống kiểm tra hạn mức trước khi gửi). Thư chỉ có tên kỳ, số bài, hạn và đường dẫn đăng nhập.
+Cài một lần, sau lần triển khai có tính năng này:
+1. Dự án chính → chạy `setup` (thêm cột `moi_luc`, `nhac` vào tab Assignments; dữ liệu giữ nguyên).
+2. Chạy `installReminderTrigger` → cho phép quyền mới ("chạy khi bạn vắng mặt"). Từ đó `sendReminders` chạy mỗi ngày.
+
+Script properties (không bắt buộc):
+- `REMINDER_DAYS` — số ngày trước hạn thì nhắc, cách nhau dấu phẩy (mặc định `3,1`);
+- `REMINDER_HOUR` — giờ chạy nhắc mỗi ngày (mặc định `8`; đổi thì chạy lại `installReminderTrigger`);
+- `TIMEZONE` — múi giờ tính ngày (mặc định `Asia/Ho_Chi_Minh`).
+
+## 10. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.

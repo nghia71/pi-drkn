@@ -89,8 +89,17 @@ function makeEnv(opts) {
       computeDigest: (alg, s) => toBytes(crypto.createHash('sha256').update(s, 'utf8').digest()),
       DigestAlgorithm: { SHA_256: 'sha256' },
       base64EncodeWebSafe: a => fromBytes(a).toString('base64').replace(/\+/g, '-').replace(/\//g, '_'),
-      sleep: () => {}
+      sleep: () => {},
+      // chỉ hỗ trợ mẫu 'yyyy-MM-dd' (đủ cho mã hiện tại)
+      formatDate: (d, tz, fmt) => {
+        if (fmt !== 'yyyy-MM-dd') throw new Error('formatDate mô phỏng chỉ hỗ trợ yyyy-MM-dd');
+        return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+      }
     },
+    // Bộ kiểm thử không bao giờ được gửi thư thật: mọi thư phải đi qua sendMail_ (hộp thư thử khi TEST_CONF).
+    MailApp: { sendEmail: () => { throw new Error('MailApp.sendEmail bị gọi trong kiểm thử'); }, getRemainingDailyQuota: () => 100 },
+    ScriptApp: { getProjectTriggers: () => [], deleteTrigger: () => {},
+                 newTrigger: () => { throw new Error('ScriptApp.newTrigger bị gọi trong kiểm thử'); } },
     HtmlService: {
       createHtmlOutput: c => html(c),
       createHtmlOutputFromFile: n => html(readHtml(n)),
