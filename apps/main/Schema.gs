@@ -16,7 +16,7 @@ var SCHEMA = {
   Users: ['email', 'ten', 'vai_tro', 'hoat_dong', 'ghi_chu'],
   Rounds: ['ky', 'trang_thai', 'm', 'han_phan_bien', 'khoa_luc', 'ghi_chu'],
   Shortlist: ['ky', 'ma_bai', 'vi_tri', 'phuong_an', 'quyet_dinh', 'nguoi', 'ngay'],
-  Assignments: ['ky', 'ma_bai', 'email', 'giao_luc', 'han', 'xong'],
+  Assignments: ['ky', 'ma_bai', 'email', 'giao_luc', 'han', 'xong', 'moi_luc', 'nhac'],   // moi_luc, nhac: thêm 2026-10
   Reviews: ['id', 'ky', 'ma_bai', 'email', 'muc_de_nghi', 'diem', 'nhan_xet', 'ngay'],
   Comments: ['id', 'ma_bai', 'email', 'tra_loi_cho', 'noi_dung', 'ngay'],
   Published: ['ma_bai', 'so_tap_chi', 'so_in', 'ngay'],
@@ -36,4 +36,7 @@ var CONFLICT_STATUSES = ['mở', 'chờ TBT', 'đã giải quyết'];
 /** Xung đột loại này chỉ TBT ghi cách giải quyết (người khác chỉ chuyển sang "chờ TBT"). */
 var TBT_CONFLICTS = ['mức', 'tác giả', 'trùng bài'];
 /** Sửa nội dung toán: dòng Corrections mới mang trạng thái đầu tiên. */
+/** Phiếu phản biện: đề nghị của phản biện (cột Reviews.diem) và mức đề nghị (Reviews.muc_de_nghi). */
+var REVIEW_RECOMMENDATIONS = ['chọn', 'sửa rồi chọn', 'không chọn'];
+var LEVELS = ['A', 'B'];
 var CORRECTION_STATUSES = ['chờ tác giả xác nhận', 'tác giả đồng ý', 'tác giả không đồng ý', 'đã sửa ở bản biên tập'];

@@ -11,17 +11,18 @@ var STATUS_SETTERS = ['PT', 'TBT', 'Quản trị'];
 var CONTACT_VIEWERS = ['VP', 'PT', 'TBT', 'Quản trị'];
 var ALL_PROBLEMS_VIEWERS = ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'];
 
-var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1 };
+var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1, rounds: 1 };
 var MAX_TEXT_ = 45000;   // giới hạn một ô của Google Sheets là 50 000 ký tự; chừa chỗ cho dấu ' chặn công thức
 
 function api(token, method, args) {
   READ_MEMO_ = READ_ONLY_[method] ? {} : null;
   try {
     if (method === 'bundle') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
-                                        'Checks', 'Conflicts', 'ConversionLog', 'Comments']);
+                                        'Checks', 'Conflicts', 'ConversionLog', 'Comments', 'Reviews']);
+    if (method === 'rounds') prefetch_(['Users', 'Rounds', 'Assignments', 'Reviews']);
     if (method === 'listProblems') prefetch_(['Users', 'Problems', 'Authors', 'Checks', 'Conflicts', 'Rounds', 'Assignments']);
     if (method === 'getProblem') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
-                                            'Checks', 'Conflicts', 'ConversionLog', 'Comments']);
+                                            'Checks', 'Conflicts', 'ConversionLog', 'Comments', 'Reviews']);
     return plain_(api_(token, method, args));
   } finally { READ_MEMO_ = null; }
 }
@@ -44,6 +45,15 @@ function api_(token, method, args) {
     case 'setCorrectionStatus': return setCorrectionStatus_(w, args);
     case 'setStatus': return setStatus_(w, args);
     case 'viewAs': return setViewAs_(w, args.role);
+    case 'rounds': return roundsView_(w);
+    case 'openRound': return openNewRound_(w, args);
+    case 'assign': return assign_(w, args);
+    case 'unassign': return unassign_(w, args);
+    case 'setDeadline': return setDeadline_(w, args);
+    case 'closeRound': return closeRound_(w, args);
+    case 'sendInvites': return sendInvites_(w, args);
+    case 'submitReview': return submitReview_(w, args);
+    case 'markDone': return markDone_(w, args);
     default: throw new Error('Không có thao tác ' + method);
   }
 }
@@ -75,13 +85,16 @@ function listProblems_(w, f) {
   if (!hideAuthor_(w)) rows_('Authors').forEach(function (a) { authors[a.tac_gia_id] = a.ten_in; });
   var openChecks = countBy_('Checks', function (c) { return c.trang_thai !== 'xong'; });
   var openConfl = countBy_('Conflicts', function (c) { return String(c.trang_thai).indexOf('mở') >= 0 || String(c.trang_thai).indexOf('chờ') >= 0; });
+  var mine = {};
+  myAssignments_(w).forEach(function (a) { mine[a.ma_bai] = a; });
   return rows_('Problems').filter(function (p) {
     return canSee_(w, p.ma_bai, assigned) &&
       (!f.chu_de || p.chu_de === f.chu_de) && (!f.muc || p.muc === f.muc) && (!f.trang_thai || p.trang_thai === f.trang_thai);
   }).map(function (p) {
     return { ma_bai: p.ma_bai, chu_de: p.chu_de, muc: p.muc, trang_thai: p.trang_thai, dang: p.dang, so_in: p.so_in,
              tac_gia: hideAuthor_(w) ? '' : (authors[p.tac_gia_id] || ''),
-             checks: full ? (openChecks[p.ma_bai] || 0) : 0, conflicts: full ? (openConfl[p.ma_bai] || 0) : 0, de_bai: p.de_bai };
+             checks: full ? (openChecks[p.ma_bai] || 0) : 0, conflicts: full ? (openConfl[p.ma_bai] || 0) : 0, de_bai: p.de_bai,
+             giao: mine[p.ma_bai] || null };
   });
 }
 
@@ -131,6 +144,19 @@ function getProblem_(w, ma, noAudit) {
     var a = findRow_('Authors', 'tac_gia_id', p.tac_gia_id);
     out.author = a ? { ten_in: a.data.ten_in, don_vi: a.data.don_vi, lien_he: has_(w, CONTACT_VIEWERS) ? a.data.lien_he : undefined } : null;
   }
+  // phiếu phản biện: ban biên tập xem mọi phiếu; người được giao xem (và sửa) phiếu của chính mình
+  var revs = rows_('Reviews').filter(function (v) { return v.ma_bai === ma; });
+  if (has_(w, REVIEW_READERS)) out.reviews = revs.map(function (v) {
+    return { ky: String(v.ky), email: v.email, muc_de_nghi: v.muc_de_nghi, diem: v.diem, nhan_xet: v.nhan_xet, ngay: v.ngay };
+  });
+  out.mine = myAssignments_(w).filter(function (a) { return a.ma_bai === ma; }).map(function (a) {
+    var v = revs.filter(function (x) { return String(x.ky) === a.ky && sameEmail_(x.email, w.email); })[0];
+    a.review = v ? { muc_de_nghi: v.muc_de_nghi, diem: v.diem, nhan_xet: v.nhan_xet, ngay: v.ngay } : null;
+    return a;
+  });
+  out.lists = out.lists || {};
+  out.lists.recommendations = REVIEW_RECOMMENDATIONS; out.lists.levels = LEVELS;
+  if (!full) out.comments = anonComments_(w, ma, out.comments);
   if (!noAudit) audit_(w.email, 'xem', ma);
   return out;
 }
@@ -212,6 +238,23 @@ function shortText_(v, name, max, required) {
   if (required && !t) throw new Error(name + ' không được để trống.');
   if (t.length > max) throw new Error(name + ' quá dài (tối đa ' + max + ' ký tự).');
   return t;
+}
+
+/**
+ * Phản biện thấy thảo luận của nhau nhưng ẩn danh (Nghĩa, 2026-10-07): bỏ email, thay bằng "Bạn", "Phản biện 1, 2…"
+ * (theo thứ tự được giao bài này) hoặc "Ban biên tập".
+ */
+function anonComments_(w, ma, comments) {
+  var order = [];
+  rows_('Assignments').forEach(function (a) {
+    var e = String(a.email).trim().toLowerCase();
+    if (a.ma_bai === ma && e !== w.email && order.indexOf(e) < 0) order.push(e);
+  });
+  return comments.map(function (c) {
+    var e = String(c.email).trim().toLowerCase(), k = order.indexOf(e);
+    return { id: c.id, ma_bai: c.ma_bai, tra_loi_cho: c.tra_loi_cho, noi_dung: c.noi_dung, ngay: c.ngay,
+             ai: e === w.email ? 'Bạn' : k >= 0 ? 'Phản biện ' + (k + 1) : 'Ban biên tập' };
+  });
 }
 
 /**

@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 67 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 77 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (67 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (77 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -186,6 +186,21 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 |---|---|---|
 | 12.1 | Khách trên trang web không gọi được setUser, setup, nhập, vá, kiểm thử, resetPractice | T1 |
 | 12.2 | Cài đặt lại trên Sheet cũ: tab thiếu cột mới ở cuối (Checks.ket_qua) được thêm tiêu đề, dữ liệu giữ nguyên | QT |
+
+**13. Kỳ phản biện**
+
+| Mã | Kịch bản | Tài khoản |
+|---|---|---|
+| 13.1 | PT mở kỳ: tên trùng, hạn sai dạng hoặc đã qua bị từ chối; chỉ PT, Quản trị mở được; hạn lưu như chữ | T1 |
+| 13.2 | Giao bài: chỉ cho người có vai trò PB đang hoạt động; không trùng; không giao vào kỳ đã đóng; PB thấy bài kèm hạn | T1+T2 |
+| 13.3 | Thư mời: mỗi phản biện một thư, không có đề / tên tác giả; gửi lại không gửi trùng; thiếu hạn mức thì không gửi gì | QT |
+| 13.4 | Phiếu phản biện: chỉ người được giao; phải chọn đề nghị; lưu lại thay phiếu cũ; phản biện khác không thấy; TBT thấy mọi phiếu | T1+T2 |
+| 13.5 | Đánh dấu xong: cần phiếu trước; đã xong thì khoá phiếu; bỏ đánh dấu được; PT thấy tiến độ | T1 |
+| 13.6 | Nhắc hạn: đúng 3 và 1 ngày trước hạn (đổi được bằng REMINDER_DAYS); mỗi mốc một lần; không nhắc người đã xong hoặc chưa mời | T1+T2 |
+| 13.7 | Đóng kỳ: phản biện không còn thấy bài, không nộp phiếu; không giao thêm; chỉ PT, Quản trị đóng được | T1 |
+| 13.8 | Thảo luận ẩn danh: phản biện thấy "Bạn", "Phản biện 1", "Ban biên tập" — không có email nào; ban biên tập thấy email | T1+T2 |
+| 13.9 | Bỏ giao bài: phản biện mất quyền xem, phiếu đã nộp vẫn giữ; trang Kỳ phản biện của PB chỉ có bài của mình | T1 |
+| 13.10 | Đổi hạn: chỉ PT, Quản trị; ngày sai bị từ chối; mốc nhắc tính theo hạn mới | QT |
 
 <!-- bảng tự sinh: hết -->
 
@@ -334,10 +349,34 @@ Bước 3: trạng thái đổi, văn bản không đổi. Bước 4: Kết qu�
 Bước 5: ô trạng thái chỉ có "mở" và "chờ TBT" (không có "đã giải quyết"). Bước 6: trên danh sách, THU-02 có chấm "xung đột mở".
 Bước 7: chip trạng thái đổi thành SL; ô trạng thái của TBT có "đã giải quyết"; sau khi lưu, chấm "xung đột mở" của THU-02 biến mất.
 
+### B13 — Kỳ phản biện: mở kỳ, giao bài, thư mời, phiếu, nhắc hạn, đóng kỳ
+**Tình huống.** PT mở một kỳ, giao bài cho hai phản biện; họ điền phiếu và trao đổi ẩn danh; PT theo dõi rồi đóng kỳ.
+**Trước khi bắt đầu.** Sau lần triển khai có tính năng này: `setup()` và `installReminderTrigger()` (mục 9 của setup.md).
+`resetPractice` (T1, T2 là PB; kỳ K-THU có hạn 14 ngày nữa).
+**Các bước.**
+1. *(QT)* Nút **Kỳ phản biện** → Mở kỳ mới: tên `PB-THU-2`, hạn = 3 ngày nữa → Mở kỳ.
+2. *(QT)* Ở kỳ PB-THU-2: giao THU-03 cho T1, rồi THU-03 cho T2, rồi THU-01 cho T1 (ô Giao bài / cho / Giao).
+3. *(QT)* Bấm **Gửi thư mời (2 người chưa mời)**.
+4. *(T1, T2)* Mở hộp thư của mình.
+5. *(T1)* Vào hệ thống. Danh sách: THU-03 có chip "hạn …· chưa có phiếu". Mở THU-03 → Phiếu phản biện: bấm Lưu phiếu khi chưa chọn đề nghị;
+   rồi chọn mức B, đề nghị "sửa rồi chọn", nhận xét có công thức `$x>0$` → Lưu phiếu → **Đánh dấu đã xong**. Gửi một nhận xét ở Thảo luận.
+6. *(T2)* Mở THU-03: xem Thảo luận; gửi một nhận xét.
+7. *(QT)* Mở THU-03: mục **Phiếu phản biện (1)**; Thảo luận. Rồi **Kỳ phản biện**.
+8. *(QT)* Trình soạn thảo → chạy `sendReminders`. Chạy lần nữa.
+9. *(QT)* Kỳ PB-THU-2 → **Đóng kỳ…** → bấm lần nữa. *(T1)* ← Danh sách (hoặc vào lại).
+**Vì sao quan trọng.** Thay chuỗi email phân công / nhắc hạn; phiếu có cấu trúc để lập bảng chọn bài; phản biện trao đổi mà không lộ danh tính.
+**Bạn sẽ thấy.** Bước 3: hai thư (T1 nhận MỘT thư cho 2 bài); nút thành "0 người chưa mời"; cột Mời có ✓.
+Bước 4: thư "Mời phản biện kỳ PB-THU-2" có số bài, hạn, đường dẫn đăng nhập — không có đề, mã bài hay tên tác giả.
+Bước 5: lần đầu nhắc "Hãy chọn đề nghị"; sau khi xong, phiếu bị khoá và có nút "Bỏ đánh dấu xong"; chip thành "đã xong".
+Bước 6: nhận xét của T1 ghi **Phản biện 1**, của mình ghi **Bạn**; không thấy email của ai; không có mục Phiếu phản biện của người khác.
+Bước 7: QT thấy phiếu của T1 kèm email; Thảo luận có email thật; bảng kỳ: 3 phân công · 1 phiếu · 1 xong.
+Bước 8: lần 1 gửi thư "Nhắc: còn 3 ngày" cho T1 (còn THU-01) và T2 — không gửi cho bài đã xong; cột Đã nhắc "3 ngày"; lần 2 không gửi gì.
+Bước 9: kỳ hiện "đóng", không còn nút; T1 không còn thấy THU-03 (vẫn thấy THU-01, THU-02 của kỳ K-THU).
+
 ---
 
 ## Những gì chưa kiểm thử được (vì chưa có)
 
-- Quy trình kỳ chọn bài: mở kỳ, phân công, chấm, đóng kỳ thành shortlist (đang dựng — sẽ thêm kịch bản khi có).
-- Gửi email thông báo.
+- Bảng chọn bài (PT đề xuất, TBT duyệt) và khoá kỳ (đang dựng — sẽ thêm kịch bản khi có).
+- Trigger nhắc hạn chạy thật lúc 8 giờ sáng: kiểm thử tự động gọi thẳng `sendReminders` với ngày giả; trên Google, xem trang Executions sau một ngày.
 - Hai người ghi thật sự cùng một lúc trên Google (khoá ghi của Apps Script) — chỉ kiểm thử được phần "người lưu sau được báo".
