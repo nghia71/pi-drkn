@@ -1,0 +1,235 @@
+% Tệp định dạng cột "Đề ra kỳ này" của tạp chí Pi (structure/dinhdang.tex). Thêm vào kho với sự đồng ý của Nghĩa, 2026-10-07.
+% Dùng bởi tools/khoaky/build.py để dựng bản PDF xem trước. Không sửa ở đây — bản gốc do BTK giữ.
+\documentclass[12pt]{book} 
+\setlength{\parindent}{0cm}
+\usepackage[top=2truecm,bottom=2.8truecm, left=2.2truecm, right=2.2truecm,headsep=10pt, paperwidth=19.3truecm, paperheight=27.6truecm]{geometry} 
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\definecolor{ocre}{RGB}{52,177,201} 
+\usepackage{pdfpages}
+\usepackage{avant}
+\usepackage{bussproofs}
+\usepackage{tikz}
+\usepackage{tkz-euclide}
+\usepackage{wrapfig}
+\usepackage{listings}
+\usepackage[utf8]{vietnam}
+
+
+% %----------------------------------------------------------------------------------------
+% %	VARIOUS REQUIRED PACKAGES
+% %----------------------------------------------------------------------------------------
+\usepackage{titlesec} % Allows customization of titles
+\usepackage{graphicx} % Required for including pictures
+%\graphicspath{{Pictures/}} % Specifies the directory where pictures are stored
+\usepackage{lipsum} % Inserts dummy text
+\usepackage{tikz} % Required for drawing custom shapes
+%\usepackage{enumitem} % Customize lists
+%\setlist{nolistsep} % Reduce spacing between bullet points and numbered lists
+\usepackage{booktabs} % Required for nicer horizontal rules in tables
+\usepackage{eso-pic} % Required for specifying an image background in the title page
+\usepackage{titletoc} % Required for manipulating the table of contents
+\contentsmargin{0cm} % Removes the default margin
+\usepackage{adjustbox} 
+\usepackage{amsmath,amsfonts,amssymb,amsthm} % For math equations, theorems, symbols, etc
+
+ \usepackage{tikz} 
+ \usepackage{float}
+
+
+ \usepackage{booktabs}
+
+\usepackage{chngcntr}
+\usepackage{eurosym}
+\usepackage{multirow}
+\usepackage{mathtools}
+\usepackage{setspace}
+\usepackage{afterpage}
+\usepackage{scalerel}
+\usepackage{blindtext}
+\usepackage{tabularx}
+\usepackage{afterpage}
+\usepackage{array}
+\usepackage{efbox}
+\usepackage{tabulary}
+\usepackage{subcaption}
+
+\usetikzlibrary{lindenmayersystems}
+\usetikzlibrary{shapes,shapes.geometric}
+\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{calc,intersections}
+\usetikzlibrary[shadings]
+\usetikzlibrary{decorations.fractals}
+ 
+\makeatletter 
+\newcommand{\tagEX}[1]{%
+	\hfill{\rm ($#1$)}%
+	\par
+	\@ifnextchar\begin%
+	{\vspace{-\baselineskip}}
+	{}
+}
+\makeatother
+\def\PIbox#1{\tikz\node[draw = ocre,fill=black!5,align=justify,text width=.95\linewidth,inner sep=2mm]{#1};}%
+\renewcommand{\qedsymbol}{}
+
+\everymath{\displaystyle}
+\DeclareMathAlphabet{\pazocal}{OMS}{zplm}{m}{n}
+ 
+
+\usepackage{type1cm}
+\usepackage{lettrine}
+\usepackage{makecell}
+\usepackage{tabularx}
+\usepackage{cases}
+\usepackage{oplotsymbl}
+%\usepackage[autostyle]{csquotes}
+% \definecolor{codienhiendai}{cmyk}{0.72, 0, 0.42, 0.1}
+\definecolor{thachthuctoanhoc}{cmyk}{0.87, 0.46, 0.69, 0.31}
+
+\usepackage[hang,splitrule]{footmisc}
+\usetikzlibrary{arrows}
+\usetikzlibrary{patterns}
+\usetikzlibrary{calc,intersections,through,backgrounds}
+\usepackage{tkz-euclide}
+\setlength{\footnotemargin}{0cm}
+\setlength{\footnotesep}{0.35cm}
+\setlength{\skip\footins}{0.35cm}
+\setlength\footskip{33pt}
+\newcommand\blfootnote[1]{%
+	\begingroup
+	\renewcommand\thefootnote{}\footnote{#1}%
+	\addtocounter{footnote}{-1}%
+	\endgroup
+}
+
+\def\footnotelayout{\itshape}
+\renewcommand*\footnoterule{}
+\renewcommand\footnoterule{\vspace*{0.25cm}\hrule width 1\textwidth\vspace*{0.25cm}}
+
+\newcommand{\insertpic}[4]{
+	\begingroup
+	\AddToShipoutPicture*{\put(#1,#2){\includegraphics[scale=#3]{#4}}} % %Image background
+	\centering
+	\endgroup
+}
+
+\tikzset{
+	squarednode/.style={rectangle, draw=red!60, fill=red!5, very thick, minimum size=3mm}
+}
+
+\tikzset{
+	sqnode/.style={rectangle, draw=cackithi, very thick, minimum size=3mm}
+}
+
+\tikzset{
+	roundnode/.style={circle, draw=toancuabi, fill=cackithi!50, minimum size=3mm},
+}
+\newcommand{\mytextcolor}[2]{\textbf{\color{#1}#2}}
+
+\makeatletter
+\newenvironment{sqcases}{%
+	\matrix@check\sqcases\env@sqcases
+}{%
+	\endarray\right.%
+}
+\def\env@sqcases{%
+	\let\@ifnextchar\new@ifnextchar
+	\left\lbrack
+	\def\arraystretch{1.2}%
+	\array{@{}l@{\quad}l@{}}%
+}
+\makeatother
+
+\newenvironment{tagcases}[1][]
+{\empheq[left={#1\empheqlbrace}]{alignat=2}}
+{\endempheq}
+
+\makeatletter
+\newcommand{\pushright}[1]{\ifmeasuring@#1\else\omit\hfill$\displaystyle#1$\fi\ignorespaces}
+\newcommand{\pushleft}[1]{\ifmeasuring@#1\else\omit$\displaystyle#1$\hfill\fi\ignorespaces}
+\makeatother
+
+\newcommand{\newVocab}[2]{{\color{toancuabi}#1:} #2}
+ 
+\tcbuselibrary{most}
+\makeatletter
+\DeclareSymbolFontAlphabet{\math@bb}{AMSb}
+\AtBeginDocument{\protected\def\mathbb{\math@bb}}
+\g@addto@macro\normalsize{
+\setlength{\abovedisplayskip}{3pt}%
+\setlength{\belowdisplayskip}{2pt}%
+\setlength{\abovedisplayshortskip}{3pt}%
+\setlength{\belowdisplayshortskip}{1pt}%
+}
+\makeatother
+\renewenvironment{center}
+{\parskip=1pt\par\nopagebreak\centering}
+{\par\noindent\ignorespacesafterend}
+
+\usetikzlibrary{tikzmark}
+\newcommand{\tikzarc}[1]{%
+	\tikzmarknode{a}{#1}
+	\begin{tikzpicture}[overlay,remember picture]
+	\draw ([yshift=1pt]a.north west) to[bend left=20] ([yshift=1pt]a.north east);
+	\end{tikzpicture}%
+}
+
+%môi trường đóng khung hộp là tBox
+\renewcommand{\parallel}{\mathbin{\!\raisebox{0.25pt}/\mkern-2mu\raisebox{0.25pt}/\!}}
+%\renewcommand{\backsim}{\ \mathord{\raisebox{0.025\baselineskip}{\rotatebox{90}{\fontfamily{qag}\selectfont S}}}\ }
+\usepackage[shortlabels]{enumitem}
+\usepackage{setspace}
+\setlist[enumerate,1]{label*=\protect{$\arabic*.$},itemsep=-3pt,topsep=-2pt,wide=0pt}
+\setlist[enumerate,2]{label*=\alph*),itemsep=-1pt,topsep=0pt,wide=0pt}
+\setlist[itemize,1]{itemsep=-3pt,topsep=-2pt,wide=0pt}
+\setlist[itemize,2]{itemsep=-1pt,topsep=0pt,wide=0pt}
+
+
+\usepackage{fontawesome}
+
+\usepackage{todonotes}
+
+\makeatletter
+\patchcmd{\varlim@}{lim}{\lim}{}{}
+\makeatother
+\def\bmod{\mathrm{mod}\;}
+
+\usepackage{array} % Cần thiết cho m{}
+\usepackage{booktabs,makecell} % Cho \toprule, \midrule, \bottomrule
+\usepackage{longtable} % Cho bảng dài
+\usepackage{calc} % Để tính toán độ rộng
+
+\setlength\arraycolsep{2pt}
+\newcommand{\hoac}[1]{\renewcommand{\arraystretch}{0.85}\left[\begin{aligned}#1\end{aligned}\right.}
+\newcommand{\heva}[1]{\renewcommand{\arraystretch}{0.85}\left\{\begin{aligned}#1\end{aligned}\right.}
+\usepackage{empheq}
+\usepackage{systeme}
+
+\usepackage{fancyhdr} % Required for header and footer configuration
+\fancypagestyle{thachthuctoanhoc}{
+	\fancyhf{}
+%	\fancyhead[E]{\sffamily\footnotesize Đề ra kỳ này}
+%	\fancyhead[C]{\sffamily\footnotesize Đề ra kỳ này}
+%	\fancyhead[O]{\sffamily\footnotesize Đề ra kỳ này}	
+	\renewcommand{\footrulewidth}{0pt}
+	\fancyfoot[LE,RO]{\sffamily\footnotesize\thepage}
+	\fancyfoot[LO,RE]{\sffamily\scriptsize Đề ra kỳ này}
+}
+ 
+%\fancyfoot[C]{\sffamily\footnotesize Tạp chí Pi } % Print the nearest section name on the left side of odd pages
+\renewcommand{\headrulewidth}{0pt} % Width of the rule under the header
+\addtolength{\headheight}{2.5pt} % Increase the spacing around the header slightly
+\renewcommand{\footrulewidth}{.5pt} % Removes the rule in the footer
+
+\fancypagestyle{plain}{\fancyhead{}\renewcommand{\headrulewidth}{0pt}} % Style for when a plain pagestyle is specified
+
+% Removes the header from odd empty pages at the end of chapters
+\makeatletter
+\renewcommand{\cleardoublepage}{
+	\clearpage\ifodd\c@page\else
+	\hbox{}
+	\vspace*{\fill}
+	\thispagestyle{empty}
+	\newpage
+	\fi}

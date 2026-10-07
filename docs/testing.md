@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 86 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 93 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (86 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (93 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -215,6 +215,18 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 14.5 | Mở lại sau khi duyệt để thay bài: trạng thái, mức trả về như trước; bài bị thay giữ trạng thái cũ; duyệt lại thì bài mới thành SL-OK | T1 |
 | 14.6 | Đổi chỗ hai vị trí: thứ tự đổi, mức đi theo vị trí | QT |
 | 14.7 | Trang bảng chọn bài: mỗi bài kèm tóm tắt phiếu phản biện, chấm kiểm tra/xung đột và bảng đang giữ bài | QT |
+
+**15. Khoá kỳ**
+
+| Mã | Kịch bản | Tài khoản |
+|---|---|---|
+| 15.1 | Xem trước khoá kỳ: chỉ bảng đã duyệt; thứ tự B rồi A, trong mức SH, ĐS, HH, TH; Published trống thì không gợi ý số; NCB, PB, BTK không xem được | QT |
+| 15.2 | Số in gợi ý = số lớn nhất trong Published + 1 | QT |
+| 15.3 | Khoá kỳ: phải xác nhận lưu ý; ghi Published, bài thành PL kèm số in; bảng "đã khoá", không mở lại, không sửa, không khoá lần hai | T1 |
+| 15.4 | Số in trùng với Published hoặc không hợp lệ bị từ chối, không ghi gì | QT |
+| 15.5 | Thiếu tên tác giả để in hoặc đề trống thì chặn khoá (dù đã xác nhận) | QT |
+| 15.6 | Tệp .tex: chỉ đề bài, theo mẫu cột (setcounter, thụt dòng, dòng tác giả); không lời giải, ghi chú, liên hệ; **đậm**/*nghiêng* ngoài công thức; NFC | QT |
+| 15.7 | Hình: TikZ đặt ngay trong tệp; hình ảnh vào pic/ của zip; hình thiếu được báo; BTK tải lại được tệp của số đã khoá | QT |
 
 <!-- bảng tự sinh: hết -->
 
@@ -410,10 +422,28 @@ Bước 9: kỳ hiện "đóng", không còn nút; T1 không còn thấy THU-03 
 Bước 3: sau khi gửi, không còn ô chọn hay nút sửa. Bước 6: nút đổi thành "Bấm lần nữa để duyệt…"; sau khi duyệt, mười bài là SL-OK; THU-01…THU-04 mức B, THU-05…THU-10 mức A (mức của vị trí).
 Bước 7: mười bài trở về trạng thái Mới. VP, NCB, BTK (nếu thử) chỉ xem được bảng, không có nút.
 
+### B15 — Khoá kỳ: số in, tệp .tex chỉ có đề bài, gói chế bản
+**Tình huống.** Bảng của một số báo đã được TBT duyệt; TBT khoá kỳ, đánh số in; BTK nhận tệp; Nghĩa dựng PDF xem trước. Chỉ dùng **bài luyện**.
+**Trước khi bắt đầu.** Sau lần triển khai có tính năng này: `setup()` (mục 11 của setup.md). `resetPractice`. Sheet → tab Users → T1 = `PT`, T2 = `TBT`.
+Làm B14 bước 1–3 và 6 (lập bảng THU-99/2026, xếp đủ THU-01 … THU-10, gửi, TBT duyệt). *(QT)* Mở THU-05 → thêm một mục cần kiểm tra.
+**Các bước.**
+1. *(T2)* **Bảng chọn bài** → **Khoá kỳ…**. Ô Số in bắt đầu: có gợi ý nếu Published đã có số; nếu trống, gõ `9001` → **Đánh lại số**.
+2. *(T2)* Xem bảng: thứ tự P9001 … P9010; dòng tác giả *Tác Giả Luyện Tập (Trường Luyện Tập (bịa))*; lưu ý THU-05 còn mục cần kiểm tra.
+3. *(T2)* **Tải .tex xem trước** → mở tệp bằng trình soạn thảo: chỉ có đề bài, không có lời giải.
+4. *(T2)* Bấm **Khoá kỳ** khi chưa đánh dấu "Tôi đã xem các lưu ý" ← bị nhắc. Đánh dấu → bấm → bấm lần nữa.
+5. *(T2)* Bảng hiện "đã khoá", không còn nút Mở lại. Danh sách: mười bài có chip PL. Sheet → tab Published: mười dòng THU-…, số in P9001 … P9010.
+6. *(QT)* Drive → thư mục **Pi ĐRKN — chế bản** → tải `de-ra-ky-nay-THU-99-2026.zip`. Trên máy Mac:
+   `python3 tools/khoaky/build.py ~/Downloads/de-ra-ky-nay-THU-99-2026.zip` → mở `…-btk.zip`, xem PDF.
+7. *(QT)* Sheet → tab Users → T1 = `BTK`. *(T1)* **Bảng chọn bài** → **Tải tệp .tex** (cùng nội dung bước 3).
+8. *(QT)* `resetPractice` (xoá bảng, dòng Published của bài luyện, đưa bài về như mới). Xoá tệp zip luyện tập trong thư mục chế bản.
+**Vì sao quan trọng.** Số in không được trùng hay nhảy; tệp gửi BTK không bao giờ mang lời giải, ghi chú hay thông tin liên hệ.
+**Bạn sẽ thấy.** Bước 1: nút Khoá kỳ chỉ bấm được khi có số in. Bước 4: nút đổi thành "Bấm lần nữa: ghi số in P9001–P9010, chuyển 10 bài sang PL…".
+Bước 6: công cụ in "Số bài: 10 — P9001 đến P9010" và "Đã ghi …-btk.zip"; PDF theo mẫu cột Đề ra kỳ này, mức B trước, mức A sau.
+Khi thử mở lại hay khoá lần hai: bị từ chối. NCB, PB, VP không có nút Khoá kỳ.
+
 ---
 
 ## Những gì chưa kiểm thử được (vì chưa có)
 
-- Khoá kỳ: đánh số in, xuất LaTeX (đang dựng — sẽ thêm kịch bản khi có).
 - Trigger nhắc hạn chạy thật lúc 8 giờ sáng: kiểm thử tự động gọi thẳng `sendReminders` với ngày giả; trên Google, xem trang Executions sau một ngày.
 - Hai người ghi thật sự cùng một lúc trên Google (khoá ghi của Apps Script) — chỉ kiểm thử được phần "người lưu sau được báo".

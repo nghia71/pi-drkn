@@ -47,6 +47,7 @@ function runTests(filter) {
   defineTests_();
   var cursorKey = 'TEST_CURSOR_' + (filter || 'all');
   var start = Number(props.getProperty(cursorKey) || 0);
+  if (start === 0) ensureTabs_(SpreadsheetApp.openById(sheetId));   // tab, cột mới của lần triển khai mới — khỏi phải chạy lại setupTests
   var list = TK.tests.filter(function (t) { return !filter || t.id === filter || t.id.indexOf(filter + '.') === 0; });
   DB_OVERRIDE = sheetId;
   TEST_CONF = { SECRET: Utilities.getUuid() + Utilities.getUuid(), BLIND_REVIEW: 'true', SIGNIN_URL: 'https://example.com/dang-nhap' };
@@ -1196,7 +1197,8 @@ function resetPractice() {
                           de_bai: b[2], loi_giai: b[3], de_bai_goc: b[2], loi_giai_goc: b[3], phien_ban: 1, cap_nhat: t, nguoi_cap_nhat: 'resetPractice' });
     append_('Provenance', { ma_bai: b[0], thu_muc: '(bài luyện)', tep_goc: 'Tác Giả Luyện Tập - ' + b[0] + '.docx', kenh: 'kiểm thử' });
   });
-  if (!findRow_('Authors', 'tac_gia_id', 'THU-TG')) append_('Authors', { tac_gia_id: 'THU-TG', ten_in: 'Tác Giả Luyện Tập', don_vi: '(bịa)', lien_he: '' });
+  var tg = findRow_('Authors', 'tac_gia_id', 'THU-TG'), tgRow = { tac_gia_id: 'THU-TG', ten_in: 'Tác Giả Luyện Tập', don_vi: 'Trường Luyện Tập (bịa)', lien_he: '' };
+  if (tg) update_('Authors', tg.row, tgRow); else append_('Authors', tgRow);
   append_('Rounds', { ky: PRACTICE_ROUND, trang_thai: 'mở', han_phan_bien: textDate_(addDays_(today_(), 14)), ghi_chu: 'kỳ luyện tập cho kiểm thử' });
   [['THU-01', users[0]], ['THU-02', users[0]], ['THU-02', users[1]]].forEach(function (a) {
     append_('Assignments', { ky: PRACTICE_ROUND, ma_bai: a[0], email: a[1], giao_luc: t });
