@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 57 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 67 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (57 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (67 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -116,6 +116,9 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 4.9 | Sửa đề hay đổi trạng thái không biến ô khác bắt đầu bằng "=" thành công thức | T1 |
 | 4.10 | Người chuẩn bị bài không sửa được bài luyện tập (không thấy thì không sửa) | T1 |
 | 4.11 | Mỗi lần sửa được ghi vào nhật ký (ai, bài, phiên bản) | T1 |
+| 4.12 | Sửa nội dung toán: phải có vị trí và lý do; ghi một dòng Sửa đổi "chờ tác giả xác nhận" với đoạn trước/sau | T1 |
+| 4.13 | Sửa nhỏ (mặc định) không tạo dòng Sửa đổi | T1 |
+| 4.14 | Đoạn trước/sau của sửa đổi chỉ gồm chỗ khác nhau và vài chữ quanh đó | QT |
 
 **5. Thảo luận**
 
@@ -135,6 +138,11 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 6.2 | Xung đột phải thuộc một trong 7 loại | QT |
 | 6.3 | Đổi trạng thái: PT, TBT, Quản trị được; NCB, PB không; trạng thái lạ bị từ chối; có nhật ký | T1 |
 | 6.4 | Thao tác không có trong API bị từ chối | QT |
+| 6.5 | Đóng mục cần kiểm tra: phải ghi kết quả; NCB, TBT được; PB, VP không; danh sách bớt một chấm | T1 |
+| 6.6 | Xung đột mức / tác giả / trùng bài: chỉ TBT ghi cách giải quyết, người khác chỉ chuyển "chờ TBT" | T1 |
+| 6.7 | Trạng thái sửa đổi (tác giả đồng ý / không đồng ý): NCB, TBT được; PB không; trạng thái lạ bị từ chối; văn bản không đổi | T1 |
+| 6.8 | Thêm mục / xung đột / đổi trạng thái cho bài không tồn tại, bài không được thấy, hoặc nội dung trống: bị từ chối | T1 |
+| 6.9 | Trang bài cho biết người xem được làm gì (đổi trạng thái, mục kiểm tra, quyết định của TBT) | T1 |
 
 **7. Xem như vai trò**
 
@@ -151,6 +159,7 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 8.1 | Nhập hàng loạt hai lần: lần hai bỏ qua hết, tác giả không bị nhân đôi | QT |
 | 8.2 | Bản vá: sửa đúng một chỗ, ghi Corrections + Revisions, giữ bản gốc; chạy lại không nhân đôi | QT |
 | 8.3 | Bản vá không rõ chỗ sửa (0 hoặc nhiều chỗ khớp) thì báo lỗi, không đổi gì | QT |
+| 8.4 | Bản vá sửa đề không biến ô khác bắt đầu bằng "=" thành công thức | QT |
 
 **9. Nhật ký truy cập**
 
@@ -176,6 +185,7 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | Mã | Kịch bản | Tài khoản |
 |---|---|---|
 | 12.1 | Khách trên trang web không gọi được setUser, setup, nhập, vá, kiểm thử, resetPractice | T1 |
+| 12.2 | Cài đặt lại trên Sheet cũ: tab thiếu cột mới ở cuối (Checks.ket_qua) được thêm tiêu đề, dữ liệu giữ nguyên | QT |
 
 <!-- bảng tự sinh: hết -->
 
@@ -304,6 +314,25 @@ Bước 2: thấy lại mọi bài.
 chữ trong ô vẫn còn, bên dưới có khung vàng so sánh (chữ bỏ gạch đỏ, chữ thêm tô xanh). Bước 6: lưu được, "Phiên bản 3".
 Bước 7: lần Huỷ đầu nhắc "Có thay đổi chưa lưu — bấm Huỷ lần nữa để bỏ"; lần hai trở lại như cũ, không có phiên bản mới.
 Bước 8: hai dòng (phiên bản 3, 2), mỗi dòng ghi ai, khi nào và phần khác nhau.
+
+### B12 — Sửa nội dung toán, mục cần kiểm tra, xung đột, trạng thái
+**Tình huống.** Người chuẩn bị bài sửa một đáp số, đóng một mục cần kiểm tra, chuyển xung đột mức cho TBT; TBT quyết định.
+**Trước khi bắt đầu.** Sau lần triển khai có tính năng này: chạy `setup()` một lần (thêm cột `ket_qua` vào tab Checks).
+`resetPractice`. *(QT)* Sheet → tab Users → đặt vai trò T1 = `PB, NCB`, T2 = `PB, TBT` (giữ PB để vẫn thấy bài luyện được giao; THU-02 giao cho cả hai).
+**Các bước.**
+1. *(T1)* Mở THU-02 → **Sửa** cạnh "Lời giải" → trong công thức cuối, đổi `AB^2+AC^2` thành `AC^2+AB^2` → chọn **Sửa nội dung toán** → bấm Lưu khi chưa ghi gì.
+2. *(T1)* Ghi Vị trí `kết luận`, Lý do `thử nghiệm` → Lưu. Mở "Nguồn & chỉnh sửa".
+3. *(T1)* Ở dòng sửa đổi vừa có, đổi ô trạng thái thành "tác giả đồng ý".
+4. *(T1)* **+ Thêm mục cần kiểm tra**: `Kiểm tra lại bước AM-GM` → Thêm. Rồi **Đóng…** mục đó, để trống ô Kết quả → Đóng mục; ghi `đã kiểm tra` → Đóng mục.
+5. *(T1)* **+ Thêm xung đột**: loại `mức`, mô tả `Tác giả đề nghị A` → Thêm. Bấm **Ghi quyết định…** của xung đột đó.
+6. *(T1)* Chọn "chờ TBT" → Lưu. ← Danh sách.
+7. *(T2)* Mở THU-02 → ô **Trạng thái** dưới mã bài → `SL` → Đổi trạng thái. Mở "Nguồn & chỉnh sửa" → **Ghi quyết định…** ở xung đột mức → "đã giải quyết", ghi `Mức B` → Lưu.
+8. *(QT)* `resetPractice` (trả T1, T2 về PB).
+**Vì sao quan trọng.** Sửa nội dung toán luôn để lại một dòng Sửa đổi có lý do; quyết định về mức là của TBT.
+**Bạn sẽ thấy.** Bước 1: dòng nhắc "cần ghi Vị trí và Lý do", không lưu. Bước 2: mục Sửa đổi có dòng "lời giải, kết luận: … → … (thử nghiệm; chờ tác giả xác nhận)".
+Bước 3: trạng thái đổi, văn bản không đổi. Bước 4: Kết quả trống bị báo đỏ; sau đó mục hiện [xong] và "⇒ đã kiểm tra", nút Mở lại.
+Bước 5: ô trạng thái chỉ có "mở" và "chờ TBT" (không có "đã giải quyết"). Bước 6: trên danh sách, THU-02 có chấm "xung đột mở".
+Bước 7: chip trạng thái đổi thành SL; ô trạng thái của TBT có "đã giải quyết"; sau khi lưu, chấm "xung đột mở" của THU-02 biến mất.
 
 ---
 

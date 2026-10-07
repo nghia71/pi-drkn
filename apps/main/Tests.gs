@@ -406,6 +406,39 @@ function defineTests_() {
     ok_(auditHas_('sửa', 'TEST-04 de_bai → phiên bản 2'));
   });
 
+  test_('4.12', 'Sửa nội dung toán: phải có vị trí và lý do; ghi một dòng Sửa đổi "chờ tác giả xác nhận" với đoạn trước/sau', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    var tok = login_(A.T1), base = { ma_bai: 'TEST-02', truong: 'loi_giai', loai: 'noi_dung', noi_dung: 'Lời giải thử TEST-02, đáp số $x=2$.', phien_ban: 1 };
+    var w = function (o) { var x = {}; for (var k in base) x[k] = base[k]; for (k in o) x[k] = o[k]; return x; };
+    throws_(function () { call_(tok, 'saveText', w({ ly_do: 'đáp số sai' })); }, 'Vị trí');
+    throws_(function () { call_(tok, 'saveText', w({ vi_tri: 'kết luận', ly_do: '  ' })); }, 'Lý do');
+    throws_(function () { call_(tok, 'saveText', w({ loai: 'lon', vi_tri: 'x', ly_do: 'y' })); }, 'Loại sửa');
+    eq_(Number(findRow_('Problems', 'ma_bai', 'TEST-02').data.phien_ban), 1, 'bị từ chối thì bài không đổi');
+    var r = call_(tok, 'saveText', w({ vi_tri: 'kết luận', ly_do: 'bước trước tính ra 2' }));
+    eq_(r.phien_ban, 2); ok_(r.sua_doi);
+    var c = rows_('Corrections').filter(function (x) { return x.ma_bai === 'TEST-02'; });
+    eq_(c.length, 1); eq_(c[0].vi_tri, 'lời giải, kết luận'); eq_(c[0].ly_do, 'bước trước tính ra 2');
+    eq_(c[0].trang_thai, 'chờ tác giả xác nhận'); eq_(c[0].nguoi, A.T1);
+    has_s_(c[0].sau, 'đáp số $x=2$'); lacks_(c[0].truoc, 'đáp số');
+    eq_(rows_('Revisions').length, 1, 'vẫn có lịch sử');
+    ok_(auditHas_('sửa', '(nội dung toán)'));
+  });
+  test_('4.13', 'Sửa nhỏ (mặc định) không tạo dòng Sửa đổi', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    call_(login_(A.T1), 'saveText', { ma_bai: 'TEST-02', truong: 'de_bai', noi_dung: 'Đề thử TEST-02: tính $1 + 1$.', phien_ban: 1 });
+    eq_(rows_('Corrections').filter(function (x) { return x.ma_bai === 'TEST-02'; }).length, 0);
+    eq_(rows_('Revisions').length, 1);
+  });
+  test_('4.14', 'Đoạn trước/sau của sửa đổi chỉ gồm chỗ khác nhau và vài chữ quanh đó', 'QT', function () {
+    var pre = new Array(60).join('chữ '), post = new Array(60).join(' đuôi');
+    var d = changedSpan_(pre + 'đáp số $x=\\frac{4}{3}$ vậy' + post, pre + 'đáp số $x=\\frac{2}{3}$ vậy' + post);
+    has_s_(d.truoc, '\\frac{4}{3}'); has_s_(d.sau, '\\frac{2}{3}'); has_s_(d.truoc, 'số'); has_s_(d.sau, 'vậy');
+    ok_(d.truoc.length < 80 && d.sau.length < 80, 'không chép cả văn bản: ' + d.truoc.length);
+    ok_(d.truoc.charAt(0) === '…' && d.sau.slice(-1) === '…', 'có dấu … ở chỗ cắt');
+    var e = changedSpan_('ngắn', 'ngắn hơn');
+    eq_(e.truoc, 'ngắn'); eq_(e.sau, 'ngắn hơn');
+  });
+
   // 5. Thảo luận
   test_('5.1', 'Phản biện nhận xét bài được giao; người khác cùng được giao và quản trị thấy nhận xét', 'T1+T2', function () {
     call_(login_(A.T1), 'addComment', { ma_bai: 'TEST-02', noi_dung: 'Nhận xét của T1: $x^2$' });
@@ -461,6 +494,86 @@ function defineTests_() {
   });
   test_('6.4', 'Thao tác không có trong API bị từ chối', 'QT', function () {
     throws_(function () { call_(login_(A.QT), 'xoaHet', {}); }, 'Không có thao tác');
+  });
+
+  test_('6.5', 'Đóng mục cần kiểm tra: phải ghi kết quả; NCB, TBT được; PB, VP không; danh sách bớt một chấm', 'T1', function () {
+    [['PB', false], ['VP', false], ['BTK', false]].forEach(function (c) {
+      setUsers_({ QT: 'Quản trị', T1: c[0], T2: 'PB' });
+      throws_(function () { call_(login_(A.T1), 'closeCheck', { id: 'k1', ket_qua: 'x' }); }, 'Không có quyền');
+    });
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    var tok = login_(A.T1);
+    eq_(call_(tok, 'listProblems').filter(function (p) { return p.ma_bai === 'TEST-01'; })[0].checks, 1);
+    throws_(function () { call_(tok, 'closeCheck', { id: 'k1', ket_qua: ' ' }); }, 'Kết quả');
+    throws_(function () { call_(tok, 'closeCheck', { id: 'k1', ket_qua: 'x', trang_thai: 'bỏ' }); }, 'không hợp lệ');
+    throws_(function () { call_(tok, 'closeCheck', { id: 'khong-co', ket_qua: 'x' }); }, 'Không có mục');
+    call_(tok, 'closeCheck', { id: 'k1', ket_qua: 'Đã hỏi tác giả: đúng như bản gốc.' });
+    var k = findRow_('Checks', 'id', 'k1').data; eq_(k.trang_thai, 'xong'); eq_(k.ket_qua, 'Đã hỏi tác giả: đúng như bản gốc.');
+    eq_(call_(tok, 'listProblems').filter(function (p) { return p.ma_bai === 'TEST-01'; })[0].checks, 0);
+    call_(tok, 'closeCheck', { id: 'k1', trang_thai: 'mở' });
+    eq_(findRow_('Checks', 'id', 'k1').data.ket_qua, 'Đã hỏi tác giả: đúng như bản gốc.', 'mở lại vẫn giữ kết quả cũ');
+    ok_(auditHas_('kiểm tra → mở', 'TEST-01'));
+  });
+  test_('6.6', 'Xung đột mức / tác giả / trùng bài: chỉ TBT ghi cách giải quyết, người khác chỉ chuyển "chờ TBT"', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    var tok = login_(A.T1);
+    throws_(function () { call_(tok, 'resolveConflict', { id: 'x1', trang_thai: 'đã giải quyết', cach_giai_quyet: 'giữ tên in' }); }, 'TBT quyết định');
+    call_(tok, 'resolveConflict', { id: 'x1', trang_thai: 'chờ TBT' });
+    eq_(findRow_('Conflicts', 'id', 'x1').data.trang_thai, 'chờ TBT');
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    tok = login_(A.T1);
+    throws_(function () { call_(tok, 'resolveConflict', { id: 'x1', trang_thai: 'đã giải quyết' }); }, 'Cách giải quyết');
+    throws_(function () { call_(tok, 'resolveConflict', { id: 'x1', trang_thai: 'xong rồi', cach_giai_quyet: 'x' }); }, 'không hợp lệ');
+    call_(tok, 'resolveConflict', { id: 'x1', trang_thai: 'đã giải quyết', cach_giai_quyet: 'Giữ tên in theo hồ sơ.' });
+    var x = findRow_('Conflicts', 'id', 'x1').data; eq_(x.trang_thai, 'đã giải quyết'); eq_(x.cach_giai_quyet, 'Giữ tên in theo hồ sơ.');
+    eq_(call_(tok, 'listProblems').filter(function (p) { return p.ma_bai === 'TEST-01'; })[0].conflicts, 0, 'hết chấm xung đột mở');
+    // loại khác: NCB giải quyết được
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    tok = login_(A.T1);
+    var c = call_(tok, 'addConflict', { ma_bai: 'TEST-02', loai: 'số hiệu', mo_ta: 'Hai danh sách đánh số khác nhau' });
+    call_(tok, 'resolveConflict', { id: c.id, trang_thai: 'đã giải quyết', cach_giai_quyet: 'Theo danh sách của NCB.' });
+    eq_(findRow_('Conflicts', 'id', c.id).data.trang_thai, 'đã giải quyết');
+    // PB không động vào xung đột, kể cả bài được giao
+    setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'resolveConflict', { id: 'x1', trang_thai: 'mở' }); }, 'Không có quyền');
+  });
+  test_('6.7', 'Trạng thái sửa đổi (tác giả đồng ý / không đồng ý): NCB, TBT được; PB không; trạng thái lạ bị từ chối; văn bản không đổi', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'setCorrectionStatus', { id: 'c1', trang_thai: 'tác giả đồng ý' }); }, 'Không có quyền');
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    var tok = login_(A.T1);
+    throws_(function () { call_(tok, 'setCorrectionStatus', { id: 'c1', trang_thai: 'tuỳ' }); }, 'không hợp lệ');
+    call_(tok, 'setCorrectionStatus', { id: 'c1', trang_thai: 'tác giả không đồng ý' });
+    eq_(findRow_('Corrections', 'id', 'c1').data.trang_thai, 'tác giả không đồng ý');
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-01').data.de_bai, 'Đề thử TEST-01: tính $1+1$.', 'không tự đổi văn bản');
+    ok_(auditHas_('sửa đổi → tác giả không đồng ý', 'TEST-01'));
+  });
+  test_('6.8', 'Thêm mục / xung đột / đổi trạng thái cho bài không tồn tại, bài không được thấy, hoặc nội dung trống: bị từ chối', 'T1', function () {
+    resetPractice();
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'TBT' });
+    putRows_('Assignments', []);      // bài luyện không giao ai: NCB, TBT không thấy
+    var a = login_(A.T1), b = login_(A.T2);
+    throws_(function () { call_(a, 'addCheck', { ma_bai: 'KHONG-CO', noi_dung: 'x' }); }, 'Không có bài');
+    throws_(function () { call_(a, 'addCheck', { ma_bai: 'THU-01', noi_dung: 'x' }); }, 'Không có quyền');
+    throws_(function () { call_(a, 'addConflict', { ma_bai: 'THU-01', loai: 'mức', mo_ta: 'x' }); }, 'Không có quyền');
+    throws_(function () { call_(b, 'setStatus', { ma_bai: 'THU-01', trang_thai: 'SL' }); }, 'Không có quyền');
+    throws_(function () { call_(a, 'addCheck', { ma_bai: 'TEST-01', noi_dung: '   ' }); }, 'trống');
+    throws_(function () { call_(a, 'addConflict', { ma_bai: 'TEST-01', loai: 'mức' }); }, 'trống');
+    var th = rows_('Checks').filter(function (c) { return c.ma_bai === 'THU-01'; });
+    eq_(th.length, 0); eq_(rows_('Checks').length, 1);
+    // mục của bài luyện: người không thấy bài cũng không đóng được, và không biết mục có tồn tại
+    var k = call_(login_(A.QT), 'addCheck', { ma_bai: 'THU-01', noi_dung: 'mục của bài luyện' });
+    var e1 = throws_(function () { call_(a, 'closeCheck', { id: k.id, ket_qua: 'x' }); }, 'Không có mục');
+    var e2 = throws_(function () { call_(a, 'closeCheck', { id: 'khong-co', ket_qua: 'x' }); }, 'Không có mục');
+    eq_(e1.message, e2.message);
+  });
+  test_('6.9', 'Trang bài cho biết người xem được làm gì (đổi trạng thái, mục kiểm tra, quyết định của TBT)', 'T1', function () {
+    var can = function (role) { setUsers_({ QT: 'Quản trị', T1: role, T2: 'PB' }); return call_(login_(A.T1), 'getProblem', { ma_bai: 'TEST-01' }).can; };
+    eq_(can('NCB'), { status: false, props: true, tbt: false });
+    eq_(can('PT'), { status: true, props: true, tbt: false });
+    eq_(can('TBT'), { status: true, props: true, tbt: true });
+    eq_(can('VP'), { status: false, props: false, tbt: false });
+    eq_(can('PB'), undefined, 'phản biện không nhận');
   });
 
   // 7. Xem như vai trò
@@ -523,6 +636,16 @@ function defineTests_() {
     eq_(rows_('Revisions').length, 0);
   });
 
+  test_('8.4', 'Bản vá sửa đề không biến ô khác bắt đầu bằng "=" thành công thức', 'QT', function () {
+    var hit = findRow_('Problems', 'ma_bai', 'TEST-03');
+    update_('Problems', hit.row, { loi_giai: '=đáp số 2' });
+    var patch = { id: 'kiemthu-' + Utilities.getUuid().slice(0, 6), nguoi: 'kiểm thử', ops: [
+      { op: 'correction', ma_bai: 'TEST-03', truong: 'de_bai', truoc: '$1+1$', sau: '$1+2$', vi_tri: 'đề', ly_do: 'thử' }] };
+    try { has_s_(applyPatch_(patch, A.QT), 'xong: 1/1'); } finally { PropertiesService.getScriptProperties().deleteProperty('PATCH_' + patch.id); }
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-03').data.loi_giai, '=đáp số 2');
+    eq_(sheet_('Problems').getRange(hit.row, SCHEMA.Problems.indexOf('loi_giai') + 1).getFormula(), '');
+  });
+
   // 9. Nhật ký truy cập
   test_('9.1', 'Mỗi lần mở bài đều ghi vào nhật ký (ai, bài nào)', 'T1', function () {
     call_(login_(A.T1), 'getProblem', { ma_bai: 'TEST-02' });
@@ -561,6 +684,19 @@ function defineTests_() {
       });
     } finally { delete TEST_CONF.ACTIVE_USER; }
     eq_(findRow_('Users', 'email', A.T1).data.vai_tro, 'PB', 'vai trò T1 không đổi');
+  });
+
+  test_('12.2', 'Cài đặt lại trên Sheet cũ: tab thiếu cột mới ở cuối (Checks.ket_qua) được thêm tiêu đề, dữ liệu giữ nguyên', 'QT', function () {
+    var sh = sheet_('Checks'), cols = SCHEMA.Checks;
+    sh.getRange(1, 1, 1, cols.length).setValues([cols.slice(0, -1).concat([''])]);
+    ensureTabs_(SpreadsheetApp.openById(DB_OVERRIDE));
+    eq_(sh.getRange(1, 1, 1, cols.length).getValues()[0], cols);
+    eq_(findRow_('Checks', 'id', 'k1').data.noi_dung, 'mục cần kiểm tra thử (hỏi ' + FX_AUTHOR + ')');
+    // tiêu đề khác hẳn thì không đụng tới
+    sh.getRange(1, 1, 1, 2).setValues([['ma', 'khac']]);
+    ensureTabs_(SpreadsheetApp.openById(DB_OVERRIDE));
+    eq_(sh.getRange(1, 1, 1, 2).getValues()[0], ['ma', 'khac']);
+    sh.getRange(1, 1, 1, cols.length).setValues([cols]);
   });
 
   // 10. Hiển thị công thức (bộ hiển thị chạy trong Apps Script, giống trình duyệt)

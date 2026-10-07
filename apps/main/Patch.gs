@@ -70,14 +70,7 @@ function applyCorrection_(o, who) {
     var n = text.split(o.truoc).length - 1;
     if (n === 0 && text.indexOf(o.sau) >= 0) return;            // đã áp dụng trước đó
     if (n !== 1) throw new Error('"' + o.truoc + '" xuất hiện ' + n + ' lần trong ' + o.truong + ' (cần đúng 1)');
-    var moi = text.replace(o.truoc, function () { return o.sau; }), cur = Number(hit.data.phien_ban || 0);
-    var patch = { phien_ban: cur + 1, cap_nhat: now_(), nguoi_cap_nhat: who };
-    patch[o.truong] = moi;
-    var sh = sheet_('Problems'), cols = SCHEMA.Problems, row = sh.getRange(hit.row, 1, 1, cols.length).getValues()[0];
-    cols.forEach(function (c, j) { if (patch[c] !== undefined) row[j] = cell_(patch[c]); });
-    sh.getRange(hit.row, 1, 1, cols.length).setValues([row]);
-    sheet_('Revisions').appendRow(rowOf_('Revisions', { id: newId_(), ma_bai: o.ma_bai, truong: o.truong, phien_ban: cur + 1,
-      cu: text, moi: moi, email: who, ngay: now_() }));
+    writeText_(hit, o.truong, text.replace(o.truoc, function () { return o.sau; }), who);
     sheet_('Corrections').appendRow(rowOf_('Corrections', { id: newId_(), ma_bai: o.ma_bai, vi_tri: o.vi_tri, truoc: o.truoc, sau: o.sau,
       ly_do: o.ly_do, trang_thai: o.trang_thai || 'đã sửa ở bản biên tập', nguoi: who, ngay: now_() }));
   });

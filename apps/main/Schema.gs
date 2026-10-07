@@ -9,7 +9,7 @@ var SCHEMA = {
   Provenance: ['ma_bai', 'thu_muc', 'thu_muc_id', 'tep_goc', 'ngay_nhan', 'kenh', 'ban_trung_gian',
                'lich_su_vong', 'doi_chieu', 'tom_tat_doi_chieu'],
   Corrections: ['id', 'ma_bai', 'vi_tri', 'truoc', 'sau', 'ly_do', 'trang_thai', 'nguoi', 'ngay'],
-  Checks: ['id', 'ma_bai', 'noi_dung', 'trang_thai', 'nguoi', 'ngay'],
+  Checks: ['id', 'ma_bai', 'noi_dung', 'trang_thai', 'nguoi', 'ngay', 'ket_qua'],   // ket_qua: ghi khi đóng (thêm 2026-10)
   Conflicts: ['id', 'ma_bai', 'loai', 'mo_ta', 'cach_giai_quyet', 'trang_thai', 'nguoi', 'ngay'],
   ConversionLog: ['id', 'ma_bai', 'noi_dung', 'ngay'],
   Authors: ['tac_gia_id', 'ten_in', 'don_vi', 'lien_he', 'ghi_chu'],            // hạn chế: VP, PT, TBT, Quản trị
@@ -29,3 +29,11 @@ var CONFLICT_TYPES = ['số hiệu', 'mức', 'bản chép khác nhau', 'trùng 
 var STATUSES = ['Mới', 'SL', 'SL-OK', 'SL-Fail', 'PL'];
 var TOPICS = ['ĐS', 'SH', 'HH', 'TH'];
 var ROLES = ['TBT', 'PT', 'NCB', 'PB', 'VP', 'BTK', 'Quản trị'];
+
+/* Các danh sách trạng thái dưới đây là quy ước của ban biên tập — đổi ở đây, không rải trong mã. */
+var CHECK_STATUSES = ['mở', 'xong'];
+var CONFLICT_STATUSES = ['mở', 'chờ TBT', 'đã giải quyết'];
+/** Xung đột loại này chỉ TBT ghi cách giải quyết (người khác chỉ chuyển sang "chờ TBT"). */
+var TBT_CONFLICTS = ['mức', 'tác giả', 'trùng bài'];
+/** Sửa nội dung toán: dòng Corrections mới mang trạng thái đầu tiên. */
+var CORRECTION_STATUSES = ['chờ tác giả xác nhận', 'tác giả đồng ý', 'tác giả không đồng ý', 'đã sửa ở bản biên tập'];

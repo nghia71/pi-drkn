@@ -6,6 +6,8 @@
  *  - Sửa đề/lời giải: NCB, PT, Quản trị. Bản gốc của tác giả (de_bai_goc, loi_giai_goc) không ai sửa qua API.
  */
 var EDITORS = ['NCB', 'PT', 'Quản trị'];
+var PROP_EDITORS = EDITORS.concat(['TBT']);          // mục cần kiểm tra, xung đột, trạng thái sửa đổi
+var STATUS_SETTERS = ['PT', 'TBT', 'Quản trị'];
 var CONTACT_VIEWERS = ['VP', 'PT', 'TBT', 'Quản trị'];
 var ALL_PROBLEMS_VIEWERS = ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'];
 
@@ -37,6 +39,9 @@ function api_(token, method, args) {
     case 'addComment': return addComment_(w, args);
     case 'addCheck': return addProp_(w, 'Checks', args);
     case 'addConflict': return addProp_(w, 'Conflicts', args);
+    case 'closeCheck': return closeCheck_(w, args);
+    case 'resolveConflict': return resolveConflict_(w, args);
+    case 'setCorrectionStatus': return setCorrectionStatus_(w, args);
     case 'setStatus': return setStatus_(w, args);
     case 'viewAs': return setViewAs_(w, args.role);
     default: throw new Error('Không có thao tác ' + method);
@@ -111,7 +116,10 @@ function getProblem_(w, ma, noAudit) {
   var out;
   if (full) {
     out = { problem: p, provenance: of('Provenance')[0] || null, corrections: of('Corrections'), checks: of('Checks'),
-            conflicts: of('Conflicts'), log: of('ConversionLog'), comments: of('Comments'), canEdit: has_(w, EDITORS) };
+            conflicts: of('Conflicts'), log: of('ConversionLog'), comments: of('Comments'), canEdit: has_(w, EDITORS),
+            can: { status: has_(w, STATUS_SETTERS), props: has_(w, PROP_EDITORS), tbt: has_(w, ['TBT']) },
+            lists: { statuses: STATUSES, conflictTypes: CONFLICT_TYPES, conflictStatuses: CONFLICT_STATUSES, tbtConflicts: TBT_CONFLICTS,
+                     correctionStatuses: CORRECTION_STATUSES } };
   } else {
     // Phản biện chỉ nhận văn bản đã biên tập và thảo luận: nguồn, tên tệp, xung đột, sửa đổi có thể lộ tác giả.
     out = { problem: { ma_bai: p.ma_bai, chu_de: p.chu_de, muc: p.muc, trang_thai: p.trang_thai, de_bai: p.de_bai,
@@ -127,13 +135,22 @@ function getProblem_(w, ma, noAudit) {
   return out;
 }
 
-/** Sửa đề/lời giải (bản biên tập) với khoá lạc quan: phải gửi kèm phien_ban đang xem. */
+/**
+ * Sửa đề/lời giải (bản biên tập) với khoá lạc quan: phải gửi kèm phien_ban đang xem.
+ * Hai loại sửa (Nghĩa, 2026-10-07):
+ *  - loai 'nho' (mặc định): chính tả, định dạng, thiếu dữ liệu… — chỉ ghi Revisions;
+ *  - loai 'noi_dung': sửa nội dung toán (công thức sai, đáp số…) — bắt buộc vị trí và lý do, ghi thêm một dòng Corrections
+ *    "chờ tác giả xác nhận" với đoạn trước/sau tự tách từ hai bản.
+ */
 function saveText_(w, a) {
   need_(w, EDITORS);
   if (['de_bai', 'loi_giai'].indexOf(a.truong) < 0) throw new Error('Chỉ sửa được de_bai hoặc loi_giai.');
   if (!canSee_(w, a.ma_bai, assignedSet_(w))) throw new Error('Không có quyền sửa bài này.');
   var text = String(a.noi_dung == null ? '' : a.noi_dung);
   if (text.length > MAX_TEXT_) throw new Error('Văn bản quá dài (tối đa ' + MAX_TEXT_ + ' ký tự).');
+  var loai = a.loai || 'nho';
+  if (['nho', 'noi_dung'].indexOf(loai) < 0) throw new Error('Loại sửa không hợp lệ.');
+  var viTri = shortText_(a.vi_tri, 'Vị trí', 300, loai === 'noi_dung'), lyDo = shortText_(a.ly_do, 'Lý do', 2000, loai === 'noi_dung');
   var res = withLock_(function () {
     var hit = findRow_('Problems', 'ma_bai', a.ma_bai);
     if (!hit) throw new Error('Không có bài');
@@ -141,18 +158,60 @@ function saveText_(w, a) {
     if (Number(a.phien_ban) !== cur) throw new Error('Bài vừa được người khác sửa (phiên bản ' + cur + ') — bản của bạn CHƯA được lưu.');
     // không đổi gì thì không tăng phiên bản, không thêm lịch sử
     if (String(hit.data[a.truong]) === text) return { phien_ban: cur, khong_doi: true };
-    var patch = { phien_ban: cur + 1, cap_nhat: now_(), nguoi_cap_nhat: w.email };
-    patch[a.truong] = text;
-    var sh = sheet_('Problems'), cols = SCHEMA.Problems, row = sh.getRange(hit.row, 1, 1, cols.length).getValues()[0];
-    // ghi lại cả dòng: mọi ô (không chỉ ô sửa) phải qua cell_, kẻo ô khác bắt đầu bằng "=" thành công thức
-    cols.forEach(function (c, j) { row[j] = cell_(patch[c] !== undefined ? patch[c] : row[j]); });
-    sh.getRange(hit.row, 1, 1, cols.length).setValues([row]);
-    sheet_('Revisions').appendRow(rowOf_('Revisions', { id: newId_(), ma_bai: a.ma_bai, truong: a.truong, phien_ban: cur + 1,
-      cu: hit.data[a.truong], moi: text, email: w.email, ngay: now_() }));
-    return { phien_ban: cur + 1, cap_nhat: patch.cap_nhat, nguoi_cap_nhat: w.email };
+    var r = writeText_(hit, a.truong, text, w.email);
+    if (loai === 'noi_dung') {
+      var d = changedSpan_(String(hit.data[a.truong] || ''), text);
+      sheet_('Corrections').appendRow(rowOf_('Corrections', { id: newId_(), ma_bai: a.ma_bai,
+        vi_tri: (a.truong === 'de_bai' ? 'đề' : 'lời giải') + ', ' + viTri, truoc: d.truoc, sau: d.sau, ly_do: lyDo,
+        trang_thai: CORRECTION_STATUSES[0], nguoi: w.email, ngay: now_() }));
+      r.sua_doi = true;
+    }
+    return r;
   });
-  if (!res.khong_doi) audit_(w.email, 'sửa', a.ma_bai + ' ' + a.truong + ' → phiên bản ' + res.phien_ban);
+  if (!res.khong_doi) audit_(w.email, 'sửa', a.ma_bai + ' ' + a.truong + ' → phiên bản ' + res.phien_ban + (res.sua_doi ? ' (nội dung toán)' : ''));
   return res;
+}
+
+/**
+ * Ghi đề/lời giải mới vào dòng Problems (phải gọi trong withLock_), tăng phiên bản, thêm một dòng Revisions.
+ * Ghi lại cả dòng: mọi ô (không chỉ ô sửa) phải qua cell_, kẻo ô khác bắt đầu bằng "=" thành công thức.
+ * Dùng chung cho trang web (saveText_) và bản vá (applyCorrection_).
+ */
+function writeText_(hit, field, text, who) {
+  var cur = Number(hit.data.phien_ban || 0), t = now_();
+  var patch = { phien_ban: cur + 1, cap_nhat: t, nguoi_cap_nhat: who };
+  patch[field] = text;
+  var sh = sheet_('Problems'), cols = SCHEMA.Problems, row = sh.getRange(hit.row, 1, 1, cols.length).getValues()[0];
+  cols.forEach(function (c, j) { row[j] = cell_(patch[c] !== undefined ? patch[c] : row[j]); });
+  sh.getRange(hit.row, 1, 1, cols.length).setValues([row]);
+  sheet_('Revisions').appendRow(rowOf_('Revisions', { id: newId_(), ma_bai: hit.data.ma_bai, truong: field, phien_ban: cur + 1,
+    cu: hit.data[field], moi: text, email: who, ngay: t }));
+  return { phien_ban: cur + 1, cap_nhat: t, nguoi_cap_nhat: who };
+}
+
+/** Đoạn khác nhau giữa hai bản (bỏ phần đầu và phần cuối giống nhau), kèm vài chữ hai bên để dễ tìm; mỗi phía tối đa 1000 ký tự. */
+function changedSpan_(a, b) {
+  var p = 0, n = Math.min(a.length, b.length);
+  while (p < n && a.charAt(p) === b.charAt(p)) p++;
+  var s = 0;
+  while (s < n - p && a.charAt(a.length - 1 - s) === b.charAt(b.length - 1 - s)) s++;
+  var CTX = 20, from = Math.max(0, p - CTX);
+  while (from > 0 && /\S/.test(a.charAt(from - 1))) from--;                      // bắt đầu ở đầu một từ
+  var cut = function (x) {
+    var to = Math.min(x.length, x.length - s + CTX);
+    while (to < x.length && /\S/.test(x.charAt(to))) to++;                          // kết thúc ở cuối một từ
+    var t = (from > 0 ? '…' : '') + x.slice(from, to) + (to < x.length ? '…' : '');
+    return t.length > 1000 ? t.slice(0, 999) + '…' : t;
+  };
+  return { truoc: cut(a), sau: cut(b) };
+}
+
+/** Chuỗi ngắn do người dùng gõ: cắt khoảng trắng, kiểm tra trống/độ dài. */
+function shortText_(v, name, max, required) {
+  var t = String(v == null ? '' : v).trim();
+  if (required && !t) throw new Error(name + ' không được để trống.');
+  if (t.length > max) throw new Error(name + ' quá dài (tối đa ' + max + ' ký tự).');
+  return t;
 }
 
 /**
@@ -176,20 +235,74 @@ function addComment_(w, a) {
   return c;
 }
 
+/** Bài phải tồn tại và người này phải thấy được (kiểm tra quyền TRƯỚC khi tra bài, như getProblem_). */
+function needProblem_(w, ma) {
+  if (!canSee_(w, ma, assignedSet_(w))) throw new Error('Không có quyền với bài này.');
+  if (!findRow_('Problems', 'ma_bai', ma)) throw new Error('Không có bài ' + ma);
+}
+
+/** Dòng của một mục (Checks/Conflicts/Corrections) theo id; kiểm tra quyền trên bài của nó. */
+function propRow_(w, tab, id) {
+  var hit = findRow_(tab, 'id', id);
+  if (!hit || !canSee_(w, hit.data.ma_bai, assignedSet_(w))) throw new Error('Không có mục này.');
+  return hit;
+}
+
 function addProp_(w, tab, a) {
-  need_(w, EDITORS.concat(['TBT']));
+  need_(w, PROP_EDITORS);
   if (tab === 'Conflicts' && CONFLICT_TYPES.indexOf(a.loai) < 0) throw new Error('Loại xung đột không hợp lệ.');
-  var o = { id: newId_(), ma_bai: a.ma_bai, loai: a.loai, mo_ta: a.mo_ta, noi_dung: a.noi_dung, cach_giai_quyet: a.cach_giai_quyet || '',
-            trang_thai: a.trang_thai || 'mở', nguoi: w.email, ngay: now_() };
+  needProblem_(w, a.ma_bai);
+  var text = shortText_(tab === 'Checks' ? a.noi_dung : a.mo_ta, tab === 'Checks' ? 'Nội dung' : 'Mô tả', 5000, true);
+  var o = { id: newId_(), ma_bai: a.ma_bai, loai: a.loai, mo_ta: text, noi_dung: text, cach_giai_quyet: '',
+            trang_thai: 'mở', nguoi: w.email, ngay: now_() };
   append_(tab, o);
+  audit_(w.email, tab === 'Checks' ? 'thêm kiểm tra' : 'thêm xung đột', a.ma_bai + (a.loai ? ' (' + a.loai + ')' : ''));
   return o;
 }
 
+/** Đóng (hoặc mở lại) một mục cần kiểm tra; đóng thì phải ghi kết quả. */
+function closeCheck_(w, a) {
+  need_(w, PROP_EDITORS);
+  var hit = propRow_(w, 'Checks', a.id);
+  var st = a.trang_thai || 'xong';
+  if (CHECK_STATUSES.indexOf(st) < 0) throw new Error('Trạng thái không hợp lệ.');
+  var kq = shortText_(a.ket_qua, 'Kết quả', 5000, st === 'xong');
+  update_('Checks', hit.row, { trang_thai: st, ket_qua: kq || hit.data.ket_qua });
+  audit_(w.email, 'kiểm tra → ' + st, hit.data.ma_bai + ' ' + a.id);
+  return true;
+}
+
+/**
+ * Ghi cách giải quyết / đổi trạng thái một xung đột. Loại trong TBT_CONFLICTS (mức, tác giả, trùng bài) là quyết định của TBT:
+ * người khác chỉ được chuyển sang "chờ TBT" hoặc mở lại.
+ */
+function resolveConflict_(w, a) {
+  need_(w, PROP_EDITORS);
+  var hit = propRow_(w, 'Conflicts', a.id);
+  if (CONFLICT_STATUSES.indexOf(a.trang_thai) < 0) throw new Error('Trạng thái không hợp lệ.');
+  var tbtOnly = TBT_CONFLICTS.indexOf(hit.data.loai) >= 0;
+  if (tbtOnly && a.trang_thai === 'đã giải quyết' && !has_(w, ['TBT'])) throw new Error('Không có quyền: xung đột "' + hit.data.loai + '" do TBT quyết định.');
+  var cach = shortText_(a.cach_giai_quyet, 'Cách giải quyết', 5000, a.trang_thai === 'đã giải quyết');
+  update_('Conflicts', hit.row, { trang_thai: a.trang_thai, cach_giai_quyet: cach || hit.data.cach_giai_quyet });
+  audit_(w.email, 'xung đột → ' + a.trang_thai, hit.data.ma_bai + ' ' + a.id + ' (' + hit.data.loai + ')');
+  return true;
+}
+
+/** Trạng thái một sửa đổi (tác giả đồng ý / không đồng ý…). Không tự đổi văn bản: muốn trả lại bản cũ thì sửa như thường. */
+function setCorrectionStatus_(w, a) {
+  need_(w, PROP_EDITORS);
+  var hit = propRow_(w, 'Corrections', a.id);
+  if (CORRECTION_STATUSES.indexOf(a.trang_thai) < 0) throw new Error('Trạng thái không hợp lệ.');
+  update_('Corrections', hit.row, { trang_thai: a.trang_thai });
+  audit_(w.email, 'sửa đổi → ' + a.trang_thai, hit.data.ma_bai + ' ' + a.id);
+  return true;
+}
+
 function setStatus_(w, a) {
-  need_(w, ['PT', 'TBT', 'Quản trị']);
+  need_(w, STATUS_SETTERS);
   if (STATUSES.indexOf(a.trang_thai) < 0) throw new Error('Trạng thái không hợp lệ.');
+  needProblem_(w, a.ma_bai);
   var hit = findRow_('Problems', 'ma_bai', a.ma_bai);
-  if (!hit) throw new Error('Không có bài');
   update_('Problems', hit.row, { trang_thai: a.trang_thai, cap_nhat: now_(), nguoi_cap_nhat: w.email });
   audit_(w.email, 'trạng thái', a.ma_bai + ' → ' + a.trang_thai);
   return true;

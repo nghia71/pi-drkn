@@ -36,6 +36,7 @@ function call(method, args) {
 }
 function alertBox(msg) { var d = document.createElement('div'); d.className = 'err'; d.textContent = msg; document.body.prepend(d); setTimeout(function () { d.remove(); }, 8000); }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function escA(s) { return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }   // trong thuộc tính HTML
 function typeset(el) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]); else setTimeout(function () { typeset(el); }, 300); }
 
 var ME;
@@ -140,13 +141,16 @@ function renderProblem(ma, d, loading) {
   P.innerHTML = '<p><a href="#" id="back">← Danh sách</a></p>' +
     '<div class="head"><span class="code">' + esc(p.ma_bai) + '</span>' + chip(p.chu_de) + chip(p.muc && 'Mức ' + p.muc) + chip(p.trang_thai) +
     '<span class="au">' + esc(d.author ? d.author.ten_in + (d.author.don_vi ? ' (' + d.author.don_vi + ')' : '') : (p.tac_gia || '')) + '</span></div>' +
+    (d.can && d.can.status && !loading ? '<p class="sm-t">Trạng thái: <select id="st-sel">' + d.lists.statuses.map(function (x) {
+      return '<option' + (x === p.trang_thai ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') +
+      '</select> <button class="sm" data-act="status">Đổi trạng thái</button></p>' : '') +
     (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(p.cap_nhat) : '') + '</p>' : '') +
     '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx">' + de.html + '</div></div>' +
     (loading ? '<p class="mut">Đang tải lời giải và thảo luận…</p>' :
     '<div id="sec-loi_giai">' + (lg ? '<h3>Lời giải' + btn('loi_giai') + '</h3><div class="tx">' + lg.html + '</div>'
                                     : '<h3>Lời giải' + btn('loi_giai') + '</h3><p class="mut">(không có lời giải)</p>') + '</div>' +
     (warn.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(warn.join('; ')) + '</p>' : '') +
-    (d.limited ? '' : '<details><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
+    (d.limited ? '' : '<details id="props"' + (PROPS_OPEN ? ' open' : '') + '><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
     '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
     '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>');
   document.getElementById('back').onclick = function (e) {
@@ -158,6 +162,9 @@ function renderProblem(ma, d, loading) {
   P.querySelectorAll('[data-edit]').forEach(function (b) { b.onclick = function () { openEditor(ma, b.getAttribute('data-edit')); }; });
   var hb = document.getElementById('hist-load');
   if (hb) hb.onclick = function () { loadHistory(ma); };
+  var pd = document.getElementById('props');
+  if (pd) pd.ontoggle = function () { PROPS_OPEN = pd.open; };
+  P.onclick = function (ev) { var b = ev.target.closest('[data-act]'); if (b && !b.disabled) act(ma, b); };
   var send = document.getElementById('cm-send');
   if (send) send.onclick = function () {
     var t = document.getElementById('cm-new').value.trim(); if (!t) return;
@@ -168,16 +175,121 @@ function renderProblem(ma, d, loading) {
   typeset(P);
 }
 function list(a, f) { return a && a.length ? '<ul>' + a.map(function (x) { return '<li>' + f(x) + '</li>'; }).join('') + '</ul>' : '<p class="mut">—</p>'; }
+var PROPS_OPEN = false;
 function props(d) {
-  var v = d.provenance || {};
+  var v = d.provenance || {}, can = d.can || {}, L = d.lists || {};
+  var opts = function (list, cur, skip) {
+    return list.filter(function (x) { return !skip || skip.indexOf(x) < 0 || x === cur; })
+      .map(function (x) { return '<option' + (x === cur ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('');
+  };
+  var corr = function (c) {
+    return '<b>' + esc(c.vi_tri) + '</b>: ' + esc(c.truoc) + ' → ' + esc(c.sau) + ' (' + esc(c.ly_do) + '; ' +
+      (can.props ? '<select class="inl-sel" data-act="corr" data-id="' + escA(c.id) + '">' + opts(L.correctionStatuses.indexOf(c.trang_thai) < 0 && c.trang_thai ? [c.trang_thai].concat(L.correctionStatuses) : L.correctionStatuses, c.trang_thai) + '</select>'
+                 : esc(c.trang_thai)) + ')';
+  };
+  var check = function (c) {
+    var open = c.trang_thai !== 'xong';
+    return esc(c.noi_dung) + ' <span class="' + (open ? 'w' : 'mut') + '">[' + esc(c.trang_thai) + ']</span>' +
+      (c.ket_qua ? '<div class="mut">⇒ ' + esc(c.ket_qua) + '</div>' : '') +
+      (!can.props ? '' : open ? ' <button class="sm" data-act="check-close" data-id="' + escA(c.id) + '">Đóng…</button>'
+                              : ' <button class="sm" data-act="check-reopen" data-id="' + escA(c.id) + '">Mở lại</button>') +
+      '<div class="inl" data-for="' + escA(c.id) + '"></div>';
+  };
+  var confl = function (c) {
+    var tbtOnly = (L.tbtConflicts || []).indexOf(c.loai) >= 0;
+    return '<b>' + esc(c.loai) + '</b> — ' + esc(c.mo_ta) + (c.cach_giai_quyet ? ' ⇒ ' + esc(c.cach_giai_quyet) : '') +
+      ' <span class="' + (c.trang_thai === 'đã giải quyết' ? 'mut' : 'w') + '">[' + esc(c.trang_thai) + ']</span>' +
+      (tbtOnly ? ' <span class="mut">(TBT quyết định)</span>' : '') +
+      (can.props ? ' <button class="sm" data-act="confl-edit" data-id="' + escA(c.id) + '" data-tbt="' + (tbtOnly ? 1 : 0) + '">Ghi quyết định…</button>' : '') +
+      '<div class="inl" data-for="' + escA(c.id) + '"></div>';
+  };
   return '<div class="props"><h4>Nguồn</h4><p>' + esc([v.thu_muc, v.tep_goc, v.ngay_nhan, v.kenh].filter(Boolean).join(' · ')) + '</p>' +
     '<h4>Đối chiếu nguyên bản</h4><p>' + esc(v.doi_chieu || 'chưa') + '</p>' +
-    '<h4>Sửa đổi</h4>' + list(d.corrections, function (c) { return '<b>' + esc(c.vi_tri) + '</b>: ' + esc(c.truoc) + ' → ' + esc(c.sau) + ' (' + esc(c.ly_do) + '; ' + esc(c.trang_thai) + ')'; }) +
-    '<h4>Cần kiểm tra</h4>' + list(d.checks, function (c) { return esc(c.noi_dung) + ' [' + esc(c.trang_thai) + ']'; }) +
-    '<h4>Xung đột</h4>' + list(d.conflicts, function (c) { return '<b>' + esc(c.loai) + '</b> — ' + esc(c.mo_ta) + (c.cach_giai_quyet ? ' ⇒ ' + esc(c.cach_giai_quyet) : '') + ' [' + esc(c.trang_thai) + ']'; }) +
+    '<h4>Sửa đổi</h4>' + list(d.corrections, corr) +
+    '<h4>Cần kiểm tra</h4>' + list(d.checks, check) +
+    (can.props ? '<button class="sm" data-act="check-new">+ Thêm mục cần kiểm tra</button><div class="inl" data-for="check-new"></div>' : '') +
+    '<h4>Xung đột</h4>' + list(d.conflicts, confl) +
+    (can.props ? '<button class="sm" data-act="confl-new">+ Thêm xung đột</button><div class="inl" data-for="confl-new"></div>' : '') +
     '<h4>Nhật ký chuyển đổi</h4>' + list(d.log, function (l) { return esc(l.noi_dung); }) +
     '<h4>Lịch sử sửa đề / lời giải</h4><div id="hist"><button class="sm" id="hist-load">Xem lịch sử</button></div></div>';
 }
+
+/* ---------- Thao tác trên trang bài: trạng thái, mục cần kiểm tra, xung đột, sửa đổi ---------- */
+function inlBox(id) { return document.querySelector('.inl[data-for="' + id + '"]'); }
+/** Ô nhập nhỏ ngay dưới mục: fields = [{k, label, type:'text'|'area'|'select', opts, val}], gửi bằng send(values). */
+function inlineForm(id, fields, okLabel, send) {
+  var box = inlBox(id); if (!box) return;
+  if (box.innerHTML) { box.innerHTML = ''; return; }                   // bấm lần nữa thì đóng
+  box.innerHTML = fields.map(function (f, i) {
+    var el = f.type === 'select' ? '<select data-k="' + f.k + '">' + f.opts.map(function (o) { return '<option' + (o === f.val ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>'
+           : f.type === 'area' ? '<textarea rows="2" data-k="' + f.k + '"></textarea>' : '<input type="text" data-k="' + f.k + '">';
+    return '<label>' + esc(f.label) + ' ' + el + '</label>';
+  }).join('') + '<button class="pri sm" data-k="ok">' + esc(okLabel) + '</button> <button class="sm" data-k="no">Huỷ</button>';
+  fields.forEach(function (f) { if (f.type !== 'select' && f.val) box.querySelector('[data-k="' + f.k + '"]').value = f.val; });
+  var first = box.querySelector('textarea,input'); if (first) first.focus();
+  box.querySelector('[data-k=no]').onclick = function () { box.innerHTML = ''; };
+  var ok = box.querySelector('[data-k=ok]');
+  ok.onclick = function () {
+    var v = {}; box.querySelectorAll('[data-k]').forEach(function (e) { if (e.tagName !== 'BUTTON') v[e.getAttribute('data-k')] = e.value.trim(); });
+    ok.disabled = true;
+    send(v).then(function () { box.innerHTML = ''; }, function () { ok.disabled = false; });
+  };
+}
+/** Sau mỗi thao tác: lấy lại bài từ máy chủ, cập nhật chấm trên danh sách, vẽ lại (giữ mục Nguồn & chỉnh sửa đang mở). */
+function refresh(ma) {
+  return call('getProblem', { ma_bai: ma }).then(function (d) {
+    if (!d || !d.problem) return;
+    delete d.problem.de_bai_goc; delete d.problem.loi_giai_goc;
+    PCACHE[ma] = d;
+    var r = LROWS[ma];
+    if (r) {
+      r.trang_thai = d.problem.trang_thai;
+      r.checks = d.checks.filter(function (c) { return c.trang_thai !== 'xong'; }).length;
+      r.conflicts = d.conflicts.filter(function (c) { return String(c.trang_thai).indexOf('mở') >= 0 || String(c.trang_thai).indexOf('chờ') >= 0; }).length;
+    }
+    if (ALL) renderList();
+    var P = document.getElementById('page');
+    if (!P.hidden && P.dataset.ma === ma && !dirtyEdit()) renderProblem(ma, d, false);
+  });
+}
+function act(ma, b) {
+  var a = b.getAttribute('data-act'), id = b.getAttribute('data-id'), d = PCACHE[ma], L = (d && d.lists) || {};
+  var done = function (p) { return p.then(function () { return refresh(ma); }); };
+  if (a === 'status') {
+    var st = document.getElementById('st-sel').value;
+    if (st === d.problem.trang_thai) return;
+    b.disabled = true;
+    done(call('setStatus', { ma_bai: ma, trang_thai: st })).then(null, function () { b.disabled = false; });
+  } else if (a === 'check-new') {
+    inlineForm('check-new', [{ k: 'noi_dung', label: 'Cần kiểm tra gì', type: 'area' }], 'Thêm', function (v) {
+      return done(call('addCheck', { ma_bai: ma, noi_dung: v.noi_dung }));
+    });
+  } else if (a === 'check-close') {
+    inlineForm(id, [{ k: 'ket_qua', label: 'Kết quả (đã kiểm tra thế nào, ai xác nhận)', type: 'area' }], 'Đóng mục', function (v) {
+      return done(call('closeCheck', { id: id, ket_qua: v.ket_qua, trang_thai: 'xong' }));
+    });
+  } else if (a === 'check-reopen') {
+    b.disabled = true;
+    done(call('closeCheck', { id: id, trang_thai: 'mở' })).then(null, function () { b.disabled = false; });
+  } else if (a === 'confl-new') {
+    inlineForm('confl-new', [{ k: 'loai', label: 'Loại', type: 'select', opts: L.conflictTypes }, { k: 'mo_ta', label: 'Mô tả', type: 'area' }], 'Thêm', function (v) {
+      return done(call('addConflict', { ma_bai: ma, loai: v.loai, mo_ta: v.mo_ta }));
+    });
+  } else if (a === 'confl-edit') {
+    var c = d.conflicts.filter(function (x) { return x.id === id; })[0] || {};
+    var tbtOnly = b.getAttribute('data-tbt') === '1' && !(d.can && d.can.tbt);
+    var sts = L.conflictStatuses.filter(function (x) { return !tbtOnly || x !== 'đã giải quyết'; });
+    inlineForm(id, [{ k: 'trang_thai', label: 'Trạng thái', type: 'select', opts: sts, val: tbtOnly ? 'chờ TBT' : 'đã giải quyết' },
+                    { k: 'cach_giai_quyet', label: tbtOnly ? 'Ghi chú cho TBT (không bắt buộc)' : 'Cách giải quyết', type: 'area', val: c.cach_giai_quyet }],
+      'Lưu', function (v) { return done(call('resolveConflict', { id: id, trang_thai: v.trang_thai, cach_giai_quyet: v.cach_giai_quyet })); });
+  }
+}
+/* thay đổi ở ô chọn trạng thái sửa đổi: gửi ngay */
+document.addEventListener('change', function (ev) {
+  var s = ev.target.closest && ev.target.closest('select[data-act=corr]'); if (!s) return;
+  var ma = document.getElementById('page').dataset.ma; s.disabled = true;
+  call('setCorrectionStatus', { id: s.getAttribute('data-id'), trang_thai: s.value }).then(function () { return refresh(ma); }, function () { s.disabled = false; });
+});
 
 /* ---------- Sửa đề / lời giải (NCB, PT, Quản trị) ----------
  * Khoá lạc quan: gửi kèm phiên bản đang xem; nếu người khác vừa lưu, máy chủ từ chối, bản đang gõ vẫn giữ trong ô,
@@ -185,16 +297,25 @@ function props(d) {
 var EDITORS = {};
 var FIELD_NAME = { de_bai: 'đề bài', loi_giai: 'lời giải' };
 function dirtyEdit() { return Object.keys(EDITORS).some(function (f) { var e = EDITORS[f]; return e && e.ta.value !== e.orig; }); }
-function busyTyping() { var c = document.getElementById('cm-new'); return Object.keys(EDITORS).length > 0 || !!(c && c.value.trim()); }
+function busyTyping() {
+  var c = document.getElementById('cm-new');
+  return Object.keys(EDITORS).length > 0 || !!(c && c.value.trim()) || !!document.querySelector('.inl textarea, .inl input');
+}
 function openEditor(ma, field) {
   var d = PCACHE[ma]; if (!d || EDITORS[field]) return;
   var sec = document.getElementById('sec-' + field), orig = d.problem[field] == null ? '' : String(d.problem[field]);
   sec.innerHTML = '<h3>Sửa ' + FIELD_NAME[field] + ' <span class="mut">(LaTeX sạch — ghi chú, lý do sửa ghi ở mục Sửa đổi / Cần kiểm tra, không ghi vào văn bản)</span></h3>' +
     '<div class="ed"><textarea class="src" spellcheck="false"></textarea><div class="pv tx"></div></div>' +
+    '<div class="kind"><label><input type="radio" name="k-' + field + '" value="nho" checked> <b>Sửa nhỏ</b> — chính tả, định dạng, bổ sung dữ liệu thiếu (chỉ ghi lịch sử)</label>' +
+    '<label><input type="radio" name="k-' + field + '" value="noi_dung"> <b>Sửa nội dung toán</b> — công thức, đáp số, lập luận (ghi vào Sửa đổi, chờ tác giả xác nhận)</label>' +
+    '<div class="kfields" hidden><label>Vị trí <input type="text" data-f="vi_tri" placeholder="ví dụ: dòng 3; kết luận"></label>' +
+    '<label>Lý do <input type="text" data-f="ly_do" placeholder="ví dụ: bước trước tính ra 2/3, kết luận chép nhầm"></label></div></div>' +
     '<div class="edbar"><button class="pri" data-a="save">Lưu</button> <button data-a="cancel">Huỷ</button> <span class="st mut"></span></div><div class="newer"></div>';
   var ta = sec.querySelector('textarea'), pv = sec.querySelector('.pv'), st = sec.querySelector('.st');
   ta.value = orig; ta.rows = Math.min(24, Math.max(8, orig.split('\n').length + 2));
   var e = EDITORS[field] = { ta: ta, orig: orig, base: d.problem.phien_ban, cancelArmed: false };
+  var kf = sec.querySelector('.kfields'), kind = function () { return sec.querySelector('input[type=radio]:checked').value; };
+  sec.querySelectorAll('input[type=radio]').forEach(function (r) { r.onchange = function () { kf.hidden = kind() !== 'noi_dung'; }; });
   var timer = null, draw = function () {
     var r = PiRender.render(ta.value);
     pv.innerHTML = r.html + (r.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(r.warnings.join('; ')) + '</p>' : '');
@@ -208,9 +329,11 @@ function openEditor(ma, field) {
   };
   var save = sec.querySelector('[data-a=save]');
   save.onclick = function () {
+    var k = kind(), viTri = sec.querySelector('[data-f=vi_tri]').value.trim(), lyDo = sec.querySelector('[data-f=ly_do]').value.trim();
+    if (k === 'noi_dung' && (!viTri || !lyDo)) { st.textContent = 'Sửa nội dung toán: cần ghi Vị trí và Lý do.'; return; }
     save.disabled = true; st.textContent = 'Đang lưu…'; clearTimeout(timer); draw();
     var text = ta.value;
-    call('saveText', { ma_bai: ma, truong: field, noi_dung: text, phien_ban: e.base }).then(function (r) {
+    call('saveText', { ma_bai: ma, truong: field, noi_dung: text, phien_ban: e.base, loai: k, vi_tri: viTri, ly_do: lyDo }).then(function (r) {
       var cur = PCACHE[ma];
       cur.problem[field] = text; cur.problem.phien_ban = r.phien_ban;
       if (!r.khong_doi) { cur.problem.cap_nhat = r.cap_nhat; cur.problem.nguoi_cap_nhat = r.nguoi_cap_nhat; }
@@ -219,6 +342,7 @@ function openEditor(ma, field) {
       if (EDITORS.loi_giai && field !== 'loi_giai') EDITORS.loi_giai.base = r.phien_ban;
       delete EDITORS[field]; closeEditor(ma, field);
       if (r.khong_doi) alertBox('Không có thay đổi nào — không tạo phiên bản mới.');
+      if (r.sua_doi) refresh(ma);                                          // dòng Sửa đổi mới
       if (ALL) renderList();
     }, function (err) {
       save.disabled = false; st.textContent = '';
