@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 93 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 94 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (93 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (94 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -180,6 +180,7 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 |---|---|---|
 | 11.1 | resetPractice tạo 10 bài luyện (4 B, 6 A) + kỳ K-THU, chạy lại không nhân đôi, không chạm bài thật | QT |
 | 11.2 | Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy | T1+T2 |
+| 11.3 | Hai tài khoản thử (TEST_USERS) mang vai trò ban biên tập thấy mọi bài luyện (B14, B15); với vai trò PB chỉ thấy bài được giao; người khác không thấy | T1+T2 |
 
 **12. Hàm quản trị**
 
@@ -246,6 +247,8 @@ Trình soạn thảo dự án chính → chọn `resetPractice` → Run. Việc 
 - xoá mọi dòng THU-… (bài, bảng chọn bài, số in đã ghi…) và kỳ K-THU cũ, rồi tạo lại mười bài luyện (bịa) THU-01 … THU-10
   (THU-01…THU-04 mức B, THU-05…THU-10 mức A — đủ một bảng chọn bài 10 vị trí);
 - mở kỳ luyện tập K-THU: THU-01 → T1; THU-02 → T1 và T2; THU-03 … THU-10 → không ai;
+- bài luyện chỉ hiện với Quản trị, với người được giao, và với hai tài khoản thử (TEST_USERS) khi họ mang vai trò ban biên tập
+  (PT, TBT, NCB, VP, BTK) — vì thế ở B14, B15 T1 (PT), T2 (TBT) thấy đủ THU-01 … THU-10; người thật của ban biên tập không thấy bài luyện;
 - đặt T1, T2 làm PB.
 
 Không bài thật nào bị đụng tới. Ban biên tập (TBT, NCB…) không thấy bài luyện; chỉ Quản trị và người được giao thấy.

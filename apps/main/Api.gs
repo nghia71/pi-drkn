@@ -82,10 +82,19 @@ function assignedSet_(w) {
 }
 
 function canSee_(w, ma, assigned) {
-  // bài luyện tập (THU-…) chỉ dành cho Quản trị và người được giao — không lẫn vào danh sách của ban biên tập
-  if (String(ma).indexOf('THU-') === 0) return w.roles.indexOf('Quản trị') >= 0 || !!assigned[ma];
+  // bài luyện tập (THU-…) chỉ dành cho Quản trị, người được giao, và hai tài khoản thử (TEST_USERS) khi mang vai trò ban biên tập
+  // (B14, B15: T1 = PT, T2 = TBT xếp đủ 10 bài luyện) — không lẫn vào danh sách của ban biên tập thật
+  if (String(ma).indexOf('THU-') === 0) return w.roles.indexOf('Quản trị') >= 0 || !!assigned[ma] || (has_(w, ALL_PROBLEMS_VIEWERS) && practiceUser_(w));
   if (has_(w, ALL_PROBLEMS_VIEWERS)) return true;
   return has_(w, ['PB']) && !!assigned[ma];
+}
+
+/** Tài khoản thử (Script property TEST_USERS)? Tính một lần cho mỗi lời gọi. */
+function practiceUser_(w) {
+  if (w._thu === undefined) {
+    w._thu = String(conf_('TEST_USERS') || '').split(',').map(function (x) { return x.trim().toLowerCase(); }).indexOf(w.email) >= 0;
+  }
+  return w._thu;
 }
 
 function hideAuthor_(w) {
