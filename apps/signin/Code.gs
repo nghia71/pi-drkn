@@ -17,10 +17,11 @@ function doGet() {
   var t = String(Date.now());
   var sig = sign_(email + '|' + t, secret);
   var url = bUrl + '?u=' + encodeURIComponent(email) + '&t=' + t + '&s=' + encodeURIComponent(sig);
-  // chuyển thẳng, có nút dự phòng nếu trình duyệt chặn
-  return page_('<p>Đang vào hệ thống với địa chỉ <b>' + escape_(email) + '</b>…</p>' +
-    '<p><a target="_top" href="' + escape_(url) + '">Bấm vào đây nếu không tự chuyển</a></p>' +
-    '<script>window.top.location.href=' + JSON.stringify(url) + ';</script>');
+  // Trang Apps Script chạy trong khung cách ly: trình duyệt chỉ cho rời trang sau một cú bấm.
+  return page_('<p>Xin chào <b>' + escape_(email) + '</b>.</p>' +
+    '<p><a target="_top" href="' + escape_(url) + '" style="display:inline-block;padding:10px 20px;background:#1a73e8;' +
+    'color:#fff;border-radius:6px;text-decoration:none;font-weight:600">Vào hệ thống</a></p>' +
+    '<p style="color:#666;font-size:13px">Liên kết có hiệu lực 10 phút.</p>');
 }
 
 /** Chạy từ trình soạn thảo (Run → checkConfig) để kiểm tra cấu hình; Script properties đặt ở Project Settings. */

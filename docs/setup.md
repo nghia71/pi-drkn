@@ -37,7 +37,7 @@ Từ đó mỗi lần cập nhật chỉ chạy `scripts/deploy.sh` — địa c
 Không bao giờ dùng nút "New deployment" trong trình soạn thảo (tạo địa chỉ mới).
 
 ## 4. Khởi tạo dữ liệu (dự án chính)
-Mở dự án chính (`clasp open` trong `apps/main`) → chọn hàm `setup` → Run → cho phép quyền.
+Mở dự án chính (`clasp open-script` trong `apps/main`) → chọn hàm `setup` → Run → cho phép quyền.
 Execution log in ra: địa chỉ Sheet và **SECRET**.
 
 ## 5. Cấu hình dự án đăng nhập
