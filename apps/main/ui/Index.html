@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<?!= include_('ui/Styles') ?>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] }, startup: { typeset: false } };
+</script>
+<?!= include_('ui/RenderJs') ?>
+<script>window.MathJax.tex.macros = PiRender.MATH_MACROS;</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+</head>
+<body>
+<header>
+  <h1>Đề ra kỳ này</h1>
+  <div class="bar">
+    <span id="me"></span>
+    <select id="f-topic"><option value="">Mọi chủ đề</option><option>ĐS</option><option>SH</option><option>HH</option><option>TH</option></select>
+    <select id="f-level"><option value="">Mọi mức</option><option>A</option><option>B</option></select>
+    <select id="f-status"><option value="">Mọi trạng thái</option><option>Mới</option><option>SL</option><option>SL-OK</option><option>SL-Fail</option><option>PL</option></select>
+    <select id="view-as" hidden><option value="">Vai trò thật</option></select>
+  </div>
+</header>
+<main>
+  <section id="list"></section>
+  <section id="page" hidden></section>
+</main>
+<script>
+var TOKEN = <?= token ?>;
+function call(method, args) {
+  return new Promise(function (ok, fail) {
+    google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { alertBox(e.message || e); fail(e); }).api(TOKEN, method, args || {});
+  });
+}
+function alertBox(msg) { var d = document.createElement('div'); d.className = 'err'; d.textContent = msg; document.body.prepend(d); setTimeout(function () { d.remove(); }, 8000); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function typeset(el) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]); else setTimeout(function () { typeset(el); }, 300); }
+
+var ME;
+call('me').then(function (me) {
+  ME = me;
+  document.getElementById('me').textContent = me.email + ' · ' + me.eff.join(', ');
+  if (me.roles.indexOf('Quản trị') >= 0) {
+    var s = document.getElementById('view-as'); s.hidden = false;
+    ['TBT', 'PT', 'NCB', 'PB', 'VP', 'BTK'].forEach(function (r) { var o = document.createElement('option'); o.value = r; o.textContent = 'Xem như ' + r; s.appendChild(o); });
+    s.onchange = function () { call('viewAs', { role: s.value }).then(function () { location.reload(); }); };
+  }
+  loadList();
+});
+['f-topic', 'f-level', 'f-status'].forEach(function (id) { document.getElementById(id).onchange = loadList; });
+
+function loadList() {
+  var L = document.getElementById('list'); L.hidden = false; document.getElementById('page').hidden = true;
+  L.innerHTML = '<p class="mut">Đang tải…</p>';
+  call('listProblems', { chu_de: val('f-topic'), muc: val('f-level'), trang_thai: val('f-status') }).then(function (rows) {
+    L.innerHTML = rows.length ? '' : '<p class="mut">Không có bài nào.</p>';
+    rows.forEach(function (p) {
+      var c = document.createElement('article'); c.className = 'card';
+      var r = PiRender.render(p.de_bai || '');
+      c.innerHTML = '<div class="head"><a href="#" class="code">' + esc(p.ma_bai) + '</a>' + chip(p.chu_de) + chip(p.muc && 'Mức ' + p.muc) +
+        chip(p.trang_thai) + (p.checks ? '<span class="chip w">cần kiểm tra ' + p.checks + '</span>' : '') +
+        (p.conflicts ? '<span class="chip w">xung đột mở ' + p.conflicts + '</span>' : '') + '<span class="au">' + esc(p.tac_gia) + '</span></div>' +
+        '<div class="tx">' + r.html + '</div>';
+      c.querySelector('.code').onclick = function (e) { e.preventDefault(); openProblem(p.ma_bai); };
+      L.appendChild(c);
+    });
+    typeset(L);
+  });
+}
+function val(id) { return document.getElementById(id).value; }
+function chip(t) { return t ? '<span class="chip">' + esc(t) + '</span>' : ''; }
+
+function openProblem(ma) {
+  var P = document.getElementById('page'); document.getElementById('list').hidden = true; P.hidden = false;
+  P.innerHTML = '<p class="mut">Đang tải…</p>';
+  call('getProblem', { ma_bai: ma }).then(function (d) {
+    var p = d.problem, de = PiRender.render(p.de_bai), lg = p.loi_giai ? PiRender.render(p.loi_giai) : null;
+    var warn = de.warnings.concat(lg ? lg.warnings : []);
+    P.innerHTML = '<p><a href="#" id="back">← Danh sách</a></p>' +
+      '<div class="head"><span class="code">' + esc(p.ma_bai) + '</span>' + chip(p.chu_de) + chip(p.muc && 'Mức ' + p.muc) + chip(p.trang_thai) +
+      '<span class="au">' + esc(d.author ? d.author.ten_in + (d.author.don_vi ? ' (' + d.author.don_vi + ')' : '') : '') + '</span></div>' +
+      '<h3>Đề bài</h3><div class="tx">' + de.html + '</div>' +
+      (lg ? '<h3>Lời giải</h3><div class="tx">' + lg.html + '</div>' : '<p class="mut">(không có lời giải)</p>') +
+      (warn.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(warn.join('; ')) + '</p>' : '') +
+      '<details><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>' +
+      '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
+      '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>';
+    document.getElementById('back').onclick = function (e) { e.preventDefault(); loadList(); };
+    document.getElementById('cm-send').onclick = function () {
+      var t = document.getElementById('cm-new').value.trim(); if (!t) return;
+      call('addComment', { ma_bai: ma, noi_dung: t }).then(function () { openProblem(ma); });
+    };
+    typeset(P);
+  });
+}
+function list(a, f) { return a && a.length ? '<ul>' + a.map(function (x) { return '<li>' + f(x) + '</li>'; }).join('') + '</ul>' : '<p class="mut">—</p>'; }
+function props(d) {
+  var v = d.provenance || {};
+  return '<div class="props"><h4>Nguồn</h4><p>' + esc([v.thu_muc, v.tep_goc, v.ngay_nhan, v.kenh].filter(Boolean).join(' · ')) + '</p>' +
+    '<h4>Đối chiếu nguyên bản</h4><p>' + esc(v.doi_chieu || 'chưa') + '</p>' +
+    '<h4>Sửa đổi</h4>' + list(d.corrections, function (c) { return '<b>' + esc(c.vi_tri) + '</b>: ' + esc(c.truoc) + ' → ' + esc(c.sau) + ' (' + esc(c.ly_do) + '; ' + esc(c.trang_thai) + ')'; }) +
+    '<h4>Cần kiểm tra</h4>' + list(d.checks, function (c) { return esc(c.noi_dung) + ' [' + esc(c.trang_thai) + ']'; }) +
+    '<h4>Xung đột</h4>' + list(d.conflicts, function (c) { return '<b>' + esc(c.loai) + '</b> — ' + esc(c.mo_ta) + (c.cach_giai_quyet ? ' ⇒ ' + esc(c.cach_giai_quyet) : '') + ' [' + esc(c.trang_thai) + ']'; }) +
+    '<h4>Nhật ký chuyển đổi</h4>' + list(d.log, function (l) { return esc(l.noi_dung); }) + '</div>';
+}
+</script>
+</body>
+</html>

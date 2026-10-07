@@ -1,0 +1,16 @@
+[
+  {"name": "macro văn bản của Pi", "src": "Cho \\dtr $(O)$ và \\dth $d$. \\cmr $d$ tiếp xúc $(O)$ \\kck $OH=R$.",
+   "contains": ["đường tròn", "đường thẳng", "Chứng minh rằng", "khi và chỉ khi", "\\(OH=R\\)"]},
+  {"name": "công thức hiển thị và \\eqno", "src": "Ta có $$x+y=1 \\eqno (1)$$ nên xong.",
+   "contains": ["\\[x+y=1 \\tag{1}\\]"]},
+  {"name": "hệ trong công thức nội dòng (lỗi đã sửa 2026-10-06)", "src": "Xét $\\left\\{ \\begin{array}{l} x=1 \\\\ y=2 \\end{array} \\right.$ là xong.",
+   "contains": ["\\begin{array}{l}"], "absent": ["\u0001"]},
+  {"name": "Markdown từ Word (pandoc)", "src": "**Đề bài** (*Sáng tác*): Tìm $n$ sao cho $n^2+1$ chia hết cho $5$.",
+   "contains": ["<b>Đề bài</b>", "<i>Sáng tác</i>", "\\(n^2+1\\)"]},
+  {"name": "danh sách và chữ đậm LaTeX", "src": "\\begin{itemize}\\item {\\bf Trường hợp 1:} $a=0$. \\item \\emph{Trường hợp 2.}\\end{itemize}",
+   "contains": ["<ul>", "<li><b>Trường hợp 1:</b>", "<i>Trường hợp 2.</i>"]},
+  {"name": "hình TikZ thành chỗ dành sẵn", "src": "Xem hình.\\begin{center}\\begin{tikzpicture}\\draw (0,0)--(1,1);\\end{tikzpicture}\\end{center}",
+   "contains": ["class=\"fig\""], "absent": ["\\draw"]},
+  {"name": "tham chiếu \\eqref", "src": "Từ \\eqref{eq1} suy ra $a\\ge b$.", "contains": ["(eq1)"]},
+  {"name": "lệnh lạ được báo", "src": "Đây là \\lenhla{x} lạ.", "contains": ["class=\"unk\""], "warnings": 1}
+]

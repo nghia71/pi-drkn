@@ -1,0 +1,31 @@
+/**
+ * Mô hình dữ liệu: mỗi bảng là một tab của Google Sheet. Cột đầu tiên là khoá.
+ * Văn bản đề/lời giải là LaTeX "sạch" — mọi ghi chú nằm ở các bảng thuộc tính (Provenance, Corrections,
+ * Checks, Conflicts), không bao giờ nằm trong văn bản. Xem docs/data-model.md.
+ */
+var SCHEMA = {
+  Problems: ['ma_bai', 'ma_tam', 'chu_de', 'muc', 'trang_thai', 'dang', 'so_in', 'loai', 'tac_gia_id',
+             'de_bai', 'loi_giai', 'de_bai_goc', 'loi_giai_goc', 'hinh', 'phien_ban', 'cap_nhat', 'nguoi_cap_nhat'],
+  Provenance: ['ma_bai', 'thu_muc', 'thu_muc_id', 'tep_goc', 'ngay_nhan', 'kenh', 'ban_trung_gian',
+               'lich_su_vong', 'doi_chieu', 'tom_tat_doi_chieu'],
+  Corrections: ['id', 'ma_bai', 'vi_tri', 'truoc', 'sau', 'ly_do', 'trang_thai', 'nguoi', 'ngay'],
+  Checks: ['id', 'ma_bai', 'noi_dung', 'trang_thai', 'nguoi', 'ngay'],
+  Conflicts: ['id', 'ma_bai', 'loai', 'mo_ta', 'cach_giai_quyet', 'trang_thai', 'nguoi', 'ngay'],
+  ConversionLog: ['id', 'ma_bai', 'noi_dung', 'ngay'],
+  Authors: ['tac_gia_id', 'ten_in', 'don_vi', 'lien_he', 'ghi_chu'],            // hạn chế: VP, PT, TBT, Quản trị
+  Users: ['email', 'ten', 'vai_tro', 'hoat_dong', 'ghi_chu'],
+  Rounds: ['ky', 'trang_thai', 'm', 'han_phan_bien', 'khoa_luc', 'ghi_chu'],
+  Shortlist: ['ky', 'ma_bai', 'vi_tri', 'phuong_an', 'quyet_dinh', 'nguoi', 'ngay'],
+  Assignments: ['ky', 'ma_bai', 'email', 'giao_luc', 'han', 'xong'],
+  Reviews: ['id', 'ky', 'ma_bai', 'email', 'muc_de_nghi', 'diem', 'nhan_xet', 'ngay'],
+  Comments: ['id', 'ma_bai', 'email', 'tra_loi_cho', 'noi_dung', 'ngay'],
+  Published: ['ma_bai', 'so_tap_chi', 'so_in', 'ngay'],
+  Revisions: ['id', 'ma_bai', 'truong', 'phien_ban', 'cu', 'moi', 'email', 'ngay'],
+  Audit: ['ngay', 'email', 'hanh_dong', 'chi_tiet']
+};
+
+/** Loại xung đột được phép (Nghĩa, 2026-10-06) — mỗi xung đột một dòng riêng. */
+var CONFLICT_TYPES = ['số hiệu', 'mức', 'bản chép khác nhau', 'trùng bài', 'đề và lời giải không khớp', 'tác giả', 'trạng thái'];
+var STATUSES = ['Mới', 'SL', 'SL-OK', 'SL-Fail', 'PL'];
+var TOPICS = ['ĐS', 'SH', 'HH', 'TH'];
+var ROLES = ['TBT', 'PT', 'NCB', 'PB', 'VP', 'BTK', 'Quản trị'];
