@@ -86,12 +86,12 @@ Hết kỳ, bài rời khỏi danh sách của bạn.}{%
 • Thảo luận của mọi bài.}{%
 • Theo dõi \textbf{việc còn mở}: lọc theo trạng thái, xem các chấm \emph{cần kiểm tra}, \emph{xung đột mở}.\\[1mm]
 • Giải quyết xung đột trong phạm vi PT (số hiệu, bản chép khác nhau, trùng bài…); xung đột \emph{mức}, \emph{tác giả} chuyển TBT quyết định.\\[1mm]
-• Liên hệ tác giả khi NCB cần hỏi (thông tin liên hệ chỉ dùng trong hệ thống, không chép ra đề, lời giải).\\[1mm]
+• Liên hệ tác giả khi NCB cần hỏi (liên hệ chỉ dùng trong hệ thống).\\[1mm]
 • Nhận người mới: báo Quản trị email và vai trò của họ.\\[1mm]
 • Sửa đề, lời giải; mục cần kiểm tra, xung đột (như NCB).\\[1mm]
 • \textbf{Đổi trạng thái} bài (Mới → SL → SL-OK / SL-Fail → PL): ô Trạng thái dưới mã bài.\\[1mm]
-• \textbf{Kỳ phản biện} (nút đầu trang): mở kỳ, đặt hạn, giao bài, \emph{Gửi thư mời}, xem phiếu và tiến độ, đóng kỳ.}{%
-• \textbf{Bảng chọn bài}: xếp bài theo mức, vị trí; TBT duyệt.\\[1mm]
+• \textbf{Kỳ phản biện} (nút đầu trang): mở kỳ, đặt hạn, giao bài, \emph{Gửi thư mời}, xem phiếu và tiến độ, đóng kỳ.\\[1mm]
+• \textbf{Bảng chọn bài}: lập bảng cho số báo, chọn bài cho từng vị trí (4 B, 6 A), \emph{Gửi TBT duyệt}.}{%
 • \textbf{Khoá kỳ}: đánh số in, xuất \LaTeX\ cho BTK.}
 \end{frame}
 
@@ -111,8 +111,8 @@ Hết kỳ, bài rời khỏi danh sách của bạn.}{%
 • Lọc danh sách; mở bài có \emph{xung đột mở} để xem loại xung đột.\\
 • Xung đột „chờ TBT": \textbf{Ghi quyết định…} trong Nguồn \& chỉnh sửa (cách giải quyết, trạng thái).\\
 • Đổi trạng thái bài; trạng thái sửa đổi khi tác giả trả lời.\\
+• \textbf{Bảng chọn bài}: \emph{Duyệt} (bài chọn thành SL-OK, nhận mức của vị trí) hoặc \emph{Trả lại…} kèm lý do; \emph{Mở lại} để thay bài.\\
 • Muốn xem hệ thống như phản biện thấy: nhờ Quản trị dùng \emph{xem như vai trò}.}{%
-• \textbf{Bảng chọn bài}: xem đề xuất của PT, duyệt.\\[1mm]
 • Thông báo email gọn: bài nào chờ TBT quyết định.}
 \end{frame}
 
@@ -159,6 +159,7 @@ Hết kỳ, bài rời khỏi danh sách của bạn.}{%
 • \textbf{Tạm ngưng}: đổi \texttt{hoat\_dong} thành FALSE — có hiệu lực ngay, kể cả khi người đó đang mở trang. Không cần xoá dòng.\\
 • Sau khi thêm: gửi cho người đó \textbf{đường dẫn đăng nhập} (không gửi địa chỉ trang hệ thống).\\
 • Phân công phản biện: trang \emph{Kỳ phản biện}. Nhắc hạn tự động: chạy \texttt{installReminderTrigger} một lần.\\
+• Nhập bài từ tệp: \texttt{importLatest} nhập mọi tệp \texttt{pi-drkn-import…} chưa nhập.\\
 • \textbf{Không sửa tay} các tab khác (Problems, Corrections…): sửa qua hệ thống để có lịch sử.};
 \draw[QT,line width=0.8pt,fill=QT!5,rounded corners=3pt] (102,0) rectangle (144,-62);
 \node[anchor=north west,font=\scriptsize\bfseries,text=QT] at (104,-2) {Xem như vai trò};
@@ -191,7 +192,6 @@ Dải xanh „This application was created by a Google Apps Script user" & thôn
 \begin{tikzpicture}[x=1mm,y=1mm]
 \foreach \t/\who/\d [count=\i] in {
   {Biểu mẫu Nhập bài}/{VP, NCB, PT}/{tải hồ sơ, hệ thống tạo mã bài},
-  {Bảng chọn bài}/{PT, TBT}/{xếp bài theo mức, vị trí; TBT duyệt},
   {Khoá kỳ}/{PT, BTK}/{đánh số in, xuất \LaTeX\ và hình cho chế bản}}{
   \node[badge=NCB,minimum size=5.5mm,font=\fsz{7}{8}\bfseries] at (3,{-4-(\i-1)*9.5}) {\i};
   \node[anchor=west,font=\fsz{7}{8.4}\bfseries] at (8,{-2.6-(\i-1)*9.5}) {\t};

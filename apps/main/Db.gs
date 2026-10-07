@@ -83,6 +83,8 @@ function findRow_(name, key, value) {
 function cell_(v) {
   if (v === undefined || v === null) return '';
   if (typeof v === 'string' && /^[=+\-@]/.test(v)) return "'" + v;
+  // tên như "10/2026" (số báo, tên kỳ) bị Sheets đổi thành ngày — giữ nguyên chữ
+  if (typeof v === 'string' && /^\s*\d{1,2}\/(\d{1,2}\/)?\d{2,4}\s*$/.test(v)) return "'" + v;
   return v;
 }
 function rowOf_(name, obj) { return SCHEMA[name].map(function (c) { return cell_(obj[c]); }); }
@@ -92,14 +94,15 @@ function append_(name, obj) {
   withLock_(function () { sheet_(name).appendRow(rowOf_(name, obj)); });
 }
 
+/**
+ * Chỉ ghi các ô có trong patch. Không ghi lại cả dòng: ô khác đọc ra rồi ghi lại sẽ mất dấu ' bảo vệ, nên chữ như
+ * "10/2026" hay "2026-10-20" bị Sheets đổi thành ngày, "=…" thành công thức.
+ */
 function update_(name, row, patch) {
   READ_MEMO_ = READ_MEMO_ && {};
   var cols = SCHEMA[name], sh = sheet_(name);
   withLock_(function () {
-    var cur = sh.getRange(row, 1, 1, cols.length).getValues()[0];
-    // mọi ô của dòng qua cell_ (đọc ra "=…" thì ghi lại vẫn phải là chữ, không thành công thức)
-    cols.forEach(function (c, j) { cur[j] = cell_(patch[c] !== undefined ? patch[c] : cur[j]); });
-    sh.getRange(row, 1, 1, cols.length).setValues([cur]);
+    cols.forEach(function (c, j) { if (patch[c] !== undefined) sh.getRange(row, j + 1).setValue(cell_(patch[c])); });
   });
 }
 

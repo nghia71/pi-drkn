@@ -73,7 +73,7 @@ function runOne_(t) {
   try {
     if (t.fresh) seed_();
     TEST_CONF.BLIND_REVIEW = 'true';
-    delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; TEST_OUTBOX = [];
+    delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
   TK.results.push([t.id, t.title, t.who, ok ? 'ĐẠT' : 'LỖI', msg, Date.now() - t1]);
@@ -138,7 +138,7 @@ function seed_(roles) {
   putRows_('Rounds', [{ ky: 'K-MO', trang_thai: 'mở' }, { ky: 'K-DONG', trang_thai: 'đóng' }]);
   putRows_('Assignments', [{ ky: 'K-MO', ma_bai: 'TEST-01', email: A.T1 }, { ky: 'K-MO', ma_bai: 'TEST-02', email: A.T1 },
                            { ky: 'K-MO', ma_bai: 'TEST-02', email: A.T2 }, { ky: 'K-DONG', ma_bai: 'TEST-03', email: A.T1 }]);
-  ['Shortlist', 'Reviews', 'Comments', 'Published', 'Revisions', 'Audit'].forEach(function (t) { putRows_(t, []); });
+  ['Shortlist', 'Issues', 'Reviews', 'Comments', 'Published', 'Revisions', 'Audit'].forEach(function (t) { putRows_(t, []); });
 }
 
 /** roles: {QT:'…', T1:'…', T2:'…'}; '' = không có dòng; giá trị có thể kèm cờ {vai_tro, hoat_dong, email}. */
@@ -647,6 +647,27 @@ function defineTests_() {
     eq_(sheet_('Problems').getRange(hit.row, SCHEMA.Problems.indexOf('loi_giai') + 1).getFormula(), '');
   });
 
+  test_('8.5', 'Nhập: một lần chạy nhập mọi tệp chờ (cũ trước), chạy lại thì báo không còn tệp; tệp mới sau đó được nhập riêng', 'QT', function () {
+    TEST_CONF.IMPORT_PREFIX = 'pi-drkn-kiemthu-cho-' + Utilities.getUuid().slice(0, 6);
+    var mk = function (codes) {
+      return DriveApp.createFile(TEST_CONF.IMPORT_PREFIX + '-' + codes[0] + '.json', JSON.stringify(codes.map(function (c) {
+        return { problem: { ma_bai: c, chu_de: 'ĐS', muc: '', trang_thai: 'Mới', de_bai: 'Đề ' + c, loi_giai: '' }, author: { ten_in: 'Tác Giả Nhập' } };
+      })), 'application/json');
+    };
+    var files = [mk(['CHO-01', 'CHO-02']), mk(['CHO-03'])];
+    try {
+      var m = importLatest(); has_s_(m, 'thêm 2'); has_s_(m, 'thêm 1');
+      ok_(m.indexOf('CHO-01') < m.indexOf('CHO-03'), 'tệp cũ trước');
+      has_s_(importLatest(), 'Không có tệp nào chờ nhập');
+      files.push(mk(['CHO-04']));
+      m = importLatest(); has_s_(m, 'thêm 1'); lacks_(m, 'CHO-01');
+      eq_(rows_('Problems').filter(function (p) { return p.ma_bai.indexOf('CHO-') === 0; }).length, 4);
+    } finally {
+      files.forEach(function (f) { f.setTrashed(true); PropertiesService.getScriptProperties().deleteProperty('IMPORT_DONE_' + f.getId()); });
+      delete TEST_CONF.IMPORT_PREFIX;
+    }
+  });
+
   // 9. Nhật ký truy cập
   test_('9.1', 'Mỗi lần mở bài đều ghi vào nhật ký (ai, bài nào)', 'T1', function () {
     call_(login_(A.T1), 'getProblem', { ma_bai: 'TEST-02' });
@@ -661,6 +682,13 @@ function defineTests_() {
     eq_(rows_('Assignments').filter(function (a) { return a.ky === 'K-THU'; }).length, 3);
     eq_(rows_('Rounds').filter(function (r) { return r.ky === 'K-THU'; }).length, 1);
     eq_(daysUntil_(dateOnly_(findRow_('Rounds', 'ky', 'K-THU').data.han_phan_bien)), 14, 'kỳ luyện có hạn 14 ngày');
+    // bảng chọn bài luyện (số báo THU-…) cũng được dọn
+    TEST_CONF.BOARD_LAYOUT = 'B,B'; var tok = login_(A.QT);
+    call_(tok, 'newBoard', { so: 'THU-99/2026' }); call_(tok, 'place', { so: 'THU-99/2026', vi_tri: 1, ma_bai: 'THU-01' });
+    call_(tok, 'newBoard', { so: '10/2026' });
+    resetPractice();
+    eq_(rows_('Issues').map(function (i) { return String(i.so); }), ['10/2026'], 'chỉ xoá bảng luyện');
+    eq_(rows_('Shortlist').length, 0);
   });
   test_('11.2', 'Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy', 'T1+T2', function () {
     resetPractice();
@@ -847,6 +875,117 @@ function defineTests_() {
     throws_(function () { call_(login_(A.T1), 'setDeadline', { ky: 'K-MO', han_phan_bien: '2026-10-30' }); }, 'Không có quyền');
   });
 
+  test_('13.11', 'Kỳ phản biện tên "10/2026" (dạng ngày) vẫn giữ nguyên chữ qua giao bài, thư mời, đóng kỳ', 'QT', function () {
+    TEST_CONF.TODAY = '2026-10-10'; var tok = login_(A.QT);
+    call_(tok, 'openRound', { ky: '10/2026', han_phan_bien: '2026-10-20' });
+    call_(tok, 'assign', { ky: '10/2026', ma_bai: 'TEST-04', email: A.T1 });
+    eq_(call_(tok, 'sendInvites', { ky: '10/2026' }).sent, 1);
+    eq_(call_(login_(A.T1), 'listProblems').filter(function (p) { return p.ma_bai === 'TEST-04'; })[0].giao.ky, '10/2026');
+    call_(tok, 'closeRound', { ky: '10/2026' });
+    eq_(findRow_('Rounds', 'ky', '10/2026').data.trang_thai, 'đóng');
+  });
+
+  // 14. Bảng chọn bài
+  var B3 = function () { TEST_CONF.BOARD_LAYOUT = 'B,A,A'; };
+  var placeAll = function (tok, so, list) { list.forEach(function (m, i) { call_(tok, 'place', { so: so, vi_tri: i + 1, ma_bai: m }); }); };
+  test_('14.1', 'PT lập bảng cho một số báo; số "10/2026" lưu như chữ; bố cục mặc định 4 bài B rồi 6 bài A; NCB, TBT, PB không lập được', 'T1', function () {
+    ['NCB', 'TBT', 'PB'].forEach(function (r) {
+      setUsers_({ QT: 'Quản trị', T1: r, T2: 'PB' });
+      throws_(function () { call_(login_(A.T1), 'newBoard', { so: '10/2026' }); }, 'Không có quyền');
+    });
+    setUsers_({ QT: 'Quản trị', T1: 'PT', T2: 'PB' });
+    var tok = login_(A.T1);
+    call_(tok, 'newBoard', { so: '10/2026' });
+    throws_(function () { call_(tok, 'newBoard', { so: '10/2026' }); }, 'Đã có bảng');
+    var i = findRow_('Issues', 'so', '10/2026'); ok_(i, 'tìm được theo chữ "10/2026"'); eq_(typeof i.data.so, 'string');
+    var v = call_(tok, 'boards'); eq_(v.layout, ['B', 'B', 'B', 'B', 'A', 'A', 'A', 'A', 'A', 'A']); ok_(v.manage); eq_(v.boards[0].trang_thai, 'đang chọn');
+    setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'boards'); }, 'Không có quyền');
+  });
+  test_('14.2', 'Xếp bài: vị trí ngoài bố cục, bài đã đăng, bài ở bảng khác bị từ chối; đặt vào chỗ có bài thì thay; đặt lại bài đã có thì chuyển chỗ', 'QT', function () {
+    B3(); var tok = login_(A.QT);
+    call_(tok, 'newBoard', { so: '10/2026' }); call_(tok, 'newBoard', { so: '11/2026' });
+    throws_(function () { call_(tok, 'place', { so: '10/2026', vi_tri: 4, ma_bai: 'TEST-01' }); }, 'Vị trí phải từ 1 đến 3');
+    throws_(function () { call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-05' }); }, 'đã đăng');
+    throws_(function () { call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'KHONG-CO' }); }, 'Không có bài');
+    call_(tok, 'place', { so: '11/2026', vi_tri: 1, ma_bai: 'TEST-04' });
+    throws_(function () { call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-04' }); }, 'đang ở bảng số 11/2026');
+    call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-02' });
+    call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-01' });          // thay
+    call_(tok, 'place', { so: '10/2026', vi_tri: 2, ma_bai: 'TEST-01' });          // chuyển chỗ
+    var rows = boardRows_('10/2026'); eq_(rows.map(function (r) { return [Number(r.vi_tri), r.ma_bai, r.phuong_an]; }), [[2, 'TEST-01', 'A']]);
+    eq_(typeof rows[0].ky, 'string', 'số báo vẫn là chữ sau khi ghi Shortlist');
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-02' }); }, 'Không có quyền');
+    eq_(call_(login_(A.T1), 'boards').boards.length, 2, 'NCB xem được');
+  });
+  test_('14.3', 'Gửi TBT: phải đủ bài; khi chờ duyệt không sửa được; TBT trả lại phải ghi lý do; số báo không bị đổi thành ngày', 'T1', function () {
+    B3(); setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    var pt = login_(A.QT), tbt = login_(A.T1);
+    call_(pt, 'newBoard', { so: '10/2026' });
+    placeAll(pt, '10/2026', ['TEST-02', 'TEST-01']);
+    throws_(function () { call_(pt, 'submitBoard', { so: '10/2026' }); }, 'chưa đủ 3');
+    call_(pt, 'place', { so: '10/2026', vi_tri: 3, ma_bai: 'TEST-03' });
+    call_(pt, 'submitBoard', { so: '10/2026' });
+    throws_(function () { call_(pt, 'unplace', { so: '10/2026', vi_tri: 1 }); }, 'mở lại trước khi sửa');
+    throws_(function () { call_(tbt, 'returnBoard', { so: '10/2026', ghi_chu: ' ' }); }, 'Lý do');
+    call_(tbt, 'returnBoard', { so: '10/2026', ghi_chu: 'Thay bài vị trí 1.' });
+    var i = findRow_('Issues', 'so', '10/2026');
+    ok_(i, 'số báo vẫn tìm được sau khi đổi trạng thái'); eq_(typeof i.data.so, 'string'); eq_(i.data.trang_thai, 'đang chọn'); eq_(i.data.ghi_chu, 'Thay bài vị trí 1.');
+  });
+  test_('14.4', 'TBT duyệt: bài được chọn thành SL-OK và nhận mức của vị trí; bài khác giữ nguyên; PT không duyệt được', 'T1', function () {
+    B3(); setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    var pt = login_(A.QT), tbt = login_(A.T1);
+    call_(pt, 'newBoard', { so: '10/2026' });
+    placeAll(pt, '10/2026', ['TEST-01', 'TEST-02', 'TEST-03']);     // TEST-01 (mức A) vào vị trí B; TEST-02 (B) vào vị trí A
+    throws_(function () { call_(tbt, 'approveBoard', { so: '10/2026' }); }, 'chưa được gửi duyệt');
+    call_(pt, 'submitBoard', { so: '10/2026' });
+    setUsers_({ QT: 'Quản trị', T1: 'PT', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'approveBoard', { so: '10/2026' }); }, 'Không có quyền');
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    call_(login_(A.T1), 'approveBoard', { so: '10/2026', ghi_chu: 'Đồng ý.' });
+    var g = function (m) { return findRow_('Problems', 'ma_bai', m).data; };
+    eq_([g('TEST-01').trang_thai, g('TEST-01').muc], ['SL-OK', 'B']); eq_([g('TEST-02').trang_thai, g('TEST-02').muc], ['SL-OK', 'A']);
+    eq_(g('TEST-03').trang_thai, 'SL-OK'); eq_(g('TEST-04').trang_thai, 'Mới', 'bài không chọn giữ nguyên');
+    var i = findRow_('Issues', 'so', '10/2026').data; eq_(i.trang_thai, 'đã duyệt'); eq_(i.nguoi_duyet, A.T1);
+    ok_(auditHas_('duyệt bảng chọn bài', 'TEST-01, TEST-02, TEST-03'));
+  });
+  test_('14.5', 'Mở lại sau khi duyệt để thay bài: trạng thái, mức trả về như trước; bài bị thay giữ trạng thái cũ; duyệt lại thì bài mới thành SL-OK', 'T1', function () {
+    B3(); setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    var pt = login_(A.QT), tbt = login_(A.T1);
+    var hit = findRow_('Problems', 'ma_bai', 'TEST-02'); update_('Problems', hit.row, { muc: '' });       // bài chưa có mức
+    call_(pt, 'newBoard', { so: '10/2026' });
+    placeAll(pt, '10/2026', ['TEST-01', 'TEST-02', 'TEST-03']);
+    call_(pt, 'submitBoard', { so: '10/2026' }); call_(tbt, 'approveBoard', { so: '10/2026' });
+    setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'reopenBoard', { so: '10/2026' }); }, 'Không có quyền');
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    call_(login_(A.T1), 'reopenBoard', { so: '10/2026' });
+    var g = function (m) { return findRow_('Problems', 'ma_bai', m).data; };
+    eq_([g('TEST-01').trang_thai, g('TEST-01').muc], ['Mới', 'A']); eq_([g('TEST-02').trang_thai, g('TEST-02').muc], ['SL', '']);
+    eq_(g('TEST-03').trang_thai, 'SL-OK', 'bài vốn đã SL-OK trước khi duyệt');
+    call_(pt, 'place', { so: '10/2026', vi_tri: 2, ma_bai: 'TEST-04' });
+    call_(pt, 'submitBoard', { so: '10/2026' }); call_(login_(A.T1), 'approveBoard', { so: '10/2026' });
+    eq_([g('TEST-04').trang_thai, g('TEST-04').muc], ['SL-OK', 'A']); eq_(g('TEST-02').trang_thai, 'SL', 'bài bị thay giữ trạng thái cũ');
+    ok_(auditHas_('mở lại bảng chọn bài', '(huỷ duyệt)'));
+  });
+  test_('14.6', 'Đổi chỗ hai vị trí: thứ tự đổi, mức đi theo vị trí', 'QT', function () {
+    B3(); var tok = login_(A.QT);
+    call_(tok, 'newBoard', { so: '10/2026' });
+    placeAll(tok, '10/2026', ['TEST-01', 'TEST-02']);
+    call_(tok, 'swap', { so: '10/2026', a: 1, b: 2 });
+    eq_(boardRows_('10/2026').map(function (r) { return [Number(r.vi_tri), r.ma_bai, r.phuong_an]; }), [[1, 'TEST-02', 'B'], [2, 'TEST-01', 'A']]);
+  });
+  test_('14.7', 'Trang bảng chọn bài: mỗi bài kèm tóm tắt phiếu phản biện, chấm kiểm tra/xung đột và bảng đang giữ bài', 'QT', function () {
+    putRows_('Reviews', [{ id: 'r1', ky: 'K-MO', ma_bai: 'TEST-02', email: A.T1, muc_de_nghi: 'A', diem: 'chọn' },
+                         { id: 'r2', ky: 'K-MO', ma_bai: 'TEST-02', email: A.T2, muc_de_nghi: 'B', diem: 'sửa rồi chọn' }]);
+    var tok = login_(A.QT); B3();
+    call_(tok, 'newBoard', { so: '10/2026' }); call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-02' });
+    var ps = call_(tok, 'boards').problems, by = {}; ps.forEach(function (p) { by[p.ma_bai] = p; });
+    eq_(by['TEST-02'].phieu, { n: 2, chon: 1, sua: 1, khong: 0, A: 1, B: 1 }); eq_(by['TEST-02'].bang, '10/2026');
+    eq_(by['TEST-01'].checks, 1); eq_(by['TEST-01'].conflicts, 1); eq_(by['TEST-01'].bang, '');
+  });
+
   // 10. Hiển thị công thức (bộ hiển thị chạy trong Apps Script, giống trình duyệt)
   test_('10.1', 'Bộ hiển thị: macro của Pi, công thức, chặn HTML', 'QT', function () {
     var h = renderInGas_('Cho \\dtr $(O)$. <b>đậm giả</b> \\textbf{đậm thật}');
@@ -881,13 +1020,14 @@ function resetPractice() {
   var removed = 0;
   withLock_(function () {
     Object.keys(SCHEMA).forEach(function (name) {
-      var cols = SCHEMA[name], iMa = cols.indexOf('ma_bai'), iKy = cols.indexOf('ky');
-      if (iMa < 0 && iKy < 0) return;
+      var cols = SCHEMA[name], iMa = cols.indexOf('ma_bai'), iKy = cols.indexOf('ky'), iSo = cols.indexOf('so');
+      if (iMa < 0 && iKy < 0 && iSo < 0) return;
       var sh = sheet_(name), n = sh.getLastRow();
       if (n < 2) return;
       var vals = sh.getRange(2, 1, n - 1, cols.length).getValues();
       for (var r = vals.length - 1; r >= 0; r--) {
-        var practice = (iMa >= 0 && String(vals[r][iMa]).indexOf(PRACTICE_PREFIX) === 0) || (iKy >= 0 && String(vals[r][iKy]) === PRACTICE_ROUND);
+        var practice = (iMa >= 0 && String(vals[r][iMa]).indexOf(PRACTICE_PREFIX) === 0) || (iKy >= 0 && String(vals[r][iKy]) === PRACTICE_ROUND) ||
+                       (iKy >= 0 && String(vals[r][iKy]).indexOf(PRACTICE_PREFIX) === 0) || (iSo >= 0 && String(vals[r][iSo]).indexOf(PRACTICE_PREFIX) === 0);
         if (practice) { sh.deleteRow(r + 2); removed++; }
       }
     });

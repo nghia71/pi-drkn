@@ -21,12 +21,14 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
     <select id="f-status"><option value="">Mọi trạng thái</option><option>Mới</option><option>SL</option><option>SL-OK</option><option>SL-Fail</option><option>PL</option></select>
     <select id="view-as" hidden><option value="">Vai trò thật</option></select>
     <button id="go-rounds" class="sm" hidden>Kỳ phản biện</button>
+    <button id="go-boards" class="sm" hidden>Bảng chọn bài</button>
   </div>
 </header>
 <main>
   <section id="list"></section>
   <section id="page" hidden></section>
   <section id="rounds" hidden></section>
+  <section id="boards" hidden></section>
 </main>
 <script>
 var TOKEN = <?= token ?>;
@@ -36,7 +38,14 @@ function call(method, args) {
     google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { alertBox(e.message || e); fail(e); }).api(TOKEN, method, args || {});
   });
 }
-function alertBox(msg) { var d = document.createElement('div'); d.className = 'err'; d.textContent = msg; document.body.prepend(d); setTimeout(function () { d.remove(); }, 8000); }
+/** Thông báo góc trên: nhiều thông báo thì xếp chồng, không đè lên nhau. */
+function toast(msg, cls, ms) {
+  var box = document.getElementById('toasts');
+  if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }
+  var d = document.createElement('div'); d.className = cls; d.textContent = msg; box.appendChild(d);
+  setTimeout(function () { d.remove(); }, ms);
+}
+function alertBox(msg) { toast(msg, 'err', 8000); }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
 function escA(s) { return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }   // trong thuộc tính HTML
 function typeset(el) { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]); else setTimeout(function () { typeset(el); }, 300); }
@@ -48,6 +57,9 @@ function showMe(me) {
   var gr = document.getElementById('go-rounds');
   gr.hidden = !me.eff.some(function (r) { return ['TBT', 'PT', 'NCB', 'Quản trị'].indexOf(r) >= 0; });
   gr.onclick = function () { if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; } nav({ v: 'rounds' }); openRounds(); };
+  var gb = document.getElementById('go-boards');
+  gb.hidden = !me.eff.some(function (r) { return ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'].indexOf(r) >= 0; });
+  gb.onclick = function () { if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; } nav({ v: 'boards' }); openBoards(); };
 }
 Promise.resolve(ME0).then(function (me) {
   showMe(me);
@@ -78,7 +90,8 @@ try {
   google.script.history.setChangeHandler(function (e) {
     var ma = e && e.state && e.state.ma;
     if (dirtyEdit()) { var cur = document.getElementById('page').dataset.ma; nav({ ma: cur }); alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; }
-    if (ma) openProblem(ma); else if (e && e.state && e.state.v === 'rounds') openRounds(); else showList();
+    var v = e && e.state && e.state.v;
+    if (ma) openProblem(ma); else if (v === 'rounds') openRounds(); else if (v === 'boards') openBoards(); else showList();
   });
 } catch (e) {}
 ['f-topic', 'f-level', 'f-status'].forEach(function (id) { document.getElementById(id).onchange = function () { LIST_Y = 0; renderList(); }; });
@@ -97,7 +110,8 @@ function loadList() {
   });
 }
 function showList() {
-  document.getElementById('page').hidden = true; document.getElementById('rounds').hidden = true; document.getElementById('list').hidden = false;
+  if (LIST_STALE) { LIST_STALE = false; renderList(); }
+  document.getElementById('page').hidden = true; document.getElementById('rounds').hidden = true; document.getElementById('boards').hidden = true; document.getElementById('list').hidden = false;
   window.scrollTo(0, LIST_Y);
 }
 function renderList() {
@@ -128,7 +142,7 @@ function chip(t) { return t ? '<span class="chip">' + esc(t) + '</span>' : ''; }
 // Bộ nhớ tạm phía trình duyệt: mở lại bài / danh sách hiện ngay, rồi cập nhật khi máy chủ trả lời.
 var PCACHE = {}, LCACHE = {}, LROWS = {};
 function openProblem(ma) {
-  var P = document.getElementById('page'); document.getElementById('list').hidden = true; document.getElementById('rounds').hidden = true; P.hidden = false;
+  var P = document.getElementById('page'); document.getElementById('list').hidden = true; document.getElementById('rounds').hidden = true; document.getElementById('boards').hidden = true; P.hidden = false;
   window.scrollTo(0, 0);
   if (PCACHE[ma]) renderProblem(ma, PCACHE[ma], false);
   else if (LROWS[ma]) renderProblem(ma, { problem: LROWS[ma], comments: [], limited: true, partial: true }, true);
@@ -439,7 +453,7 @@ function reviewsList(rs) {
 var RV = null;
 function openRounds() {
   var R = document.getElementById('rounds');
-  document.getElementById('list').hidden = true; document.getElementById('page').hidden = true; R.hidden = false;
+  document.getElementById('list').hidden = true; document.getElementById('page').hidden = true; document.getElementById('boards').hidden = true; R.hidden = false;
   window.scrollTo(0, 0);
   if (!RV) R.innerHTML = '<p class="mut">Đang tải…</p>';
   return call('rounds', {}).then(function (v) { RV = v; renderRounds(); });
@@ -516,14 +530,120 @@ function renderRounds() {
     }
   };
 }
-function alertOk(msg) { var d = document.createElement('div'); d.className = 'err ok'; d.textContent = msg; document.body.prepend(d); setTimeout(function () { d.remove(); }, 5000); }
+function alertOk(msg) { toast(msg, 'err ok', 5000); }
 /** Tải lại danh sách ở nền (không đổi màn hình): sau khi giao / bỏ giao, chấm và quyền xem có thể đổi. */
 function loadListQuiet() {
   call('bundle', {}).then(function (b) {
     ALL = (b && b.rows) || []; LROWS = {}; ALL.forEach(function (p) { LROWS[p.ma_bai] = p; });
     PCACHE = (b && b.details) || {};
-    if (!document.getElementById('list').hidden) renderList();
+    if (!document.getElementById('list').hidden) renderList(); else LIST_STALE = true;   // vẽ lại khi quay về danh sách
   });
+}
+var LIST_STALE = false;
+
+/* ---------- Trang Bảng chọn bài (PT xếp, TBT duyệt; ban biên tập xem) ---------- */
+var BV = null;
+function openBoards() {
+  var B = document.getElementById('boards');
+  ['list', 'page', 'rounds'].forEach(function (id) { document.getElementById(id).hidden = true; }); B.hidden = false;
+  window.scrollTo(0, 0);
+  if (!BV) B.innerHTML = '<p class="mut">Đang tải…</p>';
+  return call('boards', {}).then(function (v) { BV = v; renderBoards(); });
+}
+function phieuText(t) {
+  if (!t) return '<span class="mut">chưa có phiếu</span>';
+  return esc(t.n + ' phiếu: ' + [t.chon && t.chon + ' chọn', t.sua && t.sua + ' sửa rồi chọn', t.khong && t.khong + ' không chọn'].filter(Boolean).join(', ') +
+             (t.A || t.B ? ' · mức đề nghị A' + t.A + '/B' + t.B : ''));
+}
+function renderBoards() {
+  var B = document.getElementById('boards'), v = BV, P = {};
+  v.problems.forEach(function (p) { P[p.ma_bai] = p; });
+  var nB = v.layout.filter(function (m) { return m === 'B'; }).length, nA = v.layout.length - nB;
+  var h = '<p><a href="#" id="b-back">← Danh sách</a></p><h2 class="pg">Bảng chọn bài</h2>' +
+    '<p class="mut sm-t">Mỗi số: ' + v.layout.length + ' vị trí (' + nB + ' mức B, ' + nA + ' mức A), theo thứ tự in. TBT duyệt thì bài được chọn thành SL-OK và nhận mức của vị trí; ' +
+    'bài không được chọn giữ nguyên trạng thái.</p>';
+  if (v.manage) h += '<div class="card"><div class="row"><label>Lập bảng cho số báo <input id="b-so" placeholder="ví dụ: 10/2026"></label>' +
+    '<button class="pri" data-b="new">Lập bảng</button></div></div>';
+  if (!v.boards.length) h += '<p class="mut">Chưa có bảng nào.</p>';
+  v.boards.slice().reverse().forEach(function (b) {
+    var edit = v.manage && b.trang_thai === 'đang chọn', at = {};
+    b.rows.forEach(function (r) { at[r.vi_tri] = r; });
+    var filled = b.rows.length, warn = 0;
+    var free = v.problems.filter(function (p) { return !p.bang && p.trang_thai !== 'PL'; });
+    h += '<div class="card bd" data-so="' + escA(b.so) + '"><div class="head"><b class="code">Pi ' + esc(b.so) + '</b>' + chip(b.trang_thai) +
+      '<span class="mut">' + filled + '/' + v.layout.length + ' bài' + (b.nguoi_duyet ? ' · duyệt: ' + esc(b.nguoi_duyet) + ', ' + esc(b.duyet_luc) : '') + '</span></div>' +
+      (b.ghi_chu ? '<p class="sm-t">Ghi chú: ' + esc(b.ghi_chu) + '</p>' : '') +
+      '<div class="tbl-wrap"><table class="as"><tr><th>#</th><th>Vị trí</th><th>Bài</th><th>Chủ đề</th><th>Mức bài</th><th>Trạng thái</th><th>Phiếu phản biện</th><th>Lưu ý</th>' + (edit ? '<th></th>' : '') + '</tr>' +
+      v.layout.map(function (lv, i) {
+        var pos = i + 1, r = at[pos], p = r && P[r.ma_bai];
+        if (!r) {
+          var opts = free.slice().sort(function (x, y) {
+            var k = function (q) { return (q.muc === lv ? 0 : 2) + (q.trang_thai === 'SL-OK' ? 0 : q.trang_thai === 'SL' ? 0.5 : 1); };
+            return k(x) - k(y) || (x.ma_bai < y.ma_bai ? -1 : 1);
+          });
+          return '<tr><td>' + pos + '</td><td>mức ' + lv + '</td><td colspan="' + (edit ? 7 : 6) + '">' + (edit
+            ? '<select data-pos="' + pos + '"><option value="">— chọn bài cho vị trí ' + pos + ' —</option>' + opts.map(function (q) {
+                return '<option value="' + escA(q.ma_bai) + '">' + esc([q.ma_bai, q.chu_de, q.muc ? 'mức ' + q.muc : 'chưa có mức', q.trang_thai].join(' · ') +
+                  (q.phieu ? ' · ' + q.phieu.n + ' phiếu' : '') + (q.muc && q.muc !== lv ? ' ⚠ khác mức vị trí' : '')) + '</option>'; }).join('') + '</select>'
+            : '<span class="mut">(trống)</span>') + '</td></tr>';
+        }
+        var notes = [];
+        if (p && p.checks) notes.push('cần kiểm tra ' + p.checks);
+        if (p && p.conflicts) notes.push('xung đột mở ' + p.conflicts);
+        if (p && p.muc && p.muc !== lv && b.trang_thai !== 'đã duyệt') notes.push('mức bài ' + p.muc + ' ≠ vị trí ' + lv);
+        if (notes.length) warn++;
+        return '<tr><td>' + pos + '</td><td>mức ' + lv + '</td><td><a href="#" class="code" data-open="' + escA(r.ma_bai) + '">' + esc(r.ma_bai) + '</a></td>' +
+          '<td>' + esc(p ? p.chu_de : '') + '</td><td>' + esc(p ? p.muc : '') + '</td><td>' + esc(p ? p.trang_thai : '') + '</td><td>' + phieuText(p && p.phieu) + '</td>' +
+          '<td class="w">' + esc(notes.join('; ')) + '</td>' +
+          (edit ? '<td class="nw"><button class="sm" data-b="up" data-pos="' + pos + '"' + (pos > 1 ? '' : ' disabled') + ' title="Lên">↑</button>' +
+                  '<button class="sm" data-b="down" data-pos="' + pos + '"' + (pos < v.layout.length ? '' : ' disabled') + ' title="Xuống">↓</button>' +
+                  '<button class="sm" data-b="remove" data-pos="' + pos + '" title="Bỏ khỏi bảng">×</button></td>' : '') + '</tr>';
+      }).join('') + '</table></div>';
+    var act = [];
+    if (edit) act.push('<button class="pri" data-b="submit"' + (filled === v.layout.length ? '' : ' disabled title="Chưa đủ bài"') + '>Gửi TBT duyệt</button>');
+    if (v.tbt && b.trang_thai === 'chờ duyệt') {
+      act.push('<button class="pri" data-b="approve" data-warn="' + warn + '">Duyệt</button>');
+      act.push('<button data-b="return">Trả lại…</button>');
+    }
+    if (v.reopen && b.trang_thai !== 'đang chọn') act.push('<button data-b="reopen" data-ok="' + (b.trang_thai === 'đã duyệt' ? 1 : 0) + '">Mở lại để sửa…</button>');
+    if (act.length) h += '<div class="edbar">' + act.join(' ') + ' <span class="st mut"></span></div><div class="inl" data-for="ret-' + escA(b.so) + '"></div>';
+    h += '</div>';
+  });
+  B.innerHTML = h;
+  document.getElementById('b-back').onclick = function (e) { e.preventDefault(); nav({}); showList(); };
+  var reload = function (msg) { return openBoards().then(function () { if (msg) alertOk(msg); loadListQuiet(); }); };
+  B.onchange = function (ev) {
+    var sel = ev.target.closest('select[data-pos]'); if (!sel || !sel.value) return;
+    var so = sel.closest('.bd').getAttribute('data-so'); sel.disabled = true;
+    call('place', { so: so, vi_tri: Number(sel.getAttribute('data-pos')), ma_bai: sel.value }).then(function () { return reload(); }, function () { sel.disabled = false; });
+  };
+  B.onclick = function (ev) {
+    var o = ev.target.closest('[data-open]');
+    if (o) { ev.preventDefault(); nav({ ma: o.getAttribute('data-open') }); openProblem(o.getAttribute('data-open')); return; }
+    var b = ev.target.closest('[data-b]'); if (!b || b.disabled) return;
+    var a = b.getAttribute('data-b'), card = b.closest('.bd'), so = card && card.getAttribute('data-so'), st = card && card.querySelector('.st');
+    var pos = Number(b.getAttribute('data-pos'));
+    var run = function (p, msg) { b.disabled = true; p.then(function () { return reload(msg); }, function () { b.disabled = false; }); };
+    var armed = function (text) { if (b.dataset.armed) return true; b.dataset.armed = 1; b.textContent = text; return false; };
+    if (a === 'new') {
+      var so0 = document.getElementById('b-so').value.trim(); if (!so0) { alertBox('Nhập số báo, ví dụ 10/2026.'); return; }
+      run(call('newBoard', { so: so0 }), 'Đã lập bảng cho số ' + so0 + '.');
+    } else if (a === 'up' || a === 'down') run(call('swap', { so: so, a: pos, b: a === 'up' ? pos - 1 : pos + 1 }));
+    else if (a === 'remove') run(call('unplace', { so: so, vi_tri: pos }));
+    else if (a === 'submit') run(call('submitBoard', { so: so }), 'Đã gửi TBT duyệt bảng số ' + so + '.');
+    else if (a === 'approve') {
+      var w = Number(b.getAttribute('data-warn'));
+      if (!armed('Bấm lần nữa để duyệt' + (w ? ' (' + w + ' bài còn lưu ý)' : ''))) return;
+      run(call('approveBoard', { so: so }), 'Đã duyệt bảng số ' + so + ': các bài được chọn chuyển SL-OK.');
+    } else if (a === 'return') {
+      inlineForm('ret-' + so, [{ k: 'ghi_chu', label: 'Lý do trả lại (PT sẽ thấy)', type: 'area' }], 'Trả lại', function (v2) {
+        return call('returnBoard', { so: so, ghi_chu: v2.ghi_chu }).then(function () { return reload('Đã trả lại bảng số ' + so + '.'); });
+      });
+    } else if (a === 'reopen') {
+      if (!armed(b.getAttribute('data-ok') === '1' ? 'Bấm lần nữa: huỷ duyệt, các bài trở về trạng thái trước khi duyệt' : 'Bấm lần nữa để mở lại')) return;
+      run(call('reopenBoard', { so: so }), 'Đã mở lại bảng số ' + so + '.');
+    }
+  };
 }
 
 /* ---------- Lịch sử sửa (tab Revisions) ---------- */

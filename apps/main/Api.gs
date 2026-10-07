@@ -11,7 +11,7 @@ var STATUS_SETTERS = ['PT', 'TBT', 'Quản trị'];
 var CONTACT_VIEWERS = ['VP', 'PT', 'TBT', 'Quản trị'];
 var ALL_PROBLEMS_VIEWERS = ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'];
 
-var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1, rounds: 1 };
+var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1, rounds: 1, boards: 1 };
 var MAX_TEXT_ = 45000;   // giới hạn một ô của Google Sheets là 50 000 ký tự; chừa chỗ cho dấu ' chặn công thức
 
 function api(token, method, args) {
@@ -20,6 +20,7 @@ function api(token, method, args) {
     if (method === 'bundle') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
                                         'Checks', 'Conflicts', 'ConversionLog', 'Comments', 'Reviews']);
     if (method === 'rounds') prefetch_(['Users', 'Rounds', 'Assignments', 'Reviews']);
+    if (method === 'boards') prefetch_(['Users', 'Problems', 'Issues', 'Shortlist', 'Reviews', 'Checks', 'Conflicts', 'Rounds', 'Assignments']);
     if (method === 'listProblems') prefetch_(['Users', 'Problems', 'Authors', 'Checks', 'Conflicts', 'Rounds', 'Assignments']);
     if (method === 'getProblem') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
                                             'Checks', 'Conflicts', 'ConversionLog', 'Comments', 'Reviews']);
@@ -54,6 +55,15 @@ function api_(token, method, args) {
     case 'sendInvites': return sendInvites_(w, args);
     case 'submitReview': return submitReview_(w, args);
     case 'markDone': return markDone_(w, args);
+    case 'boards': return boardsView_(w);
+    case 'newBoard': return newBoard_(w, args);
+    case 'place': return placeProblem_(w, args);
+    case 'unplace': return unplaceProblem_(w, args);
+    case 'swap': return swapPositions_(w, args);
+    case 'submitBoard': return submitBoard_(w, args);
+    case 'approveBoard': return approveBoard_(w, args);
+    case 'returnBoard': return returnBoard_(w, args);
+    case 'reopenBoard': return reopenBoard_(w, args);
     default: throw new Error('Không có thao tác ' + method);
   }
 }
