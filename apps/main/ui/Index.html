@@ -55,6 +55,17 @@ Promise.resolve(ME0).then(function (me) {
   }
   loadList();
 });
+
+// Nút Quay lại / Tiến của trình duyệt: dùng lịch sử của Apps Script (trang chạy trong khung của Google).
+// Không có phần này, nút Quay lại rời khỏi hệ thống, về trang "Xin chào".
+function nav(state) { try { google.script.history.push(state, {}, state.ma || ''); } catch (e) {} }
+try {
+  google.script.history.replace({}, {}, '');
+  google.script.history.setChangeHandler(function (e) {
+    var ma = e && e.state && e.state.ma;
+    if (ma) openProblem(ma); else showList();
+  });
+} catch (e) {}
 ['f-topic', 'f-level', 'f-status'].forEach(function (id) { document.getElementById(id).onchange = function () { LIST_Y = 0; renderList(); }; });
 
 // Danh sách: tải mọi bài MỘT lần, lọc ngay trên trình duyệt; mở bài rồi quay lại thì danh sách vẫn nguyên (không tải lại).
@@ -82,7 +93,7 @@ function renderList() {
       chip(p.trang_thai) + (p.checks ? '<span class="chip w">cần kiểm tra ' + p.checks + '</span>' : '') +
       (p.conflicts ? '<span class="chip w">xung đột mở ' + p.conflicts + '</span>' : '') + '<span class="au">' + esc(p.tac_gia) + '</span></div>' +
       '<div class="tx">' + r.html + '</div>';
-    c.querySelector('.code').onclick = function (e) { e.preventDefault(); LIST_Y = window.scrollY; openProblem(p.ma_bai); };
+    c.querySelector('.code').onclick = function (e) { e.preventDefault(); LIST_Y = window.scrollY; nav({ ma: p.ma_bai }); openProblem(p.ma_bai); };
     L.appendChild(c);
   });
   typeset(L);
@@ -119,7 +130,7 @@ function renderProblem(ma, d, loading) {
     (d.limited ? '' : '<details><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
     '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
     '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>');
-  document.getElementById('back').onclick = function (e) { e.preventDefault(); showList(); };
+  document.getElementById('back').onclick = function (e) { e.preventDefault(); nav({}); showList(); };
   var send = document.getElementById('cm-send');
   if (send) send.onclick = function () {
     var t = document.getElementById('cm-new').value.trim(); if (!t) return;
