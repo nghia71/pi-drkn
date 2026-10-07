@@ -71,7 +71,12 @@ if shutil.which('xelatex'):
     zp = os.path.join(d, 'de-thu.zip')
     with zipfile.ZipFile(zp, 'w') as z:
         z.writestr('de-thu.tex', HEAD + BODY)
-    r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'khoaky', 'build.py'), zp], capture_output=True, text=True)
+    # như máy Mac: XeLaTeX không thấy phông nào của hệ thống theo tên (FontAwesome phải được tìm theo tên tệp)
+    conf = os.path.join(d, 'fonts.conf')
+    open(conf, 'w').write('<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><dir>%s</dir>'
+                          '<cachedir>%s</cachedir></fontconfig>' % (os.path.join(d, 'khong-co'), os.path.join(d, 'fc-cache')))
+    env = dict(os.environ, FONTCONFIG_FILE=conf)
+    r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'khoaky', 'build.py'), zp], capture_output=True, text=True, env=env)
     out = os.path.join(d, 'de-thu-btk.zip')
     case('biên dịch được (xelatex): ' + r.stderr.strip()[:200], r.returncode == 0 and os.path.exists(out))
     if os.path.exists(out):

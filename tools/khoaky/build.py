@@ -106,13 +106,24 @@ def compile_pdf(work, tex, dinhdang):
     shutil.copy(dinhdang, os.path.join(work, 'structure', 'dinhdang.tex'))
     if not shutil.which('xelatex'):
         fail('không tìm thấy xelatex (cài MacTeX hoặc TeX Live)')
+    # XeLaTeX tìm phông theo TÊN trong phông của hệ thống; phông nằm trong TeX (MacTeX) thì không thấy theo tên.
+    # Gói fontawesome (dinhdang.tex gọi) dùng tên "FontAwesome" → bảo fontspec tìm theo TÊN TỆP FontAwesome.otf (kpathsea thấy).
+    # Không sửa dinhdang.tex của Pi: chỉ thêm móc trước khi đọc tệp (cần LaTeX từ 2020-10, MacTeX 2021 trở đi).
+    pre = ('\\ifdefined\\AddToHook\\AddToHook{package/fontspec/after}{\\defaultfontfeatures[FontAwesome]{Extension=.otf}}\\fi'
+           '\\input{%s}' % tex)
     for k in (1, 2):
-        r = subprocess.run(['xelatex', '-interaction=nonstopmode', '-halt-on-error', '-no-shell-escape', tex],
-                           cwd=work, capture_output=True, timeout=300)
+        r = subprocess.run(['xelatex', '-interaction=nonstopmode', '-halt-on-error', '-no-shell-escape',
+                            '-jobname=' + tex[:-4], pre], cwd=work, capture_output=True, timeout=300)
         if r.returncode != 0:
-            log = open(os.path.join(work, tex[:-4] + '.log'), encoding='utf-8', errors='replace').read()
-            errs = [ln for ln in log.splitlines() if ln.startswith('!') or ln.startswith('l.')]
-            fail('XeLaTeX dừng ở lượt %d:\n  ' % k + '\n  '.join(errs[:12] or log.splitlines()[-20:]))
+            log = open(os.path.join(work, tex[:-4] + '.log'), encoding='utf-8', errors='replace').read().splitlines()
+            errs = []
+            for i, ln in enumerate(log):
+                if ln.startswith('!'):
+                    errs += [x for x in log[i:i + 4] if x.strip()]
+                elif ln.startswith('l.'):
+                    errs.append(ln)
+            fail('XeLaTeX dừng ở lượt %d:\n  ' % k + '\n  '.join(errs[:16] or log[-20:]) +
+                 '\n  (bản ghi đầy đủ: chạy lại với --giu để giữ thư mục làm việc)')
     log = open(os.path.join(work, tex[:-4] + '.log'), encoding='utf-8', errors='replace').read()
     warn = []
     miss = sorted(set(re.findall(r'Missing character: There is no (\S+)', log)))
@@ -133,6 +144,7 @@ def main():
     ap.add_argument('--dinhdang', default=DEFAULT_DINHDANG, help='structure/dinhdang.tex của Pi (mặc định: templates/dinhdang.tex)')
     ap.add_argument('--out', help='thư mục ghi gói (mặc định: cùng chỗ với tệp vào)')
     ap.add_argument('--strict', action='store_true', help='coi mọi lưu ý là lỗi')
+    ap.add_argument('--giu', action='store_true', help='giữ thư mục làm việc tạm (để xem bản ghi .log khi lỗi)')
     a = ap.parse_args()
     if not os.path.isfile(a.src):
         fail('không có tệp ' + a.src)
@@ -159,7 +171,10 @@ def main():
             z.write(os.path.join(work, base + '.pdf'), base + '.pdf')
         print('Đã ghi ' + dest + (' (%d lưu ý)' % len(notes) if notes else ''))
     finally:
-        shutil.rmtree(work, ignore_errors=True)
+        if a.giu:
+            print('Thư mục làm việc: ' + work)
+        else:
+            shutil.rmtree(work, ignore_errors=True)
 
 
 if __name__ == '__main__':
