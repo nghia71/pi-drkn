@@ -47,6 +47,7 @@ function runTests(filter) {
   defineTests_();
   var cursorKey = 'TEST_CURSOR_' + (filter || 'all');
   var start = Number(props.getProperty(cursorKey) || 0);
+  if (start === 0) ensureTabs_(SpreadsheetApp.openById(sheetId));   // tab, cột mới của lần triển khai mới — khỏi phải chạy lại setupTests
   var list = TK.tests.filter(function (t) { return !filter || t.id === filter || t.id.indexOf(filter + '.') === 0; });
   DB_OVERRIDE = sheetId;
   TEST_CONF = { SECRET: Utilities.getUuid() + Utilities.getUuid(), BLIND_REVIEW: 'true', SIGNIN_URL: 'https://example.com/dang-nhap' };
@@ -75,6 +76,7 @@ function runOne_(t) {
     TEST_CONF.BLIND_REVIEW = 'true';
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
     delete TEST_CONF.EXPORT_FOLDER_ID; delete TEST_CONF.FIG_FOLDER_ID;
+    TEST_CONF.TEST_USERS = '';   // mặc định: T1, T2 là người thường; 11.3 bật lại
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
   TK.results.push([t.id, t.title, t.who, ok ? 'ĐẠT' : 'LỖI', msg, Date.now() - t1]);
@@ -701,6 +703,20 @@ function defineTests_() {
     eq_(rows_('Shortlist').length, 0); eq_(rows_('Published').length, 0);
     eq_(findRow_('Problems', 'ma_bai', 'THU-01').data.trang_thai, 'Mới', 'bài luyện trở lại như mới');
   });
+  test_('11.3', 'Hai tài khoản thử (TEST_USERS) mang vai trò ban biên tập thấy mọi bài luyện (B14, B15); với vai trò PB chỉ thấy bài được giao; người khác không thấy', 'T1+T2', function () {
+    resetPractice();
+    TEST_CONF.TEST_USERS = A.T1 + ', ' + A.T2.toUpperCase();
+    setUsers_({ QT: 'Quản trị', T1: 'PT', T2: 'TBT' });
+    var thu = function (tok) { return codes_(call_(tok, 'listProblems')).filter(function (c) { return c.indexOf('THU-') === 0; }); };
+    eq_(thu(login_(A.T1)).length, 10); eq_(thu(login_(A.T2)).length, 10);
+    var tok = login_(A.T1);
+    call_(tok, 'newBoard', { so: 'THU-99/2026' }); call_(tok, 'place', { so: 'THU-99/2026', vi_tri: 3, ma_bai: 'THU-03' });
+    eq_(call_(tok, 'getProblem', { ma_bai: 'THU-07' }).problem.ma_bai, 'THU-07');
+    setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'TBT' });
+    eq_(thu(login_(A.T1)), ['THU-01', 'THU-02'], 'PB chỉ thấy bài được giao');
+    TEST_CONF.TEST_USERS = A.T1;
+    eq_(thu(login_(A.T2)), ['THU-02'], 'không phải tài khoản thử: chỉ bài được giao');
+  });
   test_('11.2', 'Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy', 'T1+T2', function () {
     resetPractice();
     eq_(codes_(call_(login_(A.T1), 'listProblems')).filter(function (c) { return c.indexOf('THU-') === 0; }), ['THU-01', 'THU-02']);
@@ -1196,7 +1212,8 @@ function resetPractice() {
                           de_bai: b[2], loi_giai: b[3], de_bai_goc: b[2], loi_giai_goc: b[3], phien_ban: 1, cap_nhat: t, nguoi_cap_nhat: 'resetPractice' });
     append_('Provenance', { ma_bai: b[0], thu_muc: '(bài luyện)', tep_goc: 'Tác Giả Luyện Tập - ' + b[0] + '.docx', kenh: 'kiểm thử' });
   });
-  if (!findRow_('Authors', 'tac_gia_id', 'THU-TG')) append_('Authors', { tac_gia_id: 'THU-TG', ten_in: 'Tác Giả Luyện Tập', don_vi: '(bịa)', lien_he: '' });
+  var tg = findRow_('Authors', 'tac_gia_id', 'THU-TG'), tgRow = { tac_gia_id: 'THU-TG', ten_in: 'Tác Giả Luyện Tập', don_vi: 'Trường Luyện Tập (bịa)', lien_he: '' };
+  if (tg) update_('Authors', tg.row, tgRow); else append_('Authors', tgRow);
   append_('Rounds', { ky: PRACTICE_ROUND, trang_thai: 'mở', han_phan_bien: textDate_(addDays_(today_(), 14)), ghi_chu: 'kỳ luyện tập cho kiểm thử' });
   [['THU-01', users[0]], ['THU-02', users[0]], ['THU-02', users[1]]].forEach(function (a) {
     append_('Assignments', { ky: PRACTICE_ROUND, ma_bai: a[0], email: a[1], giao_luc: t });

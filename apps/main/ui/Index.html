@@ -571,7 +571,7 @@ function renderBoards() {
     var filled = b.rows.length, warn = 0;
     var free = v.problems.filter(function (p) { return !p.bang && p.trang_thai !== 'PL'; });
     h += '<div class="card bd" data-so="' + escA(b.so) + '"><div class="head"><b class="code">Pi ' + esc(b.so) + '</b>' + chip(b.trang_thai) +
-      '<span class="mut">' + filled + '/' + v.layout.length + ' bài' + (b.nguoi_duyet ? ' · duyệt: ' + esc(b.nguoi_duyet) + ', ' + esc(b.duyet_luc) : '') + '</span></div>' +
+      '<span class="mut">' + filled + '/' + v.layout.length + ' bài' + (b.nguoi_duyet ? ' · duyệt: ' + esc(b.nguoi_duyet) + ', ' + esc(b.duyet_luc) : '') + (b.khoa_luc ? ' · khoá: ' + esc(b.khoa_luc) : '') + '</span></div>' +
       (b.ghi_chu ? '<p class="sm-t">Ghi chú: ' + esc(b.ghi_chu) + '</p>' : '') +
       '<div class="tbl-wrap"><table class="as"><tr><th>#</th><th>Vị trí</th><th>Bài</th><th>Chủ đề</th><th>Mức bài</th><th>Trạng thái</th><th>Phiếu phản biện</th><th>Lưu ý</th>' + (edit ? '<th></th>' : '') + '</tr>' +
       v.layout.map(function (lv, i) {
@@ -615,8 +615,12 @@ function renderBoards() {
       act.push('<button class="pri" data-b="approve" data-warn="' + warn + '">Duyệt</button>');
       act.push('<button data-b="return">Trả lại…</button>');
     }
-    if (v.reopen && b.trang_thai !== 'đang chọn') act.push('<button data-b="reopen" data-ok="' + (b.trang_thai === 'đã duyệt' ? 1 : 0) + '">Mở lại để sửa…</button>');
-    if (act.length) h += '<div class="edbar">' + act.join(' ') + ' <span class="st mut"></span></div><div class="inl" data-for="ret-' + escA(b.so) + '"></div>';
+    if (v.close && b.trang_thai === 'đã duyệt') act.push('<button class="pri" data-b="close">Khoá kỳ…</button>');
+    if (b.trang_thai === 'đã khoá' && (v.close || v.btk)) act.push('<button data-b="tex">Tải tệp .tex</button>' +
+      (b.tep ? ' <a href="' + escA(b.tep) + '" target="_blank" rel="noopener">Gói chế bản trên Drive</a>' : ''));
+    if (v.reopen && b.trang_thai !== 'đang chọn' && b.trang_thai !== 'đã khoá') act.push('<button data-b="reopen" data-ok="' + (b.trang_thai === 'đã duyệt' ? 1 : 0) + '">Mở lại để sửa…</button>');
+    if (act.length) h += '<div class="edbar">' + act.join(' ') + ' <span class="st mut"></span></div><div class="inl" data-for="ret-' + escA(b.so) + '"></div>' +
+                         '<div class="kk"></div>';
     h += '</div>';
   });
   B.innerHTML = h;
@@ -649,11 +653,74 @@ function renderBoards() {
       inlineForm('ret-' + so, [{ k: 'ghi_chu', label: 'Lý do trả lại (PT sẽ thấy)', type: 'area' }], 'Trả lại', function (v2) {
         return call('returnBoard', { so: so, ghi_chu: v2.ghi_chu }).then(function () { return reload('Đã trả lại bảng số ' + so + '.'); });
       });
+    } else if (a === 'close') {
+      var kk = card.querySelector('.kk');
+      if (kk.innerHTML) { kk.innerHTML = ''; return; }
+      closePanel(kk, so, '', reload);
+    } else if (a === 'tex') {
+      run(call('exportOf', { so: so }).then(function (r) { saveTex(so, r.tex); }));
     } else if (a === 'reopen') {
       if (!armed(b.getAttribute('data-ok') === '1' ? 'Bấm lần nữa: huỷ duyệt, các bài trở về trạng thái trước khi duyệt' : 'Bấm lần nữa để mở lại')) return;
       run(call('reopenBoard', { so: so }), 'Đã mở lại bảng số ' + so + '.');
     }
   };
+}
+
+/* ---------- Khoá kỳ: số in, tệp .tex chỉ có đề bài ---------- */
+var TOPIC_NAME = { SH: 'Số học', 'ĐS': 'Đại số', HH: 'Hình học', TH: 'Tổ hợp' };
+function saveTex(so, tex) {
+  try {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([tex], { type: 'text/x-tex;charset=utf-8' }));
+    a.download = 'de-ra-ky-nay-' + String(so).replace(/[^\w.-]+/g, '-') + '.tex';
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { alertBox('Trình duyệt không cho tải tệp — mở mục "Nội dung tệp .tex" để chép.'); }
+}
+/** Bảng khoá kỳ ngay dưới bảng chọn bài đã duyệt: xem trước (không ghi gì), rồi khoá (bấm hai lần). */
+function closePanel(box, so, start, reload) {
+  box.innerHTML = '<p class="mut">Đang chuẩn bị…</p>';
+  call('closePreview', { so: so, bat_dau: start }).then(function (v) {
+    var n = v.items.length, first = v.bat_dau, last = first ? first + n - 1 : 0;
+    var h = '<h3>Khoá kỳ — Pi ' + esc(so) + '</h3>' +
+      '<p class="row"><label>Số in bắt đầu <input data-k="start" size="8" value="' + escA(first || '') + '" placeholder="ví dụ 1041"></label> ' +
+      '<button class="sm" data-k="redo">Đánh lại số</button> <span class="mut sm-t">' +
+      (v.goi_y ? 'Gợi ý P' + v.goi_y + ' = số lớn nhất đã in + 1.' : 'Chưa có số in nào trong hệ thống — gõ số của bài đầu tiên.') + '</span></p>' +
+      '<div class="tbl-wrap"><table class="as"><tr><th>Số in</th><th>Bài</th><th>Mức</th><th>Chủ đề</th><th>Dòng tác giả</th><th>Lưu ý</th></tr>' +
+      v.items.map(function (it) {
+        return '<tr><td class="code">' + esc(it.so_in || '—') + '</td><td><a href="#" class="code" data-open="' + escA(it.ma_bai) + '">' + esc(it.ma_bai) + '</a></td>' +
+          '<td>' + esc(it.muc) + '</td><td>' + esc(TOPIC_NAME[it.chu_de] || it.chu_de) + '</td><td>' + (it.tac_gia ? '<i>' + esc(it.tac_gia) + '</i>' : '<b class="bad">thiếu</b>') + '</td>' +
+          '<td class="w">' + esc(it.notes.join('; ')) + '</td></tr>';
+      }).join('') + '</table></div>' +
+      '<p class="mut sm-t">Thứ tự in: mức B rồi mức A; trong mỗi mức: Số học, Đại số, Hình học, Tổ hợp (cùng chủ đề theo vị trí trên bảng). ' +
+      'Tệp .tex chỉ có đề bài và dòng tác giả — không có lời giải, ghi chú hay thông tin liên hệ.</p>';
+    if (v.blockers.length) h += '<div class="conf bad">Chưa khoá được:<ul>' + v.blockers.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+    if (v.warnings.length) h += '<div class="conf">Lưu ý (' + v.warnings.length + '):<ul>' + v.warnings.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
+      '<label><input type="checkbox" data-k="ack"> Tôi đã xem các lưu ý trên và vẫn khoá kỳ.</label></div>';
+    if (v.tex) h += '<details><summary>Nội dung tệp .tex</summary><textarea readonly rows="12" class="texv">' + esc(v.tex) + '</textarea></details>';
+    var can = !v.blockers.length && first;
+    h += '<div class="edbar">' + (v.tex ? '<button data-k="dl">Tải .tex xem trước</button> ' : '') +
+      '<button class="pri" data-k="lock"' + (can ? '' : ' disabled') + '>Khoá kỳ' + (first ? ': P' + first + '–P' + last : '') + '</button> ' +
+      '<button data-k="no">Đóng</button></div>';
+    box.innerHTML = h;
+    var q = function (k) { return box.querySelector('[data-k="' + k + '"]'); };
+    q('no').onclick = function () { box.innerHTML = ''; };
+    q('redo').onclick = function () { closePanel(box, so, q('start').value.trim(), reload); };
+    q('start').onkeydown = function (e) { if (e.key === 'Enter') q('redo').click(); };
+    if (q('dl')) q('dl').onclick = function () { saveTex(so, v.tex); };
+    var lock = q('lock');
+    lock.onclick = function () {
+      if (q('start').value.trim() !== String(first)) { alertBox('Số in đã đổi — bấm "Đánh lại số" để xem lại trước khi khoá.'); return; }
+      var ack = !!(q('ack') && q('ack').checked);
+      if (v.warnings.length && !ack) { alertBox('Đánh dấu "Tôi đã xem các lưu ý" trước khi khoá.'); return; }
+      if (!lock.dataset.armed) { lock.dataset.armed = 1; lock.textContent = 'Bấm lần nữa: ghi số in P' + first + '–P' + last + ', chuyển ' + n + ' bài sang PL (không hoàn tác được)'; return; }
+      lock.disabled = true;
+      call('closeIssue', { so: so, bat_dau: String(first), xac_nhan: ack }).then(function (r) {
+        box.innerHTML = '';
+        if (r.missing_pics && r.missing_pics.length) alertBox('Không tìm thấy hình trong thư mục hình: ' + r.missing_pics.join(', ') + ' — gói chế bản thiếu các hình này.');
+        return reload('Đã khoá kỳ ' + so + ': P' + first + '–P' + last + '. Gói chế bản đã lưu trên Drive.');
+      }, function () { lock.disabled = false; });
+    };
+  }, function () { box.innerHTML = ''; });
 }
 
 /* ---------- Lịch sử sửa (tab Revisions) ---------- */

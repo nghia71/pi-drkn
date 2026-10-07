@@ -20,7 +20,8 @@ Bài chưa xác định được hồ sơ gốc dùng mã tạm (ví dụ `SL09-
 | Authors | tên in, đơn vị; `lien_he` hạn chế |
 | Users | email, vai trò |
 | Rounds, Shortlist, Assignments, Reviews, Comments | vòng chọn bài, phân công phản biện, nhận xét, thảo luận theo bài |
-| Published | bài đã đăng: số tạp chí, số in |
+| Issues | bảng chọn bài theo số báo: trạng thái (đang chọn, chờ duyệt, đã duyệt, đã khoá), người duyệt, lúc khoá, gói chế bản |
+| Published | bài đã đăng: số tạp chí, số in (ghi khi khoá kỳ) |
 | Revisions, Audit | lịch sử sửa, nhật ký truy cập |
 
 ## Ai thấy gì
@@ -29,7 +30,7 @@ Bài chưa xác định được hồ sơ gốc dùng mã tạm (ví dụ `SL09-
 | TBT, PT | mọi bài, tác giả, liên hệ | trạng thái, xung đột, mục kiểm tra (PT: đề/lời giải) |
 | NCB | mọi bài, tác giả (không liên hệ) | đề/lời giải (bản biên tập), sửa đổi, kiểm tra, xung đột |
 | VP | mọi bài, tác giả, liên hệ | nhập bài |
-| BTK | mọi bài | — (xuất bản khoá kỳ) |
+| BTK | mọi bài | — (tải tệp .tex của số đã khoá) |
 | PB | chỉ bài được giao trong kỳ đang mở; không thấy tác giả khi BLIND_REVIEW=true | nhận xét |
 | Quản trị | mọi thứ; "Xem như vai trò…" để thử giao diện | người dùng, nhập hàng loạt |
 
@@ -55,6 +56,15 @@ Khi TBT duyệt: các bài được chọn thành SL-OK và nhận mức của v
 mở lại một bảng đã duyệt thì trả các bài về như cũ. Bài không được chọn giữ nguyên trạng thái (thường là SL) — còn dùng cho số sau;
 SL-Fail chỉ khi TBT loại hẳn. Một bài chỉ nằm trong một bảng.
 Số báo, tên kỳ dạng `10/2026` được lưu như chữ (Sheets không đổi thành ngày); mọi ghi sửa chỉ ghi đúng các ô thay đổi.
+
+**Khoá kỳ** (Close.gs; quy ước của Nghĩa, 2026-10-07): từ bảng đã duyệt, PT/TBT/Quản trị đánh số in và khoá.
+Số in bắt đầu gợi ý = số lớn nhất trong Published + 1 (sửa được trước khi xác nhận); số trong một kỳ liên tiếp; không dùng lại số đã có.
+Thứ tự in: mức B rồi mức A; trong mỗi mức Số học, Đại số, Hình học, Tổ hợp; cùng chủ đề theo vị trí trên bảng. Khoá: mỗi bài một dòng Published
+(`ma_bai`, `so_tap_chi`, `so_in` dạng `P1041`, `ngay`), Problems: `trang_thai` = PL, `so_in`, `dang` = số báo; Issues: `trang_thai` = "đã khoá",
+`khoa_luc`, `tep` (đường dẫn gói chế bản). Tệp `.tex` CHỈ có đề bài theo mẫu cột của Pi (`\setcounter{stthuc}{số đầu − 1}`, mỗi bài
+`\thachthuc (Mức $B$)`, đề thụt 2 dấu cách, `\item` thụt 4, hình TikZ đặt ngay trong `center`, hình ảnh trong `pic/`, dòng tác giả
+`\textit{Tên in (Đơn vị)}` canh phải) — không lời giải, ghi chú biên tập, mục kiểm tra, xung đột, nguồn gốc hay liên hệ. Chặn khoá khi thiếu
+tên in của tác giả hoặc đề trống; mục cần kiểm tra, xung đột còn mở, cảnh báo hiển thị, ít bài hơn bố cục thì phải đánh dấu đã xem.
 
 **Hình vẽ** (quy ước của Nghĩa, 2026-10-07; dựng hình ở mục "Hình" sau này):
 1. Bài cũ, đã qua vài vòng mà mất hình: vẽ lại và hiển thị.

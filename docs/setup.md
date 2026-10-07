@@ -91,5 +91,22 @@ Sau lần triển khai có tính năng này: chạy `setup` (tạo tab `Issues`,
 Script property (không bắt buộc) `BOARD_LAYOUT` — mức của từng vị trí theo thứ tự in, cách nhau dấu phẩy;
 mặc định `B,B,B,B,A,A,A,A,A,A` (4 bài B rồi 6 bài A).
 
-## 11. Kiểm thử
+## 11. Khoá kỳ và gói chế bản cho BTK
+Sau lần triển khai có tính năng này: chạy `setup` (thêm cột `khoa_luc`, `tep` vào tab Issues).
+- Trên trang **Bảng chọn bài**, bảng đã được TBT duyệt có nút **Khoá kỳ…** (PT, TBT, Quản trị): gõ hoặc nhận số in bắt đầu
+  (gợi ý = số lớn nhất trong Published + 1; lần đầu Published trống thì gõ, ví dụ `1041`), xem thứ tự, dòng tác giả, lưu ý, tải `.tex` xem trước,
+  rồi bấm Khoá kỳ hai lần. Khoá xong: Published có số in, các bài thành PL, bảng "đã khoá" (không mở lại được).
+- Gói `.zip` (tệp `.tex` chỉ có đề bài + `pic/`) được lưu vào thư mục Drive **Pi ĐRKN — chế bản** của tài khoản triển khai
+  (tạo lần đầu, mã thư mục ghi ở Script property `EXPORT_FOLDER_ID`). Hình ảnh (không phải TikZ) lấy theo tên tệp ở cột `hinh`
+  trong thư mục hình (`FIG_FOLDER_ID`); hình không tìm thấy được báo ngay khi khoá.
+- Chia sẻ thư mục chế bản cho BTK (quyền xem) nếu BTK cần tải gói trên Drive; BTK cũng tải lại được tệp `.tex` trên trang (nút **Tải tệp .tex**).
+- Dựng PDF xem trước ở máy (Apps Script không chạy được XeLaTeX). Cần MacTeX (hoặc TeX Live):
+  ```
+  python3 tools/khoaky/build.py ~/Downloads/de-ra-ky-nay-10-2026.zip
+  ```
+  Công cụ kiểm tra tệp (UTF-8, NFC, không có "Lời giải" hay email trong thân tệp, hình có đủ), biên dịch hai lượt với
+  `templates/dinhdang.tex` (tệp định dạng cột của Pi; dùng tệp khác: `--dinhdang đường/dẫn`) rồi ghi `de-ra-ky-nay-10-2026-btk.zip`
+  (.tex, pic/, .pdf) cạnh tệp vào. Gửi gói này cho BTK. Không biên dịch đề chưa đăng trên các trang LaTeX trực tuyến.
+
+## 12. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.
