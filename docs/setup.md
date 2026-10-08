@@ -73,6 +73,8 @@ python3 tools/render-test/check.py <tệp nhập.json>      # hiển thị hàng
 Chuẩn bị tệp `pi-drkn-patch-….json` (ngoài kho mã), tải lên Drive của tài khoản quản trị (không chia sẻ), rồi trong dự án chính
 chạy `applyPatchLatest`. Chạy lại an toàn (thao tác đã áp dụng không lặp lại). Sửa đổi chỉ chạm bản biên tập, có ghi
 Corrections + Revisions; bản gốc của tác giả không đổi. Dạng tệp: xem đầu `apps/main/Patch.gs`.
+Riêng thao tác `replace` (tác giả gửi bản mới thay bài đã nộp): giữ mã bài, bản biên tập và bản gốc đều thành bản mới, bản cũ còn
+trong lịch sử sửa; bài đã có phiếu phản biện hoặc đang ở bảng chọn bài thì có thêm một mục cần kiểm tra; không thay bài đã đăng.
 
 ## 9. Kỳ phản biện: thư mời và nhắc hạn
 Thư mời và thư nhắc gửi từ tài khoản quản trị (MailApp; tài khoản Gmail thường được khoảng 100 người nhận mỗi ngày —
