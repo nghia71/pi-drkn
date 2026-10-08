@@ -96,6 +96,7 @@ function placeProblem_(w, a) {
   needProblem_(w, a.ma_bai);
   var p = findRow_('Problems', 'ma_bai', a.ma_bai).data;
   if (p.trang_thai === 'PL') throw new Error('Bài ' + a.ma_bai + ' đã đăng.');
+  if (REASON_STATUSES.indexOf(p.trang_thai) >= 0) throw new Error('Bài ' + a.ma_bai + ' đang ở trạng thái ' + p.trang_thai + ' (đã loại).');
   var other = rows_('Shortlist').filter(function (r) { return r.ma_bai === a.ma_bai && String(r.ky) !== String(a.so); })[0];
   if (other) throw new Error('Bài ' + a.ma_bai + ' đang ở bảng số ' + other.ky + '.');
   withLock_(function () {

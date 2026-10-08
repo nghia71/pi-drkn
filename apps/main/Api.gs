@@ -162,7 +162,7 @@ function getProblem_(w, ma, noAudit) {
     out = { problem: p, provenance: of('Provenance')[0] || null, corrections: of('Corrections'), checks: of('Checks'),
             conflicts: of('Conflicts'), log: of('ConversionLog'), comments: of('Comments'), canEdit: has_(w, EDITORS),
             can: { status: has_(w, STATUS_SETTERS), props: has_(w, PROP_EDITORS), tbt: has_(w, ['TBT']) },
-            lists: { statuses: STATUSES, conflictTypes: CONFLICT_TYPES, conflictStatuses: CONFLICT_STATUSES, tbtConflicts: TBT_CONFLICTS,
+            lists: { statuses: STATUSES, reasonStatuses: REASON_STATUSES, conflictTypes: CONFLICT_TYPES, conflictStatuses: CONFLICT_STATUSES, tbtConflicts: TBT_CONFLICTS,
                      correctionStatuses: CORRECTION_STATUSES } };
   } else {
     // Phản biện chỉ nhận văn bản đã biên tập và thảo luận: nguồn, tên tệp, xung đột, sửa đổi có thể lộ tác giả.
@@ -382,8 +382,13 @@ function setStatus_(w, a) {
   need_(w, STATUS_SETTERS);
   if (STATUSES.indexOf(a.trang_thai) < 0) throw new Error('Trạng thái không hợp lệ.');
   needProblem_(w, a.ma_bai);
-  var hit = findRow_('Problems', 'ma_bai', a.ma_bai);
-  update_('Problems', hit.row, { trang_thai: a.trang_thai, cap_nhat: now_(), nguoi_cap_nhat: w.email });
-  audit_(w.email, 'trạng thái', a.ma_bai + ' → ' + a.trang_thai);
+  var lyDo = shortText_(a.ly_do, 'Lý do', 2000, REASON_STATUSES.indexOf(a.trang_thai) >= 0);
+  var hit = findRow_('Problems', 'ma_bai', a.ma_bai), cu = hit.data.trang_thai, t = now_();
+  if (cu === a.trang_thai) return true;
+  update_('Problems', hit.row, { trang_thai: a.trang_thai, cap_nhat: t, nguoi_cap_nhat: w.email });
+  // quyết định loại (hoặc đổi trạng thái có ghi lý do) lưu thành một mục đã đóng — hiện trong "Nguồn & chỉnh sửa" của bài
+  if (lyDo) append_('Checks', { id: newId_(), ma_bai: a.ma_bai, noi_dung: 'Trạng thái: ' + (cu || '—') + ' → ' + a.trang_thai, trang_thai: 'xong',
+                                nguoi: w.email, ngay: t, ket_qua: lyDo });
+  audit_(w.email, 'trạng thái', a.ma_bai + ' → ' + a.trang_thai + (lyDo ? ' (' + lyDo + ')' : ''));
   return true;
 }

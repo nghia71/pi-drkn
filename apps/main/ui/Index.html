@@ -18,7 +18,7 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
     <span id="me"></span>
     <select id="f-topic"><option value="">Mọi chủ đề</option><option>ĐS</option><option>SH</option><option>HH</option><option>TH</option></select>
     <select id="f-level"><option value="">Mọi mức</option><option>A</option><option>B</option></select>
-    <select id="f-status"><option value="_mo">Đang xử lý (Mới, SL)</option><option value="">Mọi trạng thái</option><option>Mới</option><option>SL</option><option>SL-OK</option><option>SL-Fail</option><option>PL</option></select>
+    <select id="f-status"><option value="_mo">Đang xử lý (Mới, SL)</option><option value="">Mọi trạng thái</option><option>Mới</option><option>SL</option><option>SL-OK</option><option>SL-Fail</option><option>Không SL</option><option>PL</option></select>
     <select id="f-sort" title="Sắp xếp"><option value="moi">Mới nhận trước</option><option value="viec">Cần xử lý trước</option><option value="chude">Chủ đề, mức</option><option value="ma">Mã A→Z</option></select>
     <select id="view-as" hidden><option value="">Vai trò thật</option></select>
     <button id="go-rounds" class="sm" hidden>Kỳ phản biện</button>
@@ -210,7 +210,7 @@ function renderProblem(ma, d, loading) {
     '<span class="au">' + esc(d.author ? d.author.ten_in + (d.author.don_vi ? ' (' + d.author.don_vi + ')' : '') : (p.tac_gia || '')) + '</span></div>' +
     (d.can && d.can.status && !loading ? '<p class="sm-t">Trạng thái: <select id="st-sel">' + d.lists.statuses.map(function (x) {
       return '<option' + (x === p.trang_thai ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') +
-      '</select> <button class="sm" data-act="status">Đổi trạng thái</button></p>' : '') +
+      '</select> <button class="sm" data-act="status">Đổi trạng thái</button></p><div class="inl" data-for="st"></div>' : '') +
     (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(p.cap_nhat) : '') + '</p>' : '') +
     '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx">' + de.html + '</div></div>' +
     (p.hinh || ed ? '<div id="sec-hinh"><h3>Hình' + btn('hinh') + (ed ? ' <button class="sm" data-pic="1">Thêm ảnh…</button>' : '') + '</h3>' + hinhHtml(d) +
@@ -351,6 +351,12 @@ function act(ma, b) {
   if (a === 'status') {
     var st = document.getElementById('st-sel').value;
     if (st === d.problem.trang_thai) return;
+    if ((d.lists.reasonStatuses || []).indexOf(st) >= 0) {
+      inlineForm('st', [{ k: 'ly_do', label: 'Lý do chuyển sang ' + st + ' (ghi lại trong Nguồn & chỉnh sửa)', type: 'area' }], 'Chuyển sang ' + st, function (v) {
+        return done(call('setStatus', { ma_bai: ma, trang_thai: st, ly_do: v.ly_do }));
+      });
+      return;
+    }
     b.disabled = true;
     done(call('setStatus', { ma_bai: ma, trang_thai: st })).then(null, function () { b.disabled = false; });
   } else if (a === 'check-new') {

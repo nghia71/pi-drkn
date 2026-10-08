@@ -155,6 +155,8 @@ function assign_(w, a) {
   need_(w, ROUND_MANAGERS);
   openRound_(a.ky);
   needProblem_(w, a.ma_bai);
+  var st = findRow_('Problems', 'ma_bai', a.ma_bai).data.trang_thai;
+  if (st === 'Không SL' || st === 'PL') throw new Error('Bài ' + a.ma_bai + ' đang ở trạng thái ' + st + ' — không giao phản biện.');
   var email = String(a.email || '').trim().toLowerCase();
   if (!reviewers_().some(function (u) { return u.email === email; })) throw new Error('Địa chỉ này chưa có vai trò PB (hoặc đang tạm ngưng).');
   if (assignmentsOf_(a.ky).some(function (x) { return x.ma_bai === a.ma_bai && sameEmail_(x.email, email); })) throw new Error('Đã giao bài này cho người này.');

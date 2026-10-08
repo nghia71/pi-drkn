@@ -27,7 +27,10 @@ var SCHEMA = {
 
 /** Loại xung đột được phép (Nghĩa, 2026-10-06) — mỗi xung đột một dòng riêng. */
 var CONFLICT_TYPES = ['số hiệu', 'mức', 'bản chép khác nhau', 'trùng bài', 'đề và lời giải không khớp', 'tác giả', 'trạng thái'];
-var STATUSES = ['Mới', 'SL', 'SL-OK', 'SL-Fail', 'PL'];
+var STATUSES = ['Mới', 'SL', 'SL-OK', 'SL-Fail', 'Không SL', 'PL'];
+/** Không SL: không đủ điều kiện vào danh sách sơ bộ, không cần xem nữa (Nghĩa, 2026-10-08). Hai trạng thái loại này phải ghi lý do;
+ *  bài ở đó không giao phản biện, không xếp vào bảng chọn bài, không hiện trong danh sách mặc định. */
+var REASON_STATUSES = ['Không SL', 'SL-Fail'];
 var TOPICS = ['ĐS', 'SH', 'HH', 'TH'];
 var ROLES = ['TBT', 'PT', 'NCB', 'PB', 'VP', 'BTK', 'Quản trị'];
 

@@ -580,6 +580,22 @@ function defineTests_() {
     eq_(can('PB'), undefined, 'phản biện không nhận');
   });
 
+  test_('6.10', 'Không SL / SL-Fail: phải ghi lý do (lưu thành mục đã đóng của bài); bài Không SL không giao phản biện, không xếp vào bảng; đổi lại được', 'QT', function () {
+    var tok = login_(A.QT);
+    throws_(function () { call_(tok, 'setStatus', { ma_bai: 'TEST-04', trang_thai: 'Không SL' }); }, 'Lý do');
+    call_(tok, 'setStatus', { ma_bai: 'TEST-04', trang_thai: 'Không SL', ly_do: 'Bài quá dễ, đã có trong đề thi cũ.' });
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-04').data.trang_thai, 'Không SL');
+    var c = rows_('Checks').filter(function (x) { return x.ma_bai === 'TEST-04'; })[0];
+    eq_([c.noi_dung, c.trang_thai, c.ket_qua], ['Trạng thái: Mới → Không SL', 'xong', 'Bài quá dễ, đã có trong đề thi cũ.']);
+    eq_(call_(tok, 'listProblems').filter(function (p) { return p.ma_bai === 'TEST-04'; })[0].checks, 0, 'không thành chấm "cần kiểm tra"');
+    throws_(function () { call_(tok, 'assign', { ky: 'K-MO', ma_bai: 'TEST-04', email: A.T1 }); }, 'không giao phản biện');
+    call_(tok, 'newBoard', { so: '10/2026' });
+    throws_(function () { call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-04' }); }, 'đã loại');
+    call_(tok, 'setStatus', { ma_bai: 'TEST-04', trang_thai: 'SL' });
+    call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-04' });
+    ok_(auditHas_('trạng thái', 'TEST-04 → Không SL (Bài quá dễ'));
+  });
+
   // 7. Xem như vai trò
   test_('7.1', 'Quản trị "xem như PB" thấy đúng như phản biện, rồi trở lại', 'QT', function () {
     putRows_('Assignments', [{ ky: 'K-MO', ma_bai: 'TEST-05', email: A.QT }]);
@@ -809,7 +825,8 @@ function defineTests_() {
     var l = call_(login_(A.T2), 'listProblems'), row = l.filter(function (p) { return p.ma_bai === 'TEST-04'; })[0];
     ok_(row, 'PB thấy bài vừa giao'); eq_(row.giao.han, '2026-10-20'); eq_(row.giao.xong, false);
     setUsers_({ QT: 'Quản trị', T1: 'PT', T2: { vai_tro: 'PB', hoat_dong: false } });
-    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-05', email: A.T2 }); }, 'tạm ngưng');
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-02', email: A.T2 }); }, 'tạm ngưng');
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-05', email: A.T1 }); }, 'PL — không giao phản biện');
   });
   test_('13.3', 'Thư mời: mỗi phản biện một thư, không có đề / tên tác giả; gửi lại không gửi trùng; thiếu hạn mức thì không gửi gì', 'QT', function () {
     TEST_CONF.TODAY = '2026-10-10';

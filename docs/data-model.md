@@ -5,7 +5,7 @@
 ## Mã bài
 `YYYY-MM-NN` + chữ cái: năm-tháng-số thứ tự hồ sơ trong tháng của Văn phòng + thứ tự bài trong hồ sơ
 (ví dụ `2026-06-10a`). Mã không bao giờ đổi. Thuộc tính đổi theo vòng đời và được hiển thị kèm mã:
-chủ đề (ĐS/SH/HH/TH), mức (A/B), trạng thái (Mới / SL / SL-OK / SL-Fail / PL), đăng (Pi tháng/năm · số in P…).
+chủ đề (ĐS/SH/HH/TH), mức (A/B), trạng thái (Mới / SL / SL-OK / SL-Fail / Không SL / PL — Không SL: không vào shortlist, thôi xem; Không SL và SL-Fail phải ghi lý do, lưu thành một mục đã đóng của bài; bài Không SL không giao phản biện, không xếp vào bảng), đăng (Pi tháng/năm · số in P…).
 Bài chưa xác định được hồ sơ gốc dùng mã tạm (ví dụ `SL09-1042`), ghi trong cột `ma_tam`.
 
 ## Bảng
