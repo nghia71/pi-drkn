@@ -8,7 +8,7 @@
  *   node tests/ui/run.js              chạy, kiểm tra, chụp ảnh
  *   node tests/ui/run.js --no-shots   chỉ kiểm tra (nhanh hơn)
  *
- * Cần: npm install (playwright, mathjax) và một lần: npx playwright install chromium.
+ * Cần: npm install (playwright, mathjax) và một trình duyệt: Google Chrome đã cài trên máy (tự dùng), hoặc npx playwright install chromium.
  * Dữ liệu: toàn bộ BỊA (bài, tác giả, địa chỉ @example.com) — không có bài thật nào.
  */
 'use strict';
@@ -134,7 +134,7 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
 
 (async () => {
   fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
-  br = await chromium.launch(fs.existsSync('/opt/pw-browsers/chromium') && !process.env.PLAYWRIGHT_BROWSERS_PATH ? { executablePath: '/opt/pw-browsers/chromium' } : {});
+  br = await launchBrowser();
   const pages = [];
   const O = async (email, opt) => { const p = await open(email, opt); pages.push(p); return p; };
 
@@ -491,6 +491,17 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   if (fails.length) { console.log('\nGIAO DIỆN: ' + fails.length + ' lỗi:\n  ' + fails.join('\n  ')); process.exit(1); }
   console.log('giao diện: mọi bước đều đạt' + (SHOTS ? ' — ảnh và hướng dẫn: out/ui/index.html' : ''));
 })().catch(x => { console.error('GIAO DIỆN DỪNG ở ' + chapter + ' › ' + step + ':', x.message || x); process.exit(1); });
+
+/** Chromium của Playwright nếu đã tải (npx playwright install chromium); không có thì dùng Google Chrome đã cài trên máy. */
+async function launchBrowser() {
+  const own = fs.existsSync('/opt/pw-browsers/chromium') && !process.env.PLAYWRIGHT_BROWSERS_PATH ? { executablePath: '/opt/pw-browsers/chromium' } : {};
+  try { return await chromium.launch(own); }
+  catch (e) {
+    if (!/Executable doesn't exist|playwright install/i.test(String(e.message))) throw e;
+    try { const b = await chromium.launch({ channel: 'chrome' }); console.log('(dùng Google Chrome của máy)'); return b; }
+    catch (e2) { console.log('bỏ qua: không có trình duyệt — cài Google Chrome, hoặc: npx playwright install chromium'); process.exit(0); }
+  }
+}
 
 function writeTour() {
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');

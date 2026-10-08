@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 python3 scripts/guard.py --all
 node tests/render.test.js
 node tools/gas-sim/run-tests.js | tail -1   # bộ kiểm thử máy chủ trên bản mô phỏng; lỗi thì dừng, không đẩy
-node tests/ui/run.js --no-shots             # giao diện trong Chromium (bỏ qua nếu chưa cài: npm install && npx playwright install chromium)
+node tests/ui/run.js --no-shots             # giao diện trong Chromium (Google Chrome của máy; bỏ qua nếu chưa npm install)
 
 # giao diện cần pi-render.js dưới dạng tệp HTML của Apps Script
 { echo '<script>'; cat shared/pi-render.js; echo '</script>'; } > apps/main/ui/RenderJs.html
