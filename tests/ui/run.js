@@ -584,6 +584,19 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
     [{ sel: '#fb-list', t: 'Xem góp ý và lỗi đã nhận' }, { sel: '#fb-res select', t: 'Đánh dấu: đã xem / đã sửa / không làm' }]);
   await qt.click('#fb-close');
 
+  step = 'luyện tập: đặt lại';
+  c.TEST_CONF.ACTIVE_USER = QT; c.resetPractice(); delete c.TEST_CONF.ACTIVE_USER;
+  c.TEST_CONF.PRACTICE_USERS = PT;
+  await pt.evaluate(() => loadList()); await idle(pt);
+  check((await pt.evaluate(() => ALL.filter(p => p.ma_bai.indexOf('THU-') === 0).length)) === 10, 'người dùng thử (PT) thấy mười bài luyện');
+  await openProb(pt, 'THU-05'); await pt.selectOption('#st-sel', 'SL'); await pt.click('[data-act=status]'); await idle(pt, 300);
+  await tab(pt, 'go-rounds');
+  await shot(pt, 'luyen-tap', 'Luyện tập: mười bài THU-… là bài bịa, làm gì cũng được; Đặt lại xoá mọi việc đã làm trên chúng và đưa về như mới.', false,
+    [{ sel: '.card.tap', t: 'Bài luyện tập THU-01…THU-10' }, { sel: '[data-r=practice]', t: 'Đặt lại — bấm hai lần' }]);
+  await twice(pt, '[data-r=practice]');
+  check(c.findRow_('Problems', 'ma_bai', 'THU-05').data.trang_thai === 'Mới', 'đặt lại: bài luyện về như mới');
+  delete c.TEST_CONF.PRACTICE_USERS;
+
   /* ---------- 10. Điện thoại, chế độ tối ---------- */
   section('10. Điện thoại và chế độ tối', 'Cùng trang trên điện thoại (390 px) và khi máy đặt chế độ tối.');
   const ph = await O(PB2, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

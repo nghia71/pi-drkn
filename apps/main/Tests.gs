@@ -847,6 +847,34 @@ function defineTests_() {
     TEST_CONF.PRACTICE_USERS = '';
     eq_(thu(login_(A.T2)), 1, 'bỏ khỏi danh sách: lại chỉ bài được giao');
   });
+  test_('11.5', 'Nút Đặt lại bài luyện tập: xoá mọi việc trên bài THU (phiếu, thảo luận, sửa) và kỳ / bảng chỉ gồm bài THU (kể cả tên tự đặt); kỳ, bảng có bài thật giữ nguyên; chỉ Quản trị, PT, TBT đang dùng thử', 'T1', function () {
+    resetPractice();
+    setUsers_({ QT: 'Quản trị', T1: 'PT', T2: 'PB' });
+    TEST_CONF.PRACTICE_USERS = A.T1;
+    var pt = login_(A.T1);
+    call_(pt, 'openRound', { ky: 'PB-TAP-1', han_phan_bien: addDays_(today_(), 5) });
+    call_(pt, 'assign', { ky: 'PB-TAP-1', ma_bai: 'THU-03', email: A.T2 });
+    call_(pt, 'openRound', { ky: 'PB-THAT', han_phan_bien: addDays_(today_(), 5) });
+    call_(pt, 'assign', { ky: 'PB-THAT', ma_bai: 'THU-04', email: A.T2 }); call_(pt, 'assign', { ky: 'PB-THAT', ma_bai: 'TEST-02', email: A.T2 });
+    call_(login_(A.T2), 'addComment', { ma_bai: 'THU-03', noi_dung: 'nhận xét tập' });
+    call_(pt, 'setStatus', { ma_bai: 'THU-05', trang_thai: 'SL' });
+    var v = Number(findRow_('Problems', 'ma_bai', 'THU-06').data.phien_ban);
+    call_(pt, 'saveText', { ma_bai: 'THU-06', truong: 'de_bai', noi_dung: 'sửa tập', phien_ban: v });
+    throws_(function () { call_(login_(A.T2), 'resetPractice'); }, 'Không có quyền');
+    TEST_CONF.PRACTICE_USERS = '';
+    throws_(function () { call_(pt, 'resetPractice'); }, 'chỉ người đang dùng thử');
+    TEST_CONF.PRACTICE_USERS = A.T1;
+    has_s_(call_(pt, 'resetPractice').msg, 'Đã đặt lại');
+    ok_(!findRow_('Rounds', 'ky', 'PB-TAP-1'), 'kỳ chỉ gồm bài luyện bị xoá');
+    ok_(findRow_('Rounds', 'ky', 'PB-THAT'), 'kỳ có bài thật giữ nguyên');
+    eq_(rows_('Assignments').filter(function (a) { return a.ky === 'PB-THAT'; }).map(function (a) { return a.ma_bai; }), ['TEST-02'], 'chỉ bỏ phân công bài luyện');
+    ok_(!rows_('Comments').some(function (c) { return c.ma_bai === 'THU-03'; }), 'thảo luận tập bị xoá');
+    eq_(findRow_('Problems', 'ma_bai', 'THU-05').data.trang_thai, 'Mới', 'trạng thái về như mới');
+    eq_(Number(findRow_('Problems', 'ma_bai', 'THU-06').data.phien_ban), 1, 'đề về bản đầu');
+    ok_(!rows_('Revisions').some(function (r) { return r.ma_bai === 'THU-06'; }), 'lịch sử sửa tập bị xoá');
+    eq_(findRow_('Users', 'email', A.T1).data.vai_tro, 'PT', 'không đổi vai trò của ai');
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-02').data.trang_thai, 'SL', 'bài thật không đổi');
+  });
   test_('11.2', 'Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy', 'T1+T2', function () {
     resetPractice();
     eq_(codes_(call_(login_(A.T1), 'listProblems')).filter(function (c) { return c.indexOf('THU-') === 0; }), ['THU-01', 'THU-02']);
@@ -1660,6 +1688,40 @@ function resetPractice() {
   var users = String(PropertiesService.getScriptProperties().getProperty('TEST_USERS') || '').split(',')
     .map(function (s) { return s.trim().toLowerCase(); }).filter(String);
   if (users.length < 2) throw new Error('Thiếu Script property TEST_USERS.');
+  var msg = resetPracticeData_(users);
+  users.slice(0, 2).forEach(function (u, k) {
+    var hit = findRow_('Users', 'email', u);
+    if (hit) update_('Users', hit.row, { vai_tro: 'PB', hoat_dong: true });
+    else append_('Users', { email: u, ten: 'Tài khoản thử ' + (k + 1), vai_tro: 'PB', hoat_dong: true, ghi_chu: 'kiểm thử' });
+  });
+  audit_(Session.getEffectiveUser().getEmail(), 'resetPractice', msg);
+  Logger.log(msg);
+  return msg;
+}
+
+/** Nút "Đặt lại bài luyện tập" trên trang Kỳ phản biện: Quản trị, PT, TBT (người thấy bài luyện). Không đổi vai trò của ai. */
+function practiceReset_(w) {
+  need_(w, ['Quản trị', 'PT', 'TBT']);
+  if (w.roles.indexOf('Quản trị') < 0 && !practiceUser_(w)) throw new Error('Không có quyền (chỉ người đang dùng thử bài luyện tập).');
+  var users = String(conf_('TEST_USERS') || '').split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(String);
+  var msg = resetPracticeData_(users);
+  audit_(w.email, 'đặt lại bài luyện tập', msg);
+  return { msg: msg };
+}
+
+/**
+ * Xoá mọi việc đã làm trên bài luyện tập rồi tạo lại mười bài như mới. "Việc luyện tập" = mọi dòng của bài THU-…, cùng các kỳ
+ * phản biện và bảng chọn bài tên THU-… / K-THU **hoặc chỉ gồm bài THU-…** (kỳ, bảng người dùng thử tự đặt tên). Bài thật không bị đụng.
+ * users: tài khoản thử (TEST_USERS) — hai người đầu được giao THU-01, THU-02 trong kỳ K-THU.
+ */
+function resetPracticeData_(users) {
+  var isThu = function (ma) { return String(ma).indexOf(PRACTICE_PREFIX) === 0; };
+  var keys = {}, byKey = {};
+  keys[PRACTICE_ROUND] = 1;
+  [['Assignments', 'ky'], ['Shortlist', 'ky']].forEach(function (t) {
+    rows_(t[0]).forEach(function (r) { var k = String(r[t[1]]); (byKey[k] = byKey[k] || []).push(r.ma_bai); });
+  });
+  Object.keys(byKey).forEach(function (k) { if (byKey[k].length && byKey[k].every(isThu)) keys[k] = 1; });
   var removed = 0;
   withLock_(function () {
     Object.keys(SCHEMA).forEach(function (name) {
@@ -1669,12 +1731,13 @@ function resetPractice() {
       if (n < 2) return;
       var vals = sh.getRange(2, 1, n - 1, cols.length).getValues();
       for (var r = vals.length - 1; r >= 0; r--) {
-        var practice = (iMa >= 0 && String(vals[r][iMa]).indexOf(PRACTICE_PREFIX) === 0) || (iKy >= 0 && String(vals[r][iKy]) === PRACTICE_ROUND) ||
-                       (iKy >= 0 && String(vals[r][iKy]).indexOf(PRACTICE_PREFIX) === 0) || (iSo >= 0 && String(vals[r][iSo]).indexOf(PRACTICE_PREFIX) === 0);
+        var practice = (iMa >= 0 && isThu(vals[r][iMa])) || (iKy >= 0 && (isThu(vals[r][iKy]) || keys[String(vals[r][iKy])])) ||
+                       (iSo >= 0 && (isThu(vals[r][iSo]) || keys[String(vals[r][iSo])]));
         if (practice) { sh.deleteRow(r + 2); removed++; }
       }
     });
   });
+  READ_MEMO_ = READ_MEMO_ && {};
   var t = now_();
   [['THU-01', 'ĐS', 'Bài luyện 1 (bịa, để kiểm thử): Cho $a,b>0$ và $a+b=2$. Chứng minh $ab\\le 1$.', 'Theo AM-GM, $ab\\le\\left(\\frac{a+b}{2}\\right)^2=1$.'],
    ['THU-02', 'HH', 'Bài luyện 2 (bịa, để kiểm thử): Tam giác $ABC$ vuông tại $A$. Chứng minh $BC^2=AB^2+AC^2$.', 'Định lý Pythagore.\n\n$$BC^2=AB^2+AC^2.$$'],
@@ -1696,17 +1759,10 @@ function resetPractice() {
   if (tg) update_('Authors', tg.row, tgRow); else append_('Authors', tgRow);
   append_('Rounds', { ky: PRACTICE_ROUND, trang_thai: 'mở', han_phan_bien: textDate_(addDays_(today_(), 14)), ghi_chu: 'kỳ luyện tập cho kiểm thử' });
   [['THU-01', users[0]], ['THU-02', users[0]], ['THU-02', users[1]]].forEach(function (a) {
-    append_('Assignments', { ky: PRACTICE_ROUND, ma_bai: a[0], email: a[1], giao_luc: t });
+    if (a[1]) append_('Assignments', { ky: PRACTICE_ROUND, ma_bai: a[0], email: a[1], giao_luc: t });
   });
-  users.slice(0, 2).forEach(function (u, k) {
-    var hit = findRow_('Users', 'email', u);
-    if (hit) update_('Users', hit.row, { vai_tro: 'PB', hoat_dong: true });
-    else append_('Users', { email: u, ten: 'Tài khoản thử ' + (k + 1), vai_tro: 'PB', hoat_dong: true, ghi_chu: 'kiểm thử' });
-  });
-  var msg = 'Đã đặt lại bài luyện tập (xoá ' + removed + ' dòng cũ): THU-01 → ' + users[0] + '; THU-02 → ' + users[0] + ', ' + users[1] + '; THU-03…THU-10 → không ai.';
-  audit_(Session.getEffectiveUser().getEmail(), 'resetPractice', msg);
-  Logger.log(msg);
-  return msg;
+  return 'Đã đặt lại bài luyện tập (xoá ' + removed + ' dòng cũ, gồm ' + (Object.keys(keys).length - 1) + ' kỳ / bảng luyện tập)' +
+    (users.length >= 2 ? ': THU-01 → ' + users[0] + '; THU-02 → ' + users[0] + ', ' + users[1] + '; THU-03…THU-10 → không ai.' : '.');
 }
 
 /** Kho GitHub giả cho 16.8: đủ các lời gọi của FigCloud.gs (contents, git/ref, git/commits, git/trees). */

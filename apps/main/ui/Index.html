@@ -118,10 +118,10 @@ var BTN_ICON = [[/^Sửa/, 'pencil'], [/^Thêm ảnh/, 'image-plus'], [/^Thêm v
   [/^Lưu/, 'check'], [/^Huỷ|^Đóng$/, 'x'], [/^Gửi/, 'send'], [/^Duyệt|duyệt$/, 'check'], [/^Trả lại/, 'rotate-ccw'], [/^Mở lại/, 'lock-open'],
   [/^Khoá kỳ|^Đóng kỳ/, 'lock'], [/^Tải (SVG )?lên/, 'upload'], [/^Dựng ngay/, 'refresh-cw'], [/^Góp ý$/, 'message-square'], [/^Gửi góp ý/, 'send'], [/^Tải/, 'download'], [/^Mở lời giải/, 'eye'], [/^Đóng lời giải/, 'eye-off'],
   [/^Đánh dấu/, 'check-check'], [/^Bỏ đánh dấu|^Đánh lại số/, 'rotate-ccw'], [/^Xem thêm/, 'chevron-down'], [/^Thu gọn/, 'chevron-up'], [/^Xem lịch sử/, 'history'],
-  [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
+  [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Đặt lại bài luyện/, 'rotate-ccw'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
 var DANGER = /^(Đóng kỳ|Xoá|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải)/;
 var H3_ICON = [[/^(Sửa )?Đề bài/, 'file-text'], [/^(Sửa )?Lời giải/, 'lightbulb'], [/^(Sửa )?Hình/, 'image'], [/^Thảo luận/, 'message-square'],
-  [/^Phiếu phản biện/, 'clipboard-check'], [/^Khoá kỳ/, 'lock'], [/^Dựng hình/, 'image'], [/^Mở kỳ/, 'plus'], [/^Bài \d/, 'file-text']];
+  [/^Phiếu phản biện/, 'clipboard-check'], [/^Luyện tập/, 'graduation-cap'], [/^Khoá kỳ/, 'lock'], [/^Dựng hình/, 'image'], [/^Mở kỳ/, 'plus'], [/^Bài \d/, 'file-text']];
 function decorate(root) {
   root.querySelectorAll('button:not(.tab)').forEach(function (b) {
     // "+ Thêm …": dấu + trong chữ thay bằng biểu tượng
@@ -707,6 +707,12 @@ function renderRounds() {
   var h = '<p><a href="#" id="r-back">← Danh sách</a></p><h2 class="pg">Kỳ phản biện</h2>' +
     '<p class="mut sm-t">Nhắc hạn tự động ' + esc((v.reminderDays || []).join(' và ')) + ' ngày trước hạn (cho người đã được mời, chưa đánh dấu xong). ' +
     'Ngày tính theo giờ ' + esc(v.timezone === 'Asia/Ho_Chi_Minh' ? 'Việt Nam' : v.timezone) + ': hôm nay là ' + esc(vnDate(v.today)) + '.</p>';
+  // luyện tập: chỉ người thấy bài THU (Quản trị, người dùng thử) với vai trò PT, TBT, Quản trị
+  var practice = (ALL || []).some(function (p) { return p.ma_bai.indexOf('THU-') === 0; }) &&
+    ME && ME.eff.some(function (r) { return ['Quản trị', 'PT', 'TBT'].indexOf(r) >= 0; });
+  if (practice) h += '<div class="card tap"><h3>Luyện tập</h3><p class="sm-t">Mười bài <b>THU-01…THU-10</b> là bài bịa để tập — làm gì cũng được. ' +
+    '<b>Đặt lại</b> xoá mọi việc đã làm trên chúng (phiếu, thảo luận, sửa đề, trạng thái, kỳ và bảng chọn bài chỉ gồm bài luyện) và đưa về như mới. ' +
+    'Bài thật không bị đụng tới.</p><p><button class="sm" data-r="practice">Đặt lại bài luyện tập…</button></p></div>';
   if (v.manage) h += '<div class="card"><h3>Mở kỳ mới</h3><div class="row"><label>Tên kỳ <input id="r-ky" placeholder="ví dụ: PB-10/2026"></label>' +
     '<label>Hạn <input id="r-han" type="date" min="' + today + '"></label><label>Ghi chú <input id="r-gc"></label>' +
     '<button class="pri" data-r="open">Mở kỳ</button></div></div>';
@@ -778,6 +784,11 @@ function renderRounds() {
     else if (a === 'del') {
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Bấm lần nữa: xoá kỳ ' + ky + ' và mọi phân công của kỳ'; return; }
       run(call('deleteRound', { ky: ky }), 'Đã xoá kỳ ' + ky + '.');
+    } else if (a === 'practice') {
+      if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Bấm lần nữa: xoá mọi việc luyện tập, đưa mười bài THU về như mới'; return; }
+      b.disabled = true;
+      call('resetPractice', {}).then(function (r) { PCACHE = {}; loadListQuiet(); return openRounds().then(function () { alertOk(r.msg); }); },
+                                     function () { b.disabled = false; });
     } else if (a === 'sol') {
       var mo = b.getAttribute('data-mo') === '1';
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = mo ? 'Bấm lần nữa: mọi phản biện của kỳ ' + ky + ' sẽ thấy lời giải' : 'Bấm lần nữa để ẩn lời giải'; return; }

@@ -60,6 +60,7 @@ function api_(token, method, args) {
     case 'logError': return logError_(w, args);
     case 'feedbackList': return feedbackList_(w);
     case 'feedbackStatus': return feedbackStatus_(w, args);
+    case 'resetPractice': return practiceReset_(w);
     case 'sendInvites': return sendInvites_(w, args);
     case 'submitReview': return submitReview_(w, args);
     case 'markDone': return markDone_(w, args);
