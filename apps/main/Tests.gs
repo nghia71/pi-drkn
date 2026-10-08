@@ -628,6 +628,26 @@ function defineTests_() {
     eq_(rows_('Checks').filter(function (c) { return c.ma_bai === 'TEST-03'; }).length, 1);
     eq_(findRow_('Checks', 'id', 'k1').data.trang_thai, 'xong');
   });
+  test_('8.6', 'Bản vá "tác giả thay bài": giữ mã, đề/lời giải và bản gốc là bản mới, lịch sử giữ bản cũ; phiếu cũ → mục cần kiểm tra; chạy lại không đổi; bài đã đăng thì không thay', 'QT', function () {
+    putRows_('Reviews', [{ id: 'r1', ky: 'K-MO', ma_bai: 'TEST-02', email: A.T1, muc_de_nghi: 'A', diem: 'chọn' }]);
+    var patch = { id: 'kiemthu-' + Utilities.getUuid().slice(0, 6), nguoi: 'kiểm thử', ops: [
+      { op: 'replace', ma_bai: 'TEST-02', de_bai: 'Đề mới: tính $2+2$.', loi_giai: 'Lời giải mới: $4$.', tep_goc: 'bai-moi.tex', ly_do: 'tác giả gửi bản thay' },
+      { op: 'replace', ma_bai: 'TEST-05', de_bai: 'x', loi_giai: 'y' }] };
+    var v0 = Number(findRow_('Problems', 'ma_bai', 'TEST-02').data.phien_ban);
+    try {
+      var m = applyPatch_(patch, A.QT); has_s_(m, 'xong: 2/2'); has_s_(m, 'đã đăng');
+      PropertiesService.getScriptProperties().deleteProperty('PATCH_' + patch.id);
+      applyPatch_(patch, A.QT);
+    } finally { PropertiesService.getScriptProperties().deleteProperty('PATCH_' + patch.id); }
+    var p = findRow_('Problems', 'ma_bai', 'TEST-02').data;
+    eq_([p.de_bai, p.loi_giai, p.de_bai_goc, p.loi_giai_goc], ['Đề mới: tính $2+2$.', 'Lời giải mới: $4$.', 'Đề mới: tính $2+2$.', 'Lời giải mới: $4$.']);
+    eq_(Number(p.phien_ban), v0 + 2, 'chạy lại không tăng phiên bản');
+    eq_(rows_('Revisions').map(function (r) { return [r.truong, r.cu]; }), [['de_bai', 'Đề thử TEST-02: tính $1+1$.'], ['loi_giai', 'Lời giải thử TEST-02.']]);
+    eq_(rows_('ConversionLog').length, 1); has_s_(rows_('ConversionLog')[0].noi_dung, 'Tác giả thay bài (bai-moi.tex)');
+    var ck = rows_('Checks').filter(function (c) { return c.ma_bai === 'TEST-02'; });
+    eq_(ck.length, 1); has_s_(ck[0].noi_dung, '1 phiếu phản biện');
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-05').data.de_bai, 'Đề thử TEST-05: tính $1+1$.', 'bài đã đăng không đổi');
+  });
   test_('8.3', 'Bản vá không rõ chỗ sửa (0 hoặc nhiều chỗ khớp) thì báo lỗi, không đổi gì', 'QT', function () {
     var patch = { id: 'kiemthu-' + Utilities.getUuid().slice(0, 6), ops: [
       { op: 'correction', ma_bai: 'TEST-03', truong: 'de_bai', truoc: 'không có đoạn này', sau: 'y', vi_tri: 'đề', ly_do: 'thử' },

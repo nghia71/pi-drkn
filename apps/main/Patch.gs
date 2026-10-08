@@ -10,6 +10,10 @@
  *   {op:'correction', ma_bai, truong:'de_bai'|'loi_giai', truoc, sau, vi_tri, ly_do, trang_thai}
  *        — thay ĐÚNG MỘT chỗ "truoc" trong bản biên tập; bản gốc của tác giả không đổi; ghi Corrections + Revisions.
  *   {op:'closeCheck', ma_bai, chua, trang_thai}  — đóng mục cần kiểm tra có nội dung chứa "chua".
+ *   {op:'replace',    ma_bai, de_bai, loi_giai, tep_goc, ly_do}
+ *        — TÁC GIẢ THAY BÀI (gửi bản mới thay bài đã nộp): giữ mã bài; bản biên tập và bản gốc của tác giả đều thành bản mới
+ *          (Revisions ghi bản cũ); ghi ConversionLog, tệp gốc mới vào Provenance. Không thay bài đã đăng (PL).
+ *          Bài đã có phiếu phản biện hoặc đang ở một bảng chọn bài: thêm một mục cần kiểm tra (phiếu, quyết định là của bản cũ).
  */
 function applyPatchLatest() {
   adminOnly_();
@@ -54,6 +58,7 @@ function applyOp_(o, nguoi, who) {
       append_('Reviews', { id: newId_(), ky: o.ky, ma_bai: o.ma_bai, email: '', muc_de_nghi: o.muc_de_nghi || '', diem: o.diem,
                            nhan_xet: o.nhan_xet, ngay: now_() }); return;
     case 'correction': return applyCorrection_(o, who);
+    case 'replace': return applyReplace_(o, nguoi, who);
     case 'closeCheck':
       var hit = rows_('Checks').filter(function (c) { return c.ma_bai === o.ma_bai && String(c.noi_dung).indexOf(o.chua) >= 0; });
       if (hit.length !== 1) throw new Error('tìm thấy ' + hit.length + ' mục cần kiểm tra khớp "' + o.chua + '" (cần đúng 1)');
@@ -73,5 +78,32 @@ function applyCorrection_(o, who) {
     writeText_(hit, o.truong, text.replace(o.truoc, function () { return o.sau; }), who);
     sheet_('Corrections').appendRow(rowOf_('Corrections', { id: newId_(), ma_bai: o.ma_bai, vi_tri: o.vi_tri, truoc: o.truoc, sau: o.sau,
       ly_do: o.ly_do, trang_thai: o.trang_thai || 'đã sửa ở bản biên tập', nguoi: who, ngay: now_() }));
+  });
+}
+
+/** Tác giả thay bài: xem op 'replace' ở đầu tệp. Chạy lại: bản gốc đã là bản mới thì bỏ qua. */
+function applyReplace_(o, nguoi, who) {
+  var de = String(o.de_bai || '').normalize('NFC'), lg = String(o.loi_giai || '').normalize('NFC');
+  if (!de.trim()) throw new Error('đề bài mới trống');
+  if (de.length > MAX_TEXT_ || lg.length > MAX_TEXT_) throw new Error('văn bản quá dài');
+  withLock_(function () {
+    var hit = findRow_('Problems', 'ma_bai', o.ma_bai);
+    if (hit.data.trang_thai === 'PL') throw new Error('bài đã đăng (PL) — không thay được');
+    if (String(hit.data.de_bai_goc) === de && String(hit.data.loi_giai_goc) === lg) return;      // đã áp dụng
+    var t = now_(), ngay = today_();
+    if (String(hit.data.de_bai) !== de) writeText_(hit, 'de_bai', de, who);
+    hit = findRow_('Problems', 'ma_bai', o.ma_bai);
+    if (String(hit.data.loi_giai) !== lg) writeText_(hit, 'loi_giai', lg, who);
+    hit = findRow_('Problems', 'ma_bai', o.ma_bai);
+    update_('Problems', hit.row, { de_bai_goc: de, loi_giai_goc: lg, cap_nhat: t, nguoi_cap_nhat: who });
+    var pv = findRow_('Provenance', 'ma_bai', o.ma_bai);
+    if (pv && o.tep_goc) update_('Provenance', pv.row, { tep_goc: String(pv.data.tep_goc || '') + ' → thay bằng ' + o.tep_goc + ' (' + ngay + ')' });
+    append_('ConversionLog', { id: newId_(), ma_bai: o.ma_bai, ngay: t,
+      noi_dung: 'Tác giả thay bài' + (o.tep_goc ? ' (' + o.tep_goc + ')' : '') + ', ' + ngay + (o.ly_do ? ': ' + o.ly_do : '') + '. Bản cũ còn trong lịch sử sửa.' });
+    var reviews = rows_('Reviews').filter(function (r) { return r.ma_bai === o.ma_bai; }).length;
+    var board = rows_('Shortlist').filter(function (r) { return r.ma_bai === o.ma_bai; })[0];
+    if (reviews || board) append_('Checks', { id: newId_(), ma_bai: o.ma_bai, trang_thai: 'mở', nguoi: nguoi, ngay: t,
+      noi_dung: 'Tác giả đã thay bài ngày ' + ngay + ': ' + (reviews ? reviews + ' phiếu phản biện' : '') + (reviews && board ? ' và ' : '') +
+                (board ? 'vị trí trên bảng chọn bài số ' + board.ky : '') + ' là của bản cũ — xem lại.' });
   });
 }
