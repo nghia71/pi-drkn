@@ -22,6 +22,7 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
     <select id="view-as" hidden><option value="">Vai trò thật</option></select>
     <button id="go-rounds" class="sm" hidden>Kỳ phản biện</button>
     <button id="go-boards" class="sm" hidden>Bảng chọn bài</button>
+    <button id="go-figs" class="sm" hidden>Hình</button>
   </div>
 </header>
 <main>
@@ -29,6 +30,7 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
   <section id="page" hidden></section>
   <section id="rounds" hidden></section>
   <section id="boards" hidden></section>
+  <section id="figs" hidden></section>
 </main>
 <script>
 var TOKEN = <?= token ?>;
@@ -60,6 +62,9 @@ function showMe(me) {
   var gb = document.getElementById('go-boards');
   gb.hidden = !me.eff.some(function (r) { return ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'].indexOf(r) >= 0; });
   gb.onclick = function () { if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; } nav({ v: 'boards' }); openBoards(); };
+  var gf = document.getElementById('go-figs');
+  gf.hidden = !me.eff.some(function (r) { return ['PT', 'NCB', 'Quản trị'].indexOf(r) >= 0; });
+  gf.onclick = function () { if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; } nav({ v: 'figs' }); openFigs(); };
 }
 Promise.resolve(ME0).then(function (me) {
   showMe(me);
@@ -91,7 +96,7 @@ try {
     var ma = e && e.state && e.state.ma;
     if (dirtyEdit()) { var cur = document.getElementById('page').dataset.ma; nav({ ma: cur }); alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; }
     var v = e && e.state && e.state.v;
-    if (ma) openProblem(ma); else if (v === 'rounds') openRounds(); else if (v === 'boards') openBoards(); else showList();
+    if (ma) openProblem(ma); else if (v === 'rounds') openRounds(); else if (v === 'boards') openBoards(); else if (v === 'figs') openFigs(); else showList();
   });
 } catch (e) {}
 ['f-topic', 'f-level', 'f-status'].forEach(function (id) { document.getElementById(id).onchange = function () { LIST_Y = 0; renderList(); }; });
@@ -111,7 +116,7 @@ function loadList() {
 }
 function showList() {
   if (LIST_STALE) { LIST_STALE = false; renderList(); }
-  document.getElementById('page').hidden = true; document.getElementById('rounds').hidden = true; document.getElementById('boards').hidden = true; document.getElementById('list').hidden = false;
+  document.getElementById('page').hidden = true; document.getElementById('rounds').hidden = true; document.getElementById('boards').hidden = true; document.getElementById('figs').hidden = true; document.getElementById('list').hidden = false;
   window.scrollTo(0, LIST_Y);
 }
 function renderList() {
@@ -142,7 +147,7 @@ function chip(t) { return t ? '<span class="chip">' + esc(t) + '</span>' : ''; }
 // Bộ nhớ tạm phía trình duyệt: mở lại bài / danh sách hiện ngay, rồi cập nhật khi máy chủ trả lời.
 var PCACHE = {}, LCACHE = {}, LROWS = {};
 function openProblem(ma) {
-  var P = document.getElementById('page'); document.getElementById('list').hidden = true; document.getElementById('rounds').hidden = true; document.getElementById('boards').hidden = true; P.hidden = false;
+  var P = document.getElementById('page'); document.getElementById('list').hidden = true; document.getElementById('rounds').hidden = true; document.getElementById('boards').hidden = true; document.getElementById('figs').hidden = true; P.hidden = false;
   window.scrollTo(0, 0);
   if (PCACHE[ma]) renderProblem(ma, PCACHE[ma], false);
   else if (LROWS[ma]) renderProblem(ma, { problem: LROWS[ma], comments: [], limited: true, partial: true }, true);
@@ -159,7 +164,7 @@ function openProblem(ma) {
 }
 function renderProblem(ma, d, loading) {
   var P = document.getElementById('page'); P.dataset.ma = ma;
-  var p = d.problem, de = PiRender.render(p.de_bai || ''), lg = p.loi_giai ? PiRender.render(p.loi_giai) : null;
+  var p = d.problem, fo = figOpts(d), de = PiRender.render(p.de_bai || '', fo), lg = p.loi_giai ? PiRender.render(p.loi_giai, fo) : null;
   var warn = de.warnings.concat(lg ? lg.warnings : []);
   var ed = d.canEdit && !loading;
   var btn = function (f) { return ed ? ' <button class="sm" data-edit="' + f + '">Sửa</button>' : ''; };
@@ -171,6 +176,7 @@ function renderProblem(ma, d, loading) {
       '</select> <button class="sm" data-act="status">Đổi trạng thái</button></p>' : '') +
     (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(p.cap_nhat) : '') + '</p>' : '') +
     '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx">' + de.html + '</div></div>' +
+    (p.hinh || ed ? '<div id="sec-hinh"><h3>Hình' + btn('hinh') + '</h3>' + hinhHtml(d) + '</div>' : '') +
     (loading ? '<p class="mut">Đang tải lời giải và thảo luận…</p>' :
     '<div id="sec-loi_giai">' + (lg ? '<h3>Lời giải' + btn('loi_giai') + '</h3><div class="tx">' + lg.html + '</div>'
                                     : '<h3>Lời giải' + btn('loi_giai') + '</h3><p class="mut">(không có lời giải)</p>') + '</div>' +
@@ -341,7 +347,18 @@ document.addEventListener('change', function (ev) {
  * Khoá lạc quan: gửi kèm phiên bản đang xem; nếu người khác vừa lưu, máy chủ từ chối, bản đang gõ vẫn giữ trong ô,
  * bản mới nhất hiện bên dưới để người sửa tự gộp rồi lưu lại. Không bao giờ ghi đè lặng lẽ. */
 var EDITORS = {};
-var FIELD_NAME = { de_bai: 'đề bài', loi_giai: 'lời giải' };
+var FIELD_NAME = { de_bai: 'đề bài', loi_giai: 'lời giải', hinh: 'hình' };
+var FIELD_TITLE = { de_bai: 'Đề bài', loi_giai: 'Lời giải', hinh: 'Hình' };
+/** Hình đã dựng (SVG) và ảnh của bài, máy chủ gửi kèm khi mở bài. */
+function figOpts(d) { return d && d.hinh ? { figs: d.hinh.figs || {}, pics: d.hinh.pics || {} } : {}; }
+/** Cột Hình: mã TikZ (hiện SVG đã dựng) hoặc tên tệp ảnh, mỗi dòng một tên. */
+function hinhHtml(d, src) {
+  var t = String(src != null ? src : d.problem.hinh || '').trim(), o = figOpts(d);
+  if (!t) return '<p class="mut">(không có hình)</p>';
+  if (t.indexOf('\\begin{tikzpicture}') >= 0) return '<div class="tx figs">' + PiRender.render(t, o).html + '</div>';
+  return '<div class="tx figs">' + t.split('\n').map(function (n) { n = n.trim(); return n ? PiRender.render('\\includegraphics{' + n + '}', o).html : ''; }).join('') +
+    (d.hinh && d.hinh.thieu && d.hinh.thieu.length ? '<p class="w">Không có trong thư mục hình: ' + esc(d.hinh.thieu.join(', ')) + '</p>' : '') + '</div>';
+}
 function dirtyEdit() { return Object.keys(EDITORS).some(function (f) { var e = EDITORS[f]; return e && e.ta.value !== e.orig; }); }
 function busyTyping() {
   var c = document.getElementById('cm-new');
@@ -351,7 +368,9 @@ function busyTyping() {
 function openEditor(ma, field) {
   var d = PCACHE[ma]; if (!d || EDITORS[field]) return;
   var sec = document.getElementById('sec-' + field), orig = d.problem[field] == null ? '' : String(d.problem[field]);
-  sec.innerHTML = '<h3>Sửa ' + FIELD_NAME[field] + ' <span class="mut">(LaTeX sạch — ghi chú, lý do sửa ghi ở mục Sửa đổi / Cần kiểm tra, không ghi vào văn bản)</span></h3>' +
+  sec.innerHTML = '<h3>Sửa ' + FIELD_NAME[field] + ' <span class="mut">' + (field === 'hinh'
+      ? '(mã TikZ — một hay nhiều khối \\begin{tikzpicture}…\\end{tikzpicture} — hoặc tên tệp ảnh trong thư mục hình, mỗi dòng một tên; hình mới hiện sau khi dựng ở trang Hình)'
+      : '(LaTeX sạch — ghi chú, lý do sửa ghi ở mục Sửa đổi / Cần kiểm tra, không ghi vào văn bản)') + '</span></h3>' +
     '<div class="ed"><textarea class="src" spellcheck="false"></textarea><div class="pv tx"></div></div>' +
     '<div class="kind"><label><input type="radio" name="k-' + field + '" value="nho" checked> <b>Sửa nhỏ</b> — chính tả, định dạng, bổ sung dữ liệu thiếu (chỉ ghi lịch sử)</label>' +
     '<label><input type="radio" name="k-' + field + '" value="noi_dung"> <b>Sửa nội dung toán</b> — công thức, đáp số, lập luận (ghi vào Sửa đổi, chờ tác giả xác nhận)</label>' +
@@ -364,7 +383,8 @@ function openEditor(ma, field) {
   var kf = sec.querySelector('.kfields'), kind = function () { return sec.querySelector('input[type=radio]:checked').value; };
   sec.querySelectorAll('input[type=radio]').forEach(function (r) { r.onchange = function () { kf.hidden = kind() !== 'noi_dung'; }; });
   var timer = null, draw = function () {
-    var r = PiRender.render(ta.value);
+    if (field === 'hinh') { pv.innerHTML = hinhHtml(PCACHE[ma], ta.value); return; }
+    var r = PiRender.render(ta.value, figOpts(PCACHE[ma]));
     pv.innerHTML = r.html + (r.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(r.warnings.join('; ')) + '</p>' : '');
     typeset(pv);
   };
@@ -387,9 +407,11 @@ function openEditor(ma, field) {
       if (field === 'de_bai' && LROWS[ma]) LROWS[ma].de_bai = text;
       if (EDITORS.de_bai && field !== 'de_bai') EDITORS.de_bai.base = r.phien_ban;      // phiên bản chung cho cả bài
       if (EDITORS.loi_giai && field !== 'loi_giai') EDITORS.loi_giai.base = r.phien_ban;
+      if (EDITORS.hinh && field !== 'hinh') EDITORS.hinh.base = r.phien_ban;
       delete EDITORS[field]; closeEditor(ma, field);
       if (r.khong_doi) alertBox('Không có thay đổi nào — không tạo phiên bản mới.');
-      if (r.sua_doi) refresh(ma);                                          // dòng Sửa đổi mới
+      // dòng Sửa đổi mới; hình đã dựng / ảnh của mã hình mới (nếu có)
+      if (r.sua_doi || (!r.khong_doi && (field === 'hinh' || /tikzpicture|includegraphics/.test(text)))) refresh(ma);
       if (ALL) renderList();
     }, function (err) {
       save.disabled = false; st.textContent = '';
@@ -416,9 +438,10 @@ function openEditor(ma, field) {
 
 /** Đóng một ô sửa: vẽ lại riêng phần đó (ô sửa kia, nếu đang mở, giữ nguyên) và dòng phiên bản. */
 function closeEditor(ma, field) {
-  var p = PCACHE[ma].problem, sec = document.getElementById('sec-' + field), t = p[field] ? PiRender.render(p[field]) : null;
-  sec.innerHTML = '<h3>' + (field === 'de_bai' ? 'Đề bài' : 'Lời giải') + ' <button class="sm" data-edit="' + field + '">Sửa</button></h3>' +
-    (t ? '<div class="tx">' + t.html + '</div>' + (t.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(t.warnings.join('; ')) + '</p>' : '')
+  var p = PCACHE[ma].problem, sec = document.getElementById('sec-' + field), t = p[field] && field !== 'hinh' ? PiRender.render(p[field], figOpts(PCACHE[ma])) : null;
+  sec.innerHTML = '<h3>' + FIELD_TITLE[field] + ' <button class="sm" data-edit="' + field + '">Sửa</button></h3>' +
+    (field === 'hinh' ? hinhHtml(PCACHE[ma]) :
+     t ? '<div class="tx">' + t.html + '</div>' + (t.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(t.warnings.join('; ')) + '</p>' : '')
        : '<p class="mut">(không có ' + FIELD_NAME[field] + ')</p>');
   sec.querySelector('[data-edit]').onclick = function () { openEditor(ma, field); };
   var v = document.getElementById('ver');
@@ -453,7 +476,7 @@ function reviewsList(rs) {
 var RV = null;
 function openRounds() {
   var R = document.getElementById('rounds');
-  document.getElementById('list').hidden = true; document.getElementById('page').hidden = true; document.getElementById('boards').hidden = true; R.hidden = false;
+  document.getElementById('list').hidden = true; document.getElementById('page').hidden = true; document.getElementById('boards').hidden = true; document.getElementById('figs').hidden = true; R.hidden = false;
   window.scrollTo(0, 0);
   if (!RV) R.innerHTML = '<p class="mut">Đang tải…</p>';
   return call('rounds', {}).then(function (v) { RV = v; renderRounds(); });
@@ -545,7 +568,7 @@ var LIST_STALE = false;
 var BV = null;
 function openBoards() {
   var B = document.getElementById('boards');
-  ['list', 'page', 'rounds'].forEach(function (id) { document.getElementById(id).hidden = true; }); B.hidden = false;
+  ['list', 'page', 'rounds', 'figs'].forEach(function (id) { document.getElementById(id).hidden = true; }); B.hidden = false;
   window.scrollTo(0, 0);
   if (!BV) B.innerHTML = '<p class="mut">Đang tải…</p>';
   return call('boards', {}).then(function (v) { BV = v; renderBoards(); });
@@ -662,6 +685,79 @@ function renderBoards() {
     } else if (a === 'reopen') {
       if (!armed(b.getAttribute('data-ok') === '1' ? 'Bấm lần nữa: huỷ duyệt, các bài trở về trạng thái trước khi duyệt' : 'Bấm lần nữa để mở lại')) return;
       run(call('reopenBoard', { so: so }), 'Đã mở lại bảng số ' + so + '.');
+    }
+  };
+}
+
+/* ---------- Trang Hình (NCB, PT, Quản trị): dựng TikZ thành SVG ở máy rồi tải lên ---------- */
+var FV = null, FIG_ONLY_TODO = true;
+function openFigs() {
+  var F = document.getElementById('figs');
+  ['list', 'page', 'rounds', 'boards'].forEach(function (id) { document.getElementById(id).hidden = true; }); F.hidden = false;
+  window.scrollTo(0, 0);
+  if (!FV) F.innerHTML = '<p class="mut">Đang tải…</p>';
+  return call('figures', {}).then(function (v) { FV = v; renderFigs(); });
+}
+function saveB64(name, b64, type) {
+  var bin = atob(b64), u = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([u], { type: type })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function renderFigs() {
+  var F = document.getElementById('figs'), items = FV.items;
+  var tikz = items.filter(function (x) { return x.ma; }), todo = tikz.filter(function (x) { return !x.da_dung; });
+  var pics = items.filter(function (x) { return x.ten; }), lost = pics.filter(function (x) { return !x.da_dung; });
+  var shown = FIG_ONLY_TODO ? items.filter(function (x) { return !x.da_dung; }) : items;
+  F.innerHTML = '<p><a href="#" id="f-back">← Danh sách</a></p><h2 class="pg">Hình</h2>' +
+    '<p class="sm-t">' + tikz.length + ' hình TikZ (' + todo.length + ' chưa dựng) · ' + pics.length + ' ảnh (' + lost.length + ' không có trong thư mục hình).</p>' +
+    '<div class="card"><h3>Dựng hình TikZ</h3><ol class="sm-t">' +
+    '<li><button class="sm" data-f="src"' + (todo.length ? '' : ' disabled') + '>Tải các hình chưa dựng (.zip)</button> ' +
+    '<button class="sm" data-f="all"' + (tikz.length ? '' : ' disabled') + '>Tải mã của mọi hình TikZ</button></li>' +
+    '<li>Trên máy (cần MacTeX): <code>python3 tools/hinh/build.py ~/Downloads/hinh-chua-dung.zip</code> → tệp <code>hinh-svg.zip</code> cạnh tệp tải về.</li>' +
+    '<li><input type="file" id="f-up" accept=".zip,.svg" multiple> <button class="pri sm" data-f="up">Tải SVG lên</button></li></ol>' +
+    '<p class="mut sm-t">Mỗi hình được nhận ra bằng mã của chính đoạn TikZ: sửa TikZ thì hình hiện "chưa dựng" cho tới khi tải SVG mới. ' +
+    'Không dựng hình của đề chưa đăng trên các trang LaTeX trực tuyến.</p><div id="f-res"></div></div>' +
+    '<p><label><input type="checkbox" id="f-todo"' + (FIG_ONLY_TODO ? ' checked' : '') + '> Chỉ hiện hình chưa dựng / ảnh thiếu</label></p>' +
+    (shown.length ? '<div class="tbl-wrap"><table class="as"><tr><th>Bài</th><th>Trạng thái bài</th><th>Nơi</th><th>Mã hình / tệp</th><th></th></tr>' +
+      shown.map(function (x) {
+        return '<tr><td><a href="#" class="code" data-open="' + escA(x.ma_bai) + '">' + esc(x.ma_bai) + '</a></td><td>' + esc(x.trang_thai) + '</td>' +
+          '<td>' + esc(x.noi) + '</td><td class="code">' + esc(x.ma || x.ten) + '</td>' +
+          '<td>' + (x.da_dung ? '<span class="chip ok">' + (x.ma ? 'đã dựng' : 'có tệp') + '</span>' : '<span class="chip w">' + (x.ma ? 'chưa dựng' : 'thiếu tệp') + '</span>') + '</td></tr>';
+      }).join('') + '</table></div>' : '<p class="mut">Không có hình nào' + (FIG_ONLY_TODO ? ' cần dựng.' : '.') + '</p>');
+  document.getElementById('f-back').onclick = function (e) { e.preventDefault(); nav({}); showList(); };
+  document.getElementById('f-todo').onchange = function (e) { FIG_ONLY_TODO = e.target.checked; renderFigs(); };
+  F.onclick = function (ev) {
+    var o = ev.target.closest('[data-open]');
+    if (o) { ev.preventDefault(); nav({ ma: o.getAttribute('data-open') }); openProblem(o.getAttribute('data-open')); return; }
+    var b = ev.target.closest('[data-f]'); if (!b || b.disabled) return;
+    var k = b.getAttribute('data-f');
+    if (k === 'src' || k === 'all') {
+      b.disabled = true;
+      call('figureSources', { tat_ca: k === 'all' }).then(function (r) {
+        b.disabled = false;
+        if (!r.n) { alertBox('Không có hình nào để tải.'); return; }
+        saveB64(r.ten, r.b64, 'application/zip'); alertOk('Đã tải mã nguồn ' + r.n + ' hình.');
+      }, function () { b.disabled = false; });
+    } else if (k === 'up') {
+      var inp = document.getElementById('f-up'), fl = Array.prototype.slice.call(inp.files || []);
+      if (!fl.length) { alertBox('Chọn tệp hinh-svg.zip (hoặc các tệp tikz-….svg) trước.'); return; }
+      b.disabled = true;
+      Promise.all(fl.map(function (f) {
+        return new Promise(function (ok, bad) {
+          var rd = new FileReader();
+          rd.onload = function () { ok({ name: f.name, b64: String(rd.result).replace(/^data:[^,]*,/, '') }); };
+          rd.onerror = function () { bad(rd.error); };
+          rd.readAsDataURL(f);
+        });
+      })).then(function (files) { return call('uploadFigures', { files: files }); }).then(function (r) {
+        b.disabled = false; inp.value = '';
+        document.getElementById('f-res').innerHTML = '<p class="sm-t">Đã lưu ' + r.saved.length + ' hình.</p>' + (r.skipped.length
+          ? '<div class="conf">Không nhận:<ul>' + r.skipped.map(function (x) { return '<li><span class="code">' + esc(x.ten) + '</span>: ' + esc(x.ly_do) + '</li>'; }).join('') + '</ul></div>' : '');
+        PCACHE = {};
+        return call('figures', {}).then(function (v) { FV = v; var keep = document.getElementById('f-res').innerHTML; renderFigs(); document.getElementById('f-res').innerHTML = keep; });
+      }, function () { b.disabled = false; });
     }
   };
 }

@@ -103,5 +103,66 @@
    "c &gt; d",
    "A &amp; B"
   ]
+ },
+ {
+  "name": "hình TikZ đã dựng hiện thành ảnh SVG (khớp cả khi văn bản có \\r\\n)",
+  "src": "Cho hình vẽ\r\n\\begin{tikzpicture}\r\n\\draw (0,0)--(1,1);\r\n\\end{tikzpicture}\r\nTính $x$.",
+  "opts": {
+   "figs": {
+    "\\begin{tikzpicture}\n\\draw (0,0)--(1,1);\n\\end{tikzpicture}": "data:image/svg+xml;base64,PHN2Zy8+"
+   }
+  },
+  "contains": [
+   "<img class=\"fig-img\"",
+   "src=\"data:image/svg+xml;base64,PHN2Zy8+\""
+  ],
+  "absent": [
+   "chưa dựng",
+   "tikzpicture"
+  ]
+ },
+ {
+  "name": "hình TikZ chưa dựng hiện chỗ trống, không lộ mã",
+  "src": "Cho \\begin{tikzpicture}\n\\draw (0,0)--(1,1);\n\\end{tikzpicture}",
+  "contains": [
+   "<span class=\"fig\">[hình TikZ — chưa dựng]</span>"
+  ],
+  "absent": [
+   "<img",
+   "\\draw"
+  ]
+ },
+ {
+  "name": "đường dẫn ảnh không phải data URI ảnh thì không bao giờ thành thẻ img",
+  "src": "\\begin{tikzpicture}\n\\draw (0,0)--(1,1);\n\\end{tikzpicture} và \\includegraphics{a.png}",
+  "opts": {
+   "figs": {
+    "\\begin{tikzpicture}\n\\draw (0,0)--(1,1);\n\\end{tikzpicture}": "javascript:alert(1)"
+   },
+   "pics": {
+    "a.png": "data:text/html;base64,PHNjcmlwdD4="
+   }
+  },
+  "contains": [
+   "[hình TikZ — chưa dựng]",
+   "[hình: a.png]"
+  ],
+  "absent": [
+   "<img",
+   "javascript",
+   "text/html"
+  ]
+ },
+ {
+  "name": "ảnh có trong thư mục hình hiện thành ảnh",
+  "src": "\\includegraphics[width=3cm]{a.png}",
+  "opts": {
+   "pics": {
+    "a.png": "data:image/png;base64,iVBORw0KGgo="
+   }
+  },
+  "contains": [
+   "<img class=\"fig-img\" alt=\"hình: a.png\" src=\"data:image/png;base64,iVBORw0KGgo=\""
+  ]
  }
 ]

@@ -46,11 +46,12 @@ Hết kỳ, bài rời khỏi danh sách của bạn.}{%
 • Xung đột ghi theo loại, mỗi cái một dòng.\\[2mm]
 \textbf{Bây giờ}\\[0.5mm]
 • Lọc danh sách, xử lý các bài có \emph{cần kiểm tra}.\\
-• Đối chiếu bản gốc khi mục \emph{Đối chiếu nguyên bản} còn „chưa".\\
-• Trả lời thảo luận; báo dòng \emph{Cảnh báo hiển thị}.\\
+• Đối chiếu bản gốc khi \emph{Đối chiếu nguyên bản} còn „chưa"; báo \emph{Cảnh báo hiển thị}.\\
 • \textbf{Sửa}: \emph{Sửa nhỏ}, hoặc \emph{Sửa nội dung toán} (vị trí, lý do → Sửa đổi).\\
-• Kiểm tra, xung đột: thêm, đóng trong Nguồn \& chỉnh sửa.}{%
-• Biểu mẫu \textbf{Nhập bài}: tải hồ sơ, hệ thống tạo mã bài.}
+• Kiểm tra, xung đột: thêm, đóng trong Nguồn \& chỉnh sửa.\\
+• \textbf{Hình}: mục Hình (TikZ / tên ảnh); nút \emph{Hình} để dựng SVG.}{%
+• Biểu mẫu \textbf{Nhập bài}: tải hồ sơ, hệ thống tạo mã bài.\\[1mm]
+• Dựng hình tự động (không cần chạy lệnh ở máy).}
 \end{frame}
 
 %======================================================== NGUỒN & CHỈNH SỬA
@@ -192,7 +193,8 @@ Dải xanh „This application was created by a Google Apps Script user" & thôn
 \begin{frame}[label=sapco]{Đang làm tiếp — hướng dẫn sẽ được cập nhật}
 \begin{tikzpicture}[x=1mm,y=1mm]
 \foreach \t/\who/\d [count=\i] in {
-  {Biểu mẫu Nhập bài}/{VP, NCB, PT}/{tải hồ sơ, hệ thống tạo mã bài}}{
+  {Biểu mẫu Nhập bài}/{VP, NCB, PT}/{tải hồ sơ, hệ thống tạo mã bài},
+  {Dựng hình tự động}/{NCB, PT}/{TikZ thành SVG trong một kho GitHub riêng tư, không chạy lệnh ở máy}}{
   \node[badge=NCB,minimum size=5.5mm,font=\fsz{7}{8}\bfseries] at (3,{-4-(\i-1)*9.5}) {\i};
   \node[anchor=west,font=\fsz{7}{8.4}\bfseries] at (8,{-2.6-(\i-1)*9.5}) {\t};
   \node[anchor=west,font=\fsz{6.2}{7.4},text=ink!70] at (8,{-6-(\i-1)*9.5}) {\d};

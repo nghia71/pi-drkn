@@ -110,12 +110,16 @@ function makeEnv(opts) {
       computeHmacSha256Signature: (msg, key) => toBytes(crypto.createHmac('sha256', key).update(msg, 'utf8').digest()),
       computeDigest: (alg, s) => toBytes(crypto.createHash('sha256').update(s, 'utf8').digest()),
       DigestAlgorithm: { SHA_256: 'sha256' },
+      Charset: { UTF_8: 'utf8' },
+      base64Encode: a => (Buffer.isBuffer(a) ? a : typeof a === 'string' ? Buffer.from(a, 'utf8') : fromBytes(a)).toString('base64'),
+      base64Decode: s => toBytes(Buffer.from(String(s), 'base64')),
       base64EncodeWebSafe: a => fromBytes(a).toString('base64').replace(/\+/g, '-').replace(/\//g, '_'),
       sleep: () => {},
-      newBlob: (data, type, name) => blob(Buffer.from(typeof data === 'string' ? data : Buffer.from(data)), type, name),
+      newBlob: (data, type, name) => blob(typeof data === 'string' ? Buffer.from(data, 'utf8') : Buffer.isBuffer(data) ? data : fromBytes(data), type, name),
       unzip: z => { const b = z.getBytes(), out = []; let i = 0;
         while (b.readUInt32LE(i) === 0x04034b50) { const n = b.readUInt16LE(i + 26), sz = b.readUInt32LE(i + 18), x = b.readUInt16LE(i + 28);
-          const name = b.slice(i + 30, i + 30 + n).toString('utf8'), data = b.slice(i + 30 + n + x, i + 30 + n + x + sz);
+          const method = b.readUInt16LE(i + 8), name = b.slice(i + 30, i + 30 + n).toString('utf8'), raw = b.slice(i + 30 + n + x, i + 30 + n + x + sz);
+          const data = method === 8 ? require('zlib').inflateRawSync(raw) : raw;   // zip của Python (nén) hoặc của Utilities.zip (không nén)
           out.push(blob(data, 'application/octet-stream', name)); i += 30 + n + x + sz; }
         return out; },
       zip: (blobs, name) => blob(zipStore(blobs.map(b => ({ name: b.getName(), data: b.getBytes() }))), 'application/zip', name || 'archive.zip'),
@@ -182,6 +186,8 @@ function makeEnv(opts) {
     return { getId: () => id, getName: () => f.name, getUrl: () => 'https://drive.google.com/drive/folders/' + id,
              createFile: (a, c) => (a && a._blob ? addFile(a.getName(), a, id) : addFile(a, c, id)),
              createFolder: n => folderObj(newFolder(n, id)), setTrashed: v => { f.trashed = v; },
+             getFiles: () => { const ids = Object.keys(files).filter(i => files[i].parent === id && !files[i].trashed); let k = 0;
+                               return { hasNext: () => k < ids.length, next: () => fileObj(ids[k++]) }; },
              getFilesByName: n => { const ids = Object.keys(files).filter(i => files[i].parent === id && files[i].name === n && !files[i].trashed); let k = 0;
                                     return { hasNext: () => k < ids.length, next: () => fileObj(ids[k++]) }; } };
   }
