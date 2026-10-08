@@ -140,7 +140,7 @@ Kho riêng tư \texttt{pi-drkn-hinh} chỉ có một workflow và README.}
 \node[box=GH,text width=24mm,right=of t] (p) {\textbf{Pull request}\\ CI chạy lại kiểm thử};
 \node[box=GH,text width=18mm,right=of p] (mg) {\textbf{Gộp} vào\\ \texttt{main}};
 \node[box=MAC,text width=26mm,right=of mg] (d) {\texttt{scripts/deploy.sh}\\ kiểm thử lại → \texttt{clasp push}\\ → cùng bản triển khai};
-\node[box=GG,text width=30mm,below=12mm of d] (g) {\textbf{Trên Google, tự động}\\ trong 1 giờ: \texttt{runSmoke}\\ (15 kịch bản) → thư kết quả};
+\node[box=GG,text width=30mm,below=12mm of d] (g) {\textbf{Trên Google, tự động}\\ trong 1 giờ: \texttt{runSmoke}\\ (15 kịch bản) → thư nếu lỗi};
 \node[box=GG,text width=30mm,left=8mm of g] (n) {\textbf{Mỗi đêm}: toàn bộ 110 kịch bản\\ trên Google → thư nếu lỗi};
 \node[box=HT,text width=30mm,left=8mm of n] (u) {\textbf{Người dùng}\\ tải lại trang: bản mới\\ (địa chỉ không đổi)};
 \draw[ar] (e)--(t); \draw[ar] (t)--(p); \draw[ar] (p)--(mg); \draw[ar] (mg)--(d); \draw[ar] (d)--(g); \draw[ar] (d.south west) to[out=-150,in=60] (u.north east);

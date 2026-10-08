@@ -5,7 +5,7 @@
  *                  Nếu sắp hết 6 phút, dừng lại và báo — chạy lại runAllTests() để chạy tiếp phần còn lại.
  *   runTests('3')  chỉ chạy nhóm 3 (hoặc một kịch bản: runTests('3.6'); nhiều nhóm: runTests('3,13,13.12')).
  *   runSmoke()     bộ nhanh (~15 kịch bản, 3–4 phút): mỗi phần chính một kịch bản — sau mỗi lần sửa nhỏ.
- *   installAutoTests()  một lần: tự chạy runSmoke sau mỗi lần triển khai (thư báo kết quả) và toàn bộ mỗi đêm (thư khi có lỗi).
+ *   installAutoTests()  một lần: tự chạy runSmoke sau mỗi lần triển khai và toàn bộ mỗi đêm; chỉ gửi thư khi có lỗi.
  *
  * Ba tài khoản (giống trang "Testing the pipeline" của MCC):
  *   QT  = tài khoản chạy bộ kiểm thử (Nghĩa, chủ hệ thống)
@@ -43,8 +43,9 @@ function runSmoke() { return runTests(SMOKE_TESTS); }
 
 /* ---------------- kiểm thử tự động trên Google ----------------
  * installAutoTests() (chạy MỘT LẦN từ trình soạn thảo) đặt một trigger mỗi giờ gọi autoTests():
- *   - sau mỗi lần scripts/deploy.sh (mã BUILD mới, deploy.sh ghi vào Build.gs): chạy runSmoke, gửi thư kết quả (đạt hay lỗi);
- *   - mỗi đêm lúc TEST_HOUR giờ (mặc định 2, giờ của hệ thống): chạy toàn bộ, chỉ gửi thư khi có lỗi.
+ *   - sau mỗi lần scripts/deploy.sh (mã BUILD mới, deploy.sh ghi vào Build.gs): chạy runSmoke;
+ *   - mỗi đêm lúc TEST_HOUR giờ (mặc định 2, giờ của hệ thống): chạy toàn bộ.
+ * Chỉ gửi thư khi có lỗi — không có thư nghĩa là đạt.
  * Mỗi lần Apps Script cho chạy tối đa 6 phút: còn dở thì tự hẹn chạy tiếp sau 1 phút (autoTestsNext) cho tới hết.
  * removeAutoTests() để thôi. Thư gửi tới tài khoản chủ. */
 var AUTO_JOB = 'AUTO_TEST_JOB';            // việc đang chạy dở: {loai: 'sau triển khai' | 'hằng đêm', filter, build}
@@ -103,7 +104,7 @@ function autoTestsNext(e) {
   var ss = SpreadsheetApp.openById(props.getProperty('TEST_SHEET_ID'));
   var rows = ss.getSheetByName('Kết quả').getDataRange().getValues().slice(1);
   var fails = rows.filter(function (r) { return r[3] !== 'ĐẠT'; });
-  if (fails.length || job.loai === 'sau triển khai') {
+  if (fails.length) {                                  // đạt thì im lặng (kết quả vẫn ở tab Kết quả, Execution log)
     MailApp.sendEmail(Session.getEffectiveUser().getEmail(),
       '[Pi ĐRKN] Kiểm thử ' + job.loai + ': ' + (fails.length ? fails.length + ' LỖI' : 'đạt ' + rows.length + '/' + rows.length),
       'Bản: ' + (job.build || '(không rõ)') + '\n' + msg + '\n\n' +
