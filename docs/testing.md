@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | **tự chạy** (`installAutoTests`, một lần): `runSmoke` sau mỗi lần triển khai, toàn bộ mỗi đêm; thư chỉ khi có lỗi | 3–4 phút / ~30 phút |
 | 3. Bằng tay | trình duyệt, tài khoản Google thật | chỉ những gì máy không làm được — bảng ở đầu Lớp 3 | ~30 phút, một lần |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 114 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 115 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`), **giao diện** (`tests/ui/run.js`: trang thật trong Chromium, mỗi vai trò một cửa sổ, đi hết
 các quy trình — xem dưới) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
@@ -45,7 +45,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (114 kịch bản) · gói chế bản và hình (cần MacTeX) ·
+Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (115 kịch bản) · gói chế bản và hình (cần MacTeX) ·
 giao diện · từ bên ngoài (người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy chặn dữ liệu, bộ hiển thị, máy chủ mô phỏng, giao diện và **không đẩy mã** nếu có lỗi.
 
@@ -77,7 +77,7 @@ từ nút Run — dùng `runAllTests`, hoặc tạm thêm một hàm gọi `runT
 
 ### Chạy gì, khi nào
 
-Toàn bộ (~114 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
+Toàn bộ (~115 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
 Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trước mỗi lần đẩy mã; lớp 2 chỉ để bắt chỗ Google khác bản mô phỏng.
 
 | Khi nào | Chạy | Thời gian |
@@ -229,6 +229,7 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | 11.1 | resetPractice tạo 10 bài luyện (4 B, 6 A) + kỳ K-THU, chạy lại không nhân đôi, không chạm bài thật | QT |
 | 11.2 | Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy | T1+T2 |
 | 11.3 | Hai tài khoản thử (TEST_USERS) mang vai trò ban biên tập thấy mọi bài luyện (B14, B15); với vai trò PB chỉ thấy bài được giao; người khác không thấy | T1+T2 |
+| 11.4 | Người dùng thử (PRACTICE_USERS) mang vai trò ban biên tập thấy bài luyện; bỏ khỏi danh sách thì không thấy | T1 |
 
 **12. Hàm quản trị**
 
@@ -353,6 +354,8 @@ Trình soạn thảo dự án chính → chọn `resetPractice` → Run. Việc 
 - đặt T1, T2 làm PB.
 
 Không bài thật nào bị đụng tới. Ban biên tập (TBT, NCB…) không thấy bài luyện; chỉ Quản trị và người được giao thấy.
+Đợt dùng thử với người thật: thêm email của họ vào Script property `PRACTICE_USERS` (cách nhau dấu phẩy) — với vai trò ban biên tập
+họ thấy đủ mười bài luyện; xoá khi xong (`docs/moi-dung-thu/README.md`).
 **Chạy `resetPractice` trước mỗi buổi kiểm thử tay.**
 
 Địa chỉ dùng trong mọi bài: **đường dẫn đăng nhập** (địa chỉ /exec của dự án đăng nhập). Không dùng địa chỉ của ứng dụng chính.

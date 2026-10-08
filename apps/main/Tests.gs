@@ -158,7 +158,7 @@ function runOne_(t) {
     TEST_CONF.BLIND_REVIEW = 'true';
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
     delete TEST_CONF.EXPORT_FOLDER_ID; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
-    TEST_CONF.TEST_USERS = '';   // mặc định: T1, T2 là người thường; 11.3 bật lại
+    TEST_CONF.TEST_USERS = ''; TEST_CONF.PRACTICE_USERS = '';   // mặc định: T1, T2 là người thường; 11.3, 11.4 bật lại
     [TK.acc.T1, TK.acc.T2].forEach(function (e) { CacheService.getScriptCache().remove('errn:' + e); });   // giới hạn ghi lỗi (Feedback.gs)
     delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE; delete TEST_CONF.BACKUP_FOLDER_ID; delete TEST_CONF.BACKUP_KEEP;   // không gọi GitHub thật; 16.8 dùng kho giả
     t.fn();
@@ -836,6 +836,16 @@ function defineTests_() {
     eq_(thu(login_(A.T1)), ['THU-01', 'THU-02'], 'PB chỉ thấy bài được giao');
     TEST_CONF.TEST_USERS = A.T1;
     eq_(thu(login_(A.T2)), ['THU-02'], 'không phải tài khoản thử: chỉ bài được giao');
+  });
+  test_('11.4', 'Người dùng thử (PRACTICE_USERS) mang vai trò ban biên tập thấy bài luyện; bỏ khỏi danh sách thì không thấy', 'T1', function () {
+    resetPractice();
+    setUsers_({ QT: 'Quản trị', T1: 'PT', T2: 'TBT' });
+    var thu = function (tok) { return call_(tok, 'listProblems', {}).filter(function (p) { return p.ma_bai.indexOf('THU-') === 0; }).length; };
+    eq_(thu(login_(A.T2)), 1, 'chưa là người dùng thử: chỉ bài luyện được giao (THU-02)');
+    TEST_CONF.PRACTICE_USERS = ' ' + A.T2.toUpperCase() + ' , khac@example.com';
+    eq_(thu(login_(A.T2)), 10, 'người dùng thử (TBT) thấy đủ 10 bài luyện');
+    TEST_CONF.PRACTICE_USERS = '';
+    eq_(thu(login_(A.T2)), 1, 'bỏ khỏi danh sách: lại chỉ bài được giao');
   });
   test_('11.2', 'Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy', 'T1+T2', function () {
     resetPractice();

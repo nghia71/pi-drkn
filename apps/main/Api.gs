@@ -103,10 +103,11 @@ function canSee_(w, ma, assigned) {
   return has_(w, ['PB']) && !!assigned[ma];
 }
 
-/** Tài khoản thử (Script property TEST_USERS)? Tính một lần cho mỗi lời gọi. */
+/** Thấy bài luyện tập: tài khoản thử (TEST_USERS) và người đang dùng thử (PRACTICE_USERS — thêm khi mời dùng thử, bỏ khi xong). */
 function practiceUser_(w) {
   if (w._thu === undefined) {
-    w._thu = String(conf_('TEST_USERS') || '').split(',').map(function (x) { return x.trim().toLowerCase(); }).indexOf(w.email) >= 0;
+    var list = (String(conf_('TEST_USERS') || '') + ',' + String(conf_('PRACTICE_USERS') || '')).split(',');
+    w._thu = list.map(function (x) { return x.trim().toLowerCase(); }).indexOf(w.email) >= 0;
   }
   return w._thu;
 }
