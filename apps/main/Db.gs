@@ -80,8 +80,19 @@ function findRow_(name, key, value) {
   var all = rows_(name);
   // email: so khớp không phân biệt hoa/thường và bỏ khoảng trắng (người nhập tay vào Sheet hay gõ thừa)
   var norm = key === 'email' ? function (v) { return String(v).trim().toLowerCase(); } : String;
-  for (var i = 0; i < all.length; i++) if (norm(all[i][key]) === norm(value)) return { row: all[i]._row, data: all[i] };
+  for (var i = 0; i < all.length; i++) if (norm(all[i][key]) === norm(value)) {
+    FOUND_KEY_[name + '#' + all[i]._row] = keyOf_(name, all[i]);             // update_ kiểm tra lại dòng này trước khi ghi
+    return { row: all[i]._row, data: all[i] };
+  }
   return null;
+}
+var FOUND_KEY_ = {};
+/** Cột nhận diện một dòng (không đổi khi sửa): mặc định cột đầu; bảng có cột đầu trùng nhau thì ghép thêm cột. */
+var ROW_KEY_COLS_ = { Assignments: ['ky', 'ma_bai', 'email'], Shortlist: ['ky', 'ma_bai'] };
+function keyOf_(name, obj) {
+  var cols = ROW_KEY_COLS_[name] || [SCHEMA[name][0]], out = [];
+  for (var i = 0; i < cols.length; i++) { var v = obj[cols[i]]; if (typeof v !== 'string' || v === '') return null; out.push(v); }
+  return out.join('\u0001');
 }
 
 /**
@@ -110,8 +121,26 @@ function update_(name, row, patch) {
   READ_MEMO_ = READ_MEMO_ && {};
   var cols = SCHEMA[name], sh = sheet_(name);
   withLock_(function () {
+    row = recheckRow_(name, sh, row);
     cols.forEach(function (c, j) { if (patch[c] !== undefined) sh.getRange(row, j + 1).setValue(cell_(patch[c])); });
   });
+}
+
+/**
+ * Số dòng tìm được (findRow_) có thể đã cũ khi ghi: người khác vừa xoá dòng phía trên (đặt lại bài luyện, xoá kỳ, đưa về như trước
+ * khi dùng thử) thì các dòng dưới dịch lên. Trong khoá ghi: so khoá (cột đầu) của dòng với khoá đã đọc; lệch thì tìm lại theo khoá,
+ * không thấy thì dừng — không bao giờ ghi nhầm sang dòng khác.
+ */
+function recheckRow_(name, sh, row) {
+  var want = FOUND_KEY_[name + '#' + row];
+  if (!want) return row;                                                   // không rõ khoá (ô kiểu ngày…): như cũ
+  var cols = SCHEMA[name], width = cols.length;
+  var asObj = function (vals) { var o = {}; cols.forEach(function (c, j) { o[c] = vals[j]; }); return o; };
+  var got = keyOf_(name, asObj(sh.getRange(row, 1, 1, width).getValues()[0]));
+  if (got === null || got === want) return row;
+  var n = sh.getLastRow(), all = n < 2 ? [] : sh.getRange(2, 1, n - 1, width).getValues();
+  for (var i = 0; i < all.length; i++) if (keyOf_(name, asObj(all[i])) === want) { FOUND_KEY_[name + '#' + (i + 2)] = want; return i + 2; }
+  throw new Error('Dữ liệu vừa thay đổi (' + name + ': dòng cần sửa không còn) — tải lại trang rồi thử lại.');
 }
 
 function withLock_(fn) {

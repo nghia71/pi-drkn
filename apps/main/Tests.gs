@@ -74,7 +74,7 @@ function autoTests(e) {
   if (!fromTrigger_(e)) adminOnly_();
   var props = PropertiesService.getScriptProperties();
   try { syncFigures_(); } catch (err) { Logger.log('dựng hình (GitHub): ' + err.message); }   // lưới an toàn: hình từ nhập / vá
-  nightlyBackup_();                                                                            // sao lưu Sheet dữ liệu (Backup.gs)
+  try { nightlyBackup_(); } catch (err) { Logger.log('sao lưu: ' + err.message); }                                 // sao lưu Sheet dữ liệu (Backup.gs)
   try { feedbackDigest_(); } catch (err) { Logger.log('thư tóm tắt góp ý: ' + err.message); }   // góp ý, lỗi mới (Feedback.gs)
   if (props.getProperty(AUTO_JOB)) return 'đang có lượt kiểm thử chạy dở';
   var b = build_(), today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
@@ -157,9 +157,9 @@ function runOne_(t) {
     if (t.fresh) seed_();
     TEST_CONF.BLIND_REVIEW = 'true';
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
-    delete TEST_CONF.EXPORT_FOLDER_ID; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
+    delete TEST_CONF.EXPORT_FOLDER_ID; delete TEST_CONF.MAIL_FAIL; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
     TEST_CONF.TEST_USERS = ''; TEST_CONF.PRACTICE_USERS = '';   // mặc định: T1, T2 là người thường; 11.3, 11.4 bật lại
-    [TK.acc.T1, TK.acc.T2].forEach(function (e) { CacheService.getScriptCache().remove('errn:' + e); });   // giới hạn ghi lỗi (Feedback.gs)
+    [TK.acc.T1, TK.acc.T2, TK.acc.QT].forEach(function (e) { CacheService.getScriptCache().remove('errn:' + e); CacheService.getScriptCache().remove('fbn:' + e); });   // giới hạn ghi lỗi (Feedback.gs)
     delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE; delete TEST_CONF.BACKUP_FOLDER_ID; delete TEST_CONF.BACKUP_KEEP; delete TEST_CONF.TRIAL;   // không gọi GitHub thật; 16.8 dùng kho giả
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
@@ -847,27 +847,34 @@ function defineTests_() {
     TEST_CONF.PRACTICE_USERS = '';
     eq_(thu(login_(A.T2)), 1, 'bỏ khỏi danh sách: lại chỉ bài được giao');
   });
-  test_('11.5', 'Nút Đặt lại bài luyện tập: xoá mọi việc trên bài THU (phiếu, thảo luận, sửa) và kỳ / bảng chỉ gồm bài THU (kể cả tên tự đặt); kỳ, bảng có bài thật giữ nguyên; chỉ Quản trị, PT, TBT đang dùng thử', 'T1', function () {
+  test_('11.5', 'Nút Đặt lại bài luyện tập: xoá mọi việc trên bài THU (phiếu, thảo luận, sửa) và kỳ / bảng TÊN THU-…; kỳ, bảng tên khác giữ nguyên (chỉ mất dòng bài luyện), kể cả khi chỉ có bài luyện; người thường không đặt được tên THU-…; chỉ Quản trị, PT, TBT đang dùng thử', 'T1', function () {
     resetPractice();
     setUsers_({ QT: 'Quản trị', T1: 'PT', T2: 'PB' });
     TEST_CONF.PRACTICE_USERS = A.T1;
-    var pt = login_(A.T1);
-    call_(pt, 'openRound', { ky: 'PB-TAP-1', han_phan_bien: addDays_(today_(), 5) });
-    call_(pt, 'assign', { ky: 'PB-TAP-1', ma_bai: 'THU-03', email: A.T2 });
-    call_(pt, 'openRound', { ky: 'PB-THAT', han_phan_bien: addDays_(today_(), 5) });
-    call_(pt, 'assign', { ky: 'PB-THAT', ma_bai: 'THU-04', email: A.T2 }); call_(pt, 'assign', { ky: 'PB-THAT', ma_bai: 'TEST-02', email: A.T2 });
+    var pt = login_(A.T1), han = addDays_(today_(), 5);
+    call_(pt, 'openRound', { ky: 'THU-KY-1', han_phan_bien: han });
+    call_(pt, 'assign', { ky: 'THU-KY-1', ma_bai: 'THU-03', email: A.T2 });
+    call_(pt, 'openRound', { ky: 'PB-11/2026', han_phan_bien: han });                     // kỳ thật, mới chỉ giao một bài luyện
+    call_(pt, 'assign', { ky: 'PB-11/2026', ma_bai: 'THU-04', email: A.T2 });
+    call_(pt, 'openRound', { ky: 'PB-THAT', han_phan_bien: han });
+    call_(pt, 'assign', { ky: 'PB-THAT', ma_bai: 'THU-05', email: A.T2 }); call_(pt, 'assign', { ky: 'PB-THAT', ma_bai: 'TEST-02', email: A.T2 });
+    call_(login_(A.T2), 'submitReview', { ky: 'PB-THAT', ma_bai: 'TEST-02', muc_de_nghi: 'A', diem: 'chọn', nhan_xet: 'phiếu thật' });
     call_(login_(A.T2), 'addComment', { ma_bai: 'THU-03', noi_dung: 'nhận xét tập' });
     call_(pt, 'setStatus', { ma_bai: 'THU-05', trang_thai: 'SL' });
     var v = Number(findRow_('Problems', 'ma_bai', 'THU-06').data.phien_ban);
     call_(pt, 'saveText', { ma_bai: 'THU-06', truong: 'de_bai', noi_dung: 'sửa tập', phien_ban: v });
-    throws_(function () { call_(login_(A.T2), 'resetPractice'); }, 'Không có quyền');
     TEST_CONF.PRACTICE_USERS = '';
+    throws_(function () { call_(pt, 'openRound', { ky: 'THU-2026', han_phan_bien: han }); }, 'dành cho luyện tập');
+    throws_(function () { call_(pt, 'newBoard', { so: 'THU-99/2026' }); }, 'dành cho luyện tập');
     throws_(function () { call_(pt, 'resetPractice'); }, 'chỉ người đang dùng thử');
     TEST_CONF.PRACTICE_USERS = A.T1;
+    throws_(function () { call_(login_(A.T2), 'resetPractice'); }, 'Không có quyền');
     has_s_(call_(pt, 'resetPractice').msg, 'Đã đặt lại');
-    ok_(!findRow_('Rounds', 'ky', 'PB-TAP-1'), 'kỳ chỉ gồm bài luyện bị xoá');
-    ok_(findRow_('Rounds', 'ky', 'PB-THAT'), 'kỳ có bài thật giữ nguyên');
-    eq_(rows_('Assignments').filter(function (a) { return a.ky === 'PB-THAT'; }).map(function (a) { return a.ma_bai; }), ['TEST-02'], 'chỉ bỏ phân công bài luyện');
+    ok_(!findRow_('Rounds', 'ky', 'THU-KY-1'), 'kỳ tên THU-… bị xoá');
+    ok_(findRow_('Rounds', 'ky', 'PB-11/2026'), 'kỳ tên khác giữ nguyên dù chỉ có bài luyện');
+    eq_(rows_('Assignments').filter(function (a) { return a.ky === 'PB-11/2026'; }).length, 0, 'chỉ mất dòng bài luyện');
+    eq_(rows_('Assignments').filter(function (a) { return a.ky === 'PB-THAT'; }).map(function (a) { return a.ma_bai; }), ['TEST-02']);
+    ok_(rows_('Reviews').some(function (r) { return r.nhan_xet === 'phiếu thật'; }), 'phiếu của bài thật giữ nguyên');
     ok_(!rows_('Comments').some(function (c) { return c.ma_bai === 'THU-03'; }), 'thảo luận tập bị xoá');
     eq_(findRow_('Problems', 'ma_bai', 'THU-05').data.trang_thai, 'Mới', 'trạng thái về như mới');
     eq_(Number(findRow_('Problems', 'ma_bai', 'THU-06').data.phien_ban), 1, 'đề về bản đầu');
@@ -1507,6 +1514,9 @@ function defineTests_() {
     eq_(sheet_('Feedback').getRange(3, 7).getFormula(), '', 'không thành công thức');
     throws_(function () { call_('token-bia', 'feedback', { noi_dung: 'x' }); });
     eq_(rows_('Feedback').length, 2);
+    for (var i = 2; i < FEEDBACK_PER_HOUR; i++) call_(tok, 'feedback', { noi_dung: 'góp ý ' + i });
+    throws_(function () { call_(tok, 'feedback', { noi_dung: 'quá nhiều' }); }, 'trong một giờ');
+    eq_(rows_('Feedback').length, FEEDBACK_PER_HOUR, 'mỗi người tối đa ' + FEEDBACK_PER_HOUR + ' góp ý mỗi giờ');
   });
   test_('18.2', 'Lỗi trên trang: ghi tab Errors (ai, vai trò, trang, lỗi, trình duyệt), cắt chữ quá dài; mỗi người tối đa ' + ERR_PER_HOUR + ' dòng mỗi giờ', 'T1', function () {
     var tok = login_(A.T1);
@@ -1532,8 +1542,11 @@ function defineTests_() {
   test_('18.4', 'Thư tóm tắt mỗi sáng: góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mới thì không gửi; mỗi ngày một lần', 'QT', function () {
     call_(login_(A.T1), 'feedback', { diem: 2, noi_dung: 'Không thấy nút Giao.' });
     call_(login_(A.T1), 'logError', { trang: 'kỳ', loi: 'assign: Không có quyền' }); call_(login_(A.T2), 'logError', { trang: 'kỳ', loi: 'assign: Không có quyền' });
+    TEST_CONF.MAIL_FAIL = true;                                              // thư không gửi được (hết hạn mức)
+    throws_(function () { feedbackDigest_(true); }, 'hạn mức');
+    delete TEST_CONF.MAIL_FAIL;
     TEST_OUTBOX = [];
-    eq_(feedbackDigest_(true), 3);
+    eq_(feedbackDigest_(true), 3, 'lần sau gửi lại đủ — không mất góp ý, lỗi');
     eq_(TEST_OUTBOX.length, 1); has_s_(TEST_OUTBOX[0].subject, '1 góp ý, 2 lỗi');
     has_s_(TEST_OUTBOX[0].body, 'Không thấy nút Giao.'); has_s_(TEST_OUTBOX[0].body, '2× assign: Không có quyền');
     has_s_(TEST_OUTBOX[0].body, A.T1 + ', ' + A.T2);
@@ -1588,8 +1601,10 @@ function defineTests_() {
       call_(qt, 'trial', { viec: 'bat_dau' });
       call_(qt, 'setStatus', { ma_bai: 'TEST-01', trang_thai: 'SL' });
       throws_(function () { call_(login_(A.T2), 'trial', { viec: 'dua_ve' }); }, 'Không có quyền');
+      TEST_OUTBOX = [];
       call_(login_(A.T1), 'trial', { viec: 'dua_ve' });
       eq_(findRow_('Problems', 'ma_bai', 'TEST-01').data.trang_thai, 'Mới', 'TBT đưa về được');
+      ok_(TEST_OUTBOX.length === 1 && TEST_OUTBOX[0].subject.indexOf(A.T1) >= 0, 'chủ hệ thống nhận thư khi TBT đưa về');
       throws_(function () { call_(login_(A.T1), 'trial', { viec: 'ket_thuc' }); }, 'Không có quyền');
       call_(qt, 'setStatus', { ma_bai: 'TEST-01', trang_thai: 'SL' });
       call_(qt, 'trial', { viec: 'ket_thuc', dua_ve: false });
@@ -1602,6 +1617,18 @@ function defineTests_() {
       eq_(findRow_('Problems', 'ma_bai', 'TEST-04').data.trang_thai, 'Mới', 'đưa về rồi kết thúc');
       eq_(call_(qt, 'me').trial, null);
     });
+  });
+
+  test_('12.4', 'Ghi đúng dòng khi dòng phía trên vừa bị xoá (đặt lại bài luyện, xoá kỳ, đưa về): tìm lại theo khoá; dòng không còn thì báo, không ghi nhầm', 'QT', function () {
+    var hit = findRow_('Problems', 'ma_bai', 'TEST-04');
+    sheet_('Problems').deleteRow(2);                                       // người khác xoá một dòng phía trên
+    READ_MEMO_ = null;
+    update_('Problems', hit.row, { trang_thai: 'SL' });
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-04').data.trang_thai, 'SL', 'ghi đúng bài');
+    ok_(!rows_('Problems').some(function (p) { return p.ma_bai === 'TEST-05' && p.trang_thai === 'SL'; }), 'không ghi nhầm sang bài dưới');
+    var a = findRow_('Assignments', 'ky', 'K-MO');
+    sheet_('Assignments').deleteRow(a.row);                                // dòng cần sửa đã bị xoá
+    throws_(function () { update_('Assignments', a.row, { xong: true }); }, 'Dữ liệu vừa thay đổi');
   });
 
   test_('12.3', 'Sao lưu: bản sao Sheet vào thư mục sao lưu, đủ các tab và dữ liệu; chạy lại cùng ngày thay bản cũ; giữ BACKUP_KEEP bản mới nhất; chỉ chủ chạy tay được', 'QT', function () {
@@ -1773,19 +1800,16 @@ function practiceReset_(w) {
 }
 
 /**
- * Xoá mọi việc đã làm trên bài luyện tập rồi tạo lại mười bài như mới. "Việc luyện tập" = mọi dòng của bài THU-…, cùng các kỳ
- * phản biện và bảng chọn bài tên THU-… / K-THU **hoặc chỉ gồm bài THU-…** (kỳ, bảng người dùng thử tự đặt tên). Bài thật không bị đụng.
+ * Xoá mọi việc đã làm trên bài luyện tập rồi tạo lại mười bài như mới. Chỉ xoá:
+ *  - mọi dòng có ma_bai là bài luyện (THU-…), ở mọi tab;
+ *  - kỳ phản biện, bảng chọn bài TÊN là K-THU hoặc bắt đầu bằng THU- (tên dành riêng cho luyện tập: người thường không đặt được).
+ * Kỳ / bảng tên khác dù chỉ có bài luyện vẫn được giữ (chỉ mất các dòng bài luyện) — không bao giờ đoán là "luyện tập" để xoá.
  * users: tài khoản thử (TEST_USERS) — hai người đầu được giao THU-01, THU-02 trong kỳ K-THU.
  */
+function isPracticeName_(v) { v = String(v || ''); return v === PRACTICE_ROUND || v.indexOf(PRACTICE_PREFIX) === 0; }
 function resetPracticeData_(users) {
   var isThu = function (ma) { return String(ma).indexOf(PRACTICE_PREFIX) === 0; };
-  var keys = {}, byKey = {};
-  keys[PRACTICE_ROUND] = 1;
-  [['Assignments', 'ky'], ['Shortlist', 'ky']].forEach(function (t) {
-    rows_(t[0]).forEach(function (r) { var k = String(r[t[1]]); (byKey[k] = byKey[k] || []).push(r.ma_bai); });
-  });
-  Object.keys(byKey).forEach(function (k) { if (byKey[k].length && byKey[k].every(isThu)) keys[k] = 1; });
-  var removed = 0;
+  var removed = 0, names = {};
   withLock_(function () {
     Object.keys(SCHEMA).forEach(function (name) {
       var cols = SCHEMA[name], iMa = cols.indexOf('ma_bai'), iKy = cols.indexOf('ky'), iSo = cols.indexOf('so');
@@ -1794,12 +1818,16 @@ function resetPracticeData_(users) {
       if (n < 2) return;
       var vals = sh.getRange(2, 1, n - 1, cols.length).getValues();
       for (var r = vals.length - 1; r >= 0; r--) {
-        var practice = (iMa >= 0 && isThu(vals[r][iMa])) || (iKy >= 0 && (isThu(vals[r][iKy]) || keys[String(vals[r][iKy])])) ||
-                       (iSo >= 0 && (isThu(vals[r][iSo]) || keys[String(vals[r][iSo])]));
-        if (practice) { sh.deleteRow(r + 2); removed++; }
+        var practice = (iMa >= 0 && isThu(vals[r][iMa])) || (iKy >= 0 && isPracticeName_(vals[r][iKy])) || (iSo >= 0 && isPracticeName_(vals[r][iSo]));
+        if (practice) {
+          if (iKy >= 0 && isPracticeName_(vals[r][iKy])) names[vals[r][iKy]] = 1;
+          if (iSo >= 0 && isPracticeName_(vals[r][iSo])) names[vals[r][iSo]] = 1;
+          sh.deleteRow(r + 2); removed++;
+        }
       }
     });
   });
+  var keys = names;
   READ_MEMO_ = READ_MEMO_ && {};
   var t = now_();
   [['THU-01', 'ĐS', 'Bài luyện 1 (bịa, để kiểm thử): Cho $a,b>0$ và $a+b=2$. Chứng minh $ab\\le 1$.', 'Theo AM-GM, $ab\\le\\left(\\frac{a+b}{2}\\right)^2=1$.'],
@@ -1824,7 +1852,7 @@ function resetPracticeData_(users) {
   [['THU-01', users[0]], ['THU-02', users[0]], ['THU-02', users[1]]].forEach(function (a) {
     if (a[1]) append_('Assignments', { ky: PRACTICE_ROUND, ma_bai: a[0], email: a[1], giao_luc: t });
   });
-  return 'Đã đặt lại bài luyện tập (xoá ' + removed + ' dòng cũ, gồm ' + (Object.keys(keys).length - 1) + ' kỳ / bảng luyện tập)' +
+  return 'Đã đặt lại bài luyện tập (xoá ' + removed + ' dòng cũ, gồm ' + Object.keys(keys).length + ' kỳ / bảng luyện tập)' +
     (users.length >= 2 ? ': THU-01 → ' + users[0] + '; THU-02 → ' + users[0] + ', ' + users[1] + '; THU-03…THU-10 → không ai.' : '.');
 }
 

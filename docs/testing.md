@@ -409,7 +409,7 @@ Nhận xét thứ hai hiện đúng `=1+1`; trong Sheet, tab Comments, ô đó l
 ### B5 — Người không có trong hệ thống
 **Các bước.**
 1. *(LẠ, cửa sổ riêng tư)* Mở đường dẫn đăng nhập, cho phép, bấm Vào hệ thống.
-**Bạn sẽ thấy.** "Địa chỉ … chưa có vai trò trong hệ thống. Hãy liên hệ Phụ trách chuyên mục." Không thấy bài nào.
+**Bạn sẽ thấy.** "Địa chỉ … chưa có vai trò trong hệ thống. Hãy liên hệ người đã mời thầy cô (Quản trị hoặc Phụ trách chuyên mục)…" Không thấy bài nào.
 Tab Audit có dòng "từ chối" với địa chỉ đó.
 
 ### B6 — Tạm ngưng một phản biện đang làm việc

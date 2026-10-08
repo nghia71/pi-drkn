@@ -65,7 +65,7 @@ function logErr(loi, chi) {
   var k = String(loi).slice(0, 300);
   if (ERR_SEEN[k] || ERR_N >= 10) return;
   ERR_SEEN[k] = 1; ERR_N++;
-  try { google.script.run.api(TOKEN, 'logError', { trang: pageCtx(), loi: k, chi_tiet: String(chi || '').slice(0, 1500), trinh_duyet: navigator.userAgent }); } catch (e) {}
+  try { google.script.run.withFailureHandler(function () {}).api(TOKEN, 'logError', { trang: pageCtx(), loi: k, chi_tiet: String(chi || '').slice(0, 1500), trinh_duyet: navigator.userAgent }); } catch (e) {}
 }
 window.addEventListener('error', function (e) { logErr('JavaScript: ' + (e.message || e), (e.filename || '') + ':' + (e.lineno || '') + ' ' + (e.error && e.error.stack || '')); });
 window.addEventListener('unhandledrejection', function (e) { var r = e.reason; if (r && r.__logged) return; logErr('JavaScript (promise): ' + (r && r.message || r), r && r.stack); });
@@ -170,7 +170,7 @@ var FB_LABEL = ['', 'rất khó dùng', 'khó dùng', 'tạm được', 'dễ d�
 function openFeedback() {
   var d = document.getElementById('fb-dlg');
   if (!d) { d = document.createElement('dialog'); d.id = 'fb-dlg'; document.body.appendChild(d); }
-  var admin = ME && ME.roles.indexOf('Quản trị') >= 0, diem = '';
+  var admin = ME && ME.eff.indexOf('Quản trị') >= 0, diem = '';   // "xem như" vai trò khác: như người đó
   d.innerHTML = '<h3>Góp ý</h3><p class="mut sm-t">Thầy cô thấy chỗ nào khó dùng, thiếu, sai — viết vài dòng. Hệ thống tự ghi kèm trang đang xem (' +
     esc(pageCtx()) + ').</p><p class="fb-diem">Dễ dùng không? ' + [1, 2, 3, 4, 5].map(function (n) {
       return '<button type="button" class="sm" data-d="' + n + '" title="' + FB_LABEL[n] + '">' + n + '</button>'; }).join('') +
@@ -708,7 +708,7 @@ function openRounds() {
 }
 function renderRounds() {
   var R = document.getElementById('rounds'), v = RV, today = v.today || new Date().toISOString().slice(0, 10);
-  var probs = (ALL || []).filter(function (p) { return p.ma_bai.indexOf('THU-') !== 0 || (ME && ME.roles.indexOf('Quản trị') >= 0); });
+  var probs = ALL || [];   // bài luyện chỉ có trong ALL với Quản trị và người dùng thử — họ giao được bài luyện
   var h = '<p><a href="#" id="r-back">← Danh sách</a></p><h2 class="pg">Kỳ phản biện</h2>' +
     '<p class="mut sm-t">Nhắc hạn tự động ' + esc((v.reminderDays || []).join(' và ')) + ' ngày trước hạn (cho người đã được mời, chưa đánh dấu xong). ' +
     'Ngày tính theo giờ ' + esc(v.timezone === 'Asia/Ho_Chi_Minh' ? 'Việt Nam' : v.timezone) + ': hôm nay là ' + esc(vnDate(v.today)) + '.</p>';
@@ -718,7 +718,7 @@ function renderRounds() {
   if (practice) h += '<div class="card tap"><h3>Luyện tập</h3><p class="sm-t">Mười bài <b>THU-01…THU-10</b> là bài bịa để tập — làm gì cũng được. ' +
     '<b>Đặt lại</b> xoá mọi việc đã làm trên chúng (phiếu, thảo luận, sửa đề, trạng thái, kỳ và bảng chọn bài chỉ gồm bài luyện) và đưa về như mới. ' +
     'Bài thật không bị đụng tới.</p><p><button class="sm" data-r="practice">Đặt lại bài luyện tập…</button></p></div>';
-  var isAdmin = ME && ME.roles.indexOf('Quản trị') >= 0, canRestore = ME && ME.eff.some(function (r) { return r === 'Quản trị' || r === 'TBT'; });
+  var isAdmin = ME && ME.eff.indexOf('Quản trị') >= 0, canRestore = ME && ME.eff.some(function (r) { return r === 'Quản trị' || r === 'TBT'; });
   if (isAdmin || (ME && ME.trial && canRestore)) {
     h += '<div class="card tap"><h3>Dùng thử trên bài thật</h3>' + (ME.trial
       ? '<p class="sm-t">Đang dùng thử từ <b>' + esc(vnDate(ME.trial.tu)) + '</b>' + (ME.trial.lan_dua_ve ? ' · đã đưa về ' + ME.trial.lan_dua_ve + ' lần' : '') +
@@ -802,7 +802,8 @@ function renderRounds() {
       run(call('deleteRound', { ky: ky }), 'Đã xoá kỳ ' + ky + '.');
     } else if (a === 'trial') {
       var viec = b.getAttribute('data-viec'), giu = b.getAttribute('data-giu') === '1';
-      var ask = { bat_dau: 'Bấm lần nữa: chụp dữ liệu, bắt đầu dùng thử', dua_ve: 'Bấm lần nữa: đưa mọi bài, kỳ, bảng về như lúc bắt đầu dùng thử',
+      var tuoi = ME.trial ? Math.round((Date.now() - new Date(ME.trial.tu + 'T00:00:00').getTime()) / 86400000) : 0;
+      var ask = { bat_dau: 'Bấm lần nữa: chụp dữ liệu, bắt đầu dùng thử', dua_ve: 'Bấm lần nữa: bỏ mọi việc làm trong ' + tuoi + ' ngày dùng thử, đưa về như lúc bắt đầu',
                   ket_thuc: giu ? 'Bấm lần nữa: kết thúc, giữ mọi thay đổi' : 'Bấm lần nữa: đưa về như trước rồi kết thúc' }[viec];
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = ask; return; }
       b.disabled = true;

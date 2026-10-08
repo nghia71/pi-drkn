@@ -31,48 +31,67 @@ function trialSnapshot_(label) {
   return DriveApp.getFileById(id).makeCopy('Pi ĐRKN — dữ liệu — ' + label + ' ' + today_(), backupFolder_()).getId();
 }
 
+/**
+ * Đưa về, trong MỘT khoá ghi (không ai ghi xen vào): đọc lại trạng thái, chụp trạng thái hiện tại, sao chép mọi tab của bản chụp
+ * vào Sheet dữ liệu dưới tên tạm, rồi mới thay một loạt. Lỗi khi sao chép: bỏ các bản tạm, dữ liệu chưa đổi gì.
+ */
 function trialRestore_() {
-  var st = trialState_();
-  if (!st) throw new Error('Không đang dùng thử.');
-  var snap = SpreadsheetApp.openById(st.ban_chup), live = SpreadsheetApp.openById(DB_OVERRIDE || PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
-  var truoc = trialSnapshot_('trước khi đưa về');
-  var tabs = Object.keys(SCHEMA).filter(function (t) { return TRIAL_KEEP_TABS.indexOf(t) < 0; });
-  withLock_(function () {
-    tabs.forEach(function (t) {
-      var src = snap.getSheetByName(t);
-      if (!src) return;                                   // tab mới hơn bản chụp: để nguyên
-      var old = live.getSheetByName(t), copy = src.copyTo(live);
-      if (old) live.deleteSheet(old);
-      copy.setName(t);
-    });
+  return withLock_(function () {
+    var st = trialState_();
+    if (!st) throw new Error('Không đang dùng thử.');
+    var live = SpreadsheetApp.openById(DB_OVERRIDE || PropertiesService.getScriptProperties().getProperty('SHEET_ID'));
+    var snap = SpreadsheetApp.openById(st.ban_chup);
+    var truoc = trialSnapshot_('trước khi đưa về');
+    var tabs = Object.keys(SCHEMA).filter(function (t) { return TRIAL_KEEP_TABS.indexOf(t) < 0 && snap.getSheetByName(t); });
+    var copies = [];
+    try { tabs.forEach(function (t) { copies.push([t, snap.getSheetByName(t).copyTo(live)]); }); }
+    catch (e) {
+      copies.forEach(function (c) { try { live.deleteSheet(c[1]); } catch (x) { /* bỏ qua */ } });
+      throw new Error('Không đưa về được — dữ liệu chưa thay đổi gì. Lỗi: ' + (e && e.message || e));
+    }
+    var done = [];
+    try {
+      copies.forEach(function (c) { var old = live.getSheetByName(c[0]); if (old) live.deleteSheet(old); c[1].setName(c[0]); done.push(c[0]); });
+    } catch (e) {
+      throw new Error('Đưa về dở dang (' + done.length + '/' + copies.length + ' tab). Khôi phục từ bản chụp „trước khi đưa về" ' + truoc +
+                      ' theo docs/setup.md mục 15. Lỗi: ' + (e && e.message || e));
+    }
+    SS_MEMO_ = {}; READ_MEMO_ = READ_MEMO_ && {};
+    st.lan_dua_ve = (st.lan_dua_ve || 0) + 1; st.truoc_dua_ve = truoc;
+    trialSave_(st);
+    return copies.length;
   });
-  SS_MEMO_ = {}; READ_MEMO_ = READ_MEMO_ && {};
-  st.lan_dua_ve = (st.lan_dua_ve || 0) + 1; st.truoc_dua_ve = truoc;
-  trialSave_(st);
-  return tabs.length;
 }
 
 /** a.viec: 'bat_dau' | 'dua_ve' | 'ket_thuc' (a.dua_ve: true = đưa về rồi kết thúc, false = giữ mọi thay đổi). */
 function trialAction_(w, a) {
-  var st = trialState_();
   if (a.viec === 'bat_dau') {
     need_(w, TRIAL_MANAGERS);
-    if (st) throw new Error('Đang dùng thử rồi (từ ' + st.tu + ').');
-    trialSave_({ tu: today_(), ban_chup: trialSnapshot_('trước dùng thử'), boi: w.email });
+    withLock_(function () {
+      var st = trialState_();
+      if (st) throw new Error('Đang dùng thử rồi (từ ' + st.tu + ').');
+      trialSave_({ tu: today_(), ban_chup: trialSnapshot_('trước dùng thử'), boi: w.email });
+    });
     audit_(w.email, 'bắt đầu dùng thử', 'chụp dữ liệu');
     return { ok: true, trial: trialInfo_() };
   }
   if (a.viec === 'dua_ve') {
     need_(w, TRIAL_RESTORERS);
-    var n = trialRestore_();
+    var tu = (trialState_() || {}).tu, n = trialRestore_();
     audit_(w.email, 'đưa về như trước khi dùng thử', n + ' tab');
+    if (w.eff.indexOf('Quản trị') < 0) {                    // người khác Quản trị đưa về: báo chủ hệ thống
+      try { sendMail_(Session.getEffectiveUser().getEmail(), '[Pi ĐRKN] ' + w.email + ' vừa đưa dữ liệu về như trước khi dùng thử',
+        'Đang dùng thử từ ' + tu + '. Mọi bài, kỳ, bảng, phiếu, thảo luận đã về như lúc bắt đầu. Bản chụp trạng thái ngay trước khi đưa về nằm trong thư mục sao lưu (docs/setup.md mục 15, 17).'); } catch (e) { /* không chặn */ }
+    }
     return { ok: true, tab: n, trial: trialInfo_() };
   }
   if (a.viec === 'ket_thuc') {
     need_(w, TRIAL_MANAGERS);
-    if (!st) throw new Error('Không đang dùng thử.');
     if (a.dua_ve === true) trialRestore_();
-    trialSave_(null);
+    withLock_(function () {
+      if (!trialState_()) throw new Error('Không đang dùng thử.');
+      trialSave_(null);
+    });
     audit_(w.email, 'kết thúc dùng thử', a.dua_ve === true ? 'đưa về như trước' : 'giữ mọi thay đổi');
     return { ok: true, trial: null };
   }

@@ -85,7 +85,7 @@ function reviewers_() {
 
 /** Gửi một thư (hoặc bỏ vào hộp thư thử khi kiểm thử). Không bao giờ gửi khi đang chạy bộ kiểm thử. */
 function sendMail_(to, subject, body) {
-  if (TEST_CONF) { (TEST_OUTBOX = TEST_OUTBOX || []).push({ to: to, subject: subject, body: body }); return; }
+  if (TEST_CONF) { if (TEST_CONF.MAIL_FAIL) throw new Error('hết hạn mức thư (thử)'); (TEST_OUTBOX = TEST_OUTBOX || []).push({ to: to, subject: subject, body: body }); return; }
   MailApp.sendEmail({ to: to, subject: subject, body: body, name: 'Pi — Đề ra kỳ này' });
 }
 function mailQuota_() { return TEST_CONF ? Number(TEST_CONF.MAIL_QUOTA == null ? 100 : TEST_CONF.MAIL_QUOTA) : MailApp.getRemainingDailyQuota(); }
@@ -140,6 +140,7 @@ function openNewRound_(w, a) {
   need_(w, ROUND_MANAGERS);
   var ky = shortText_(a.ky, 'Tên kỳ', 60, true);
   if (/^[=+\-@']/.test(ky)) throw new Error('Tên kỳ không được bắt đầu bằng = + - @ \'.');
+  practiceNameCheck_(w, ky, 'Tên kỳ');
   var han = validDate_(a.han_phan_bien);
   if (daysUntil_(han) < 1) throw new Error('Hạn phải sau hôm nay.');
   withLock_(function () {

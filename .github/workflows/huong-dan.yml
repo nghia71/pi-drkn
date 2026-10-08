@@ -1,7 +1,7 @@
 # Hướng dẫn theo vai trò: chụp ảnh (kiểm thử giao diện, dữ liệu bịa) → slide PDF → tệp đính kèm của bản phát hành "huong-dan".
 # Đường dẫn cố định để gửi cho người dùng:
 #   https://github.com/<chủ>/pi-drkn/releases/download/huong-dan/huong-dan-<vai>.pdf   (vai: pb ncb pt tbt vp btk quantri)
-# Pull request: chỉ dựng (để thấy lỗi); gộp vào main: dựng và cập nhật bản phát hành.
+# Pull request: chỉ dựng (để thấy lỗi), quyền đọc. Gộp vào main: dựng, rồi một việc riêng (quyền ghi) cập nhật bản phát hành.
 name: huong-dan
 on:
   push:
@@ -11,9 +11,9 @@ on:
     paths: ['docs/huong-dan/**', 'tests/ui/**', '.github/workflows/huong-dan.yml']
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 concurrency:
-  group: huong-dan
+  group: huong-dan-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -42,11 +42,27 @@ jobs:
           for d in pb ncb pt tbt vp btk quantri; do cp "docs/huong-dan/$d/slides.pdf" "dist/huong-dan-$d.pdf"; done
           (cd out && zip -q -r ../dist/huong-dan-anh.zip ui)
           ls -la dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: huong-dan
+          path: dist/
+          retention-days: 7
+  release:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: huong-dan
+          path: dist
       - name: Cập nhật bản phát hành "huong-dan"
-        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           gh release view huong-dan >/dev/null 2>&1 || gh release create huong-dan --title "Hướng dẫn sử dụng (theo vai trò)" \
-            --notes "Slide hướng dẫn cho từng vai trò và ảnh chụp từng bước (out/ui). Tự cập nhật mỗi khi giao diện hoặc hướng dẫn đổi."
+            --notes "Slide hướng dẫn cho từng vai trò và ảnh chụp từng bước. Tự cập nhật mỗi khi giao diện hoặc hướng dẫn đổi trên main."
           gh release upload huong-dan dist/* --clobber

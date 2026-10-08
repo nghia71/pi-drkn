@@ -7,7 +7,8 @@
 var BACKUP_PREFIX = 'Pi ĐRKN — dữ liệu — sao lưu ';
 
 function backupFolder_() {
-  var props = PropertiesService.getScriptProperties(), id = (TEST_CONF && TEST_CONF.BACKUP_FOLDER_ID) || props.getProperty('BACKUP_FOLDER_ID');
+  if (TEST_CONF && !TEST_CONF.BACKUP_FOLDER_ID) throw new Error('Kiểm thử phải đặt TEST_CONF.BACKUP_FOLDER_ID (thư mục tạm) — không dùng thư mục sao lưu thật.');
+  var props = PropertiesService.getScriptProperties(), id = TEST_CONF ? TEST_CONF.BACKUP_FOLDER_ID : props.getProperty('BACKUP_FOLDER_ID');
   if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* thư mục bị xoá: tạo lại */ } }
   var f = DriveApp.createFolder('Pi ĐRKN — sao lưu');
   if (TEST_CONF) TEST_CONF.BACKUP_FOLDER_ID = f.getId(); else props.setProperty('BACKUP_FOLDER_ID', f.getId());
@@ -44,11 +45,13 @@ function nightlyBackup_() {
   var props = PropertiesService.getScriptProperties(), today = today_();
   var hour = Number(Utilities.formatDate(new Date(), tz_(), 'H'));
   if (hour < Number(conf_('BACKUP_HOUR') || 1) || props.getProperty('BACKUP_DAY') === today) return null;
-  props.setProperty('BACKUP_DAY', today);
-  try { return backup_(); }
+  try { var r = backup_(); props.setProperty('BACKUP_DAY', today); return r; }       // không được: giờ sau thử lại
   catch (e) {
-    MailApp.sendEmail(Session.getEffectiveUser().getEmail(), '[Pi ĐRKN] Sao lưu KHÔNG được ngày ' + today,
-      'Lỗi: ' + (e && e.message || e) + '\n\nChạy backupNow trong trình soạn thảo để thử lại; xem docs/setup.md mục 15.');
+    if (props.getProperty('BACKUP_MAILED') !== today) {                              // mỗi ngày một thư báo lỗi
+      props.setProperty('BACKUP_MAILED', today);
+      try { MailApp.sendEmail(Session.getEffectiveUser().getEmail(), '[Pi ĐRKN] Sao lưu KHÔNG được ngày ' + today,
+        'Lỗi: ' + (e && e.message || e) + '\n\nHệ thống thử lại mỗi giờ. Chạy backupNow trong trình soạn thảo để thử ngay; xem docs/setup.md mục 15.'); } catch (x) { /* hết hạn mức thư */ }
+    }
     return null;
   }
 }

@@ -78,6 +78,7 @@ function newBoard_(w, a) {
   need_(w, BOARD_MANAGERS);
   var so = shortText_(a.so, 'Số báo', 30, true);
   if (/^[=+\-@']/.test(so)) throw new Error('Số báo không được bắt đầu bằng = + - @ \'.');
+  practiceNameCheck_(w, so, 'Số báo');
   withLock_(function () {
     if (findRow_('Issues', 'so', so)) throw new Error('Đã có bảng cho số ' + so + '.');
     sheet_('Issues').appendRow(rowOf_('Issues', { so: "'" + so, trang_thai: 'đang chọn', ghi_chu: '' }));

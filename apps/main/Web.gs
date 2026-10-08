@@ -14,7 +14,7 @@ function doGet(e) {
   if (!u) {
     audit_(email, 'từ chối', 'chưa có vai trò');
     return HtmlService.createHtmlOutput('<div style="font:16px system-ui;padding:24px"><p>Địa chỉ ' + email.replace(/</g, '&lt;') +
-      ' chưa có vai trò trong hệ thống. Hãy liên hệ Phụ trách chuyên mục.</p></div>').setTitle('Pi — Đề ra kỳ này');
+      ' chưa có vai trò trong hệ thống. Hãy liên hệ người đã mời thầy cô (Quản trị hoặc Phụ trách chuyên mục) — có thể thầy cô đang đăng nhập bằng một tài khoản Google khác.</p></div>').setTitle('Pi — Đề ra kỳ này');
   }
   var t = HtmlService.createTemplateFromFile('ui/Index');
   t.token = newSession_(email);

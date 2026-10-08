@@ -16,6 +16,7 @@ var MAX_TEXT_ = 45000;   // giới hạn một ô của Google Sheets là 50 000
 
 function api(token, method, args) {
   READ_MEMO_ = READ_ONLY_[method] ? {} : null;
+  FOUND_KEY_ = {};
   FIG_INDEX_ = null;
   try {
     if (method === 'bundle') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
@@ -105,6 +106,12 @@ function canSee_(w, ma, assigned) {
   return has_(w, ['PB']) && !!assigned[ma];
 }
 
+/** Tên bắt đầu bằng THU- (và K-THU) dành cho luyện tập — nút Đặt lại xoá chúng; chỉ Quản trị, người dùng thử đặt được. */
+function practiceNameCheck_(w, name, label) {
+  var v = String(name || '');
+  if ((v === 'K-THU' || /^THU-/i.test(v)) && w.roles.indexOf('Quản trị') < 0 && !practiceUser_(w))
+    throw new Error(label + ' bắt đầu bằng THU- dành cho luyện tập (bị xoá khi đặt lại bài luyện tập) — hãy đặt tên khác.');
+}
 /** Thấy bài luyện tập: tài khoản thử (TEST_USERS) và người đang dùng thử (PRACTICE_USERS — thêm khi mời dùng thử, bỏ khi xong). */
 function practiceUser_(w) {
   if (w._thu === undefined) {
