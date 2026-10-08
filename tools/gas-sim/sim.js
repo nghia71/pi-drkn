@@ -165,7 +165,12 @@ function makeEnv(opts) {
       createFolder: name => folderObj(newFolder(name, null)),
       getFolderById: id => { if (!folders[id]) throw new Error('Không có thư mục ' + id); return folderObj(id); },
       createFile: (name, content) => addFile(name, content, null),
-      getFileById: id => { if (!files[id]) throw new Error('Không có tệp'); return fileObj(id); },
+      getFileById: id => {
+        if (spreadsheets[id]) return { getId: () => id, getName: () => spreadsheets[id].name,     // Sheet như một tệp Drive: chỉ makeCopy (sao lưu)
+          makeCopy: (name, folder) => { const src = spreadsheets[id], c = new Spreadsheet(name);
+            c.sheets = src.sheets.map(sh => { const n = new Sheet(sh.name); n.cells = JSON.parse(JSON.stringify(sh.cells)); return n; });
+            spreadsheets[c.id] = c; files[c.id] = { name, content: '', parent: folder ? folder.getId() : null, trashed: false, t: Date.now() }; return fileObj(c.id); } };
+        if (!files[id]) throw new Error('Không có tệp'); return fileObj(id); },
       searchFiles: q => { const m = String(q || '').match(/title contains '([^']*)'/);
         const ids = Object.keys(files).filter(i => !files[i].trashed && (!m || files[i].name.indexOf(m[1]) >= 0)); let k = 0; return { hasNext: () => k < ids.length, next: () => fileObj(ids[k++]) }; }
     }

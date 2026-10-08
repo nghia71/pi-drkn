@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | **tự chạy** (`installAutoTests`, một lần): `runSmoke` sau mỗi lần triển khai, toàn bộ mỗi đêm; thư chỉ khi có lỗi | 3–4 phút / ~30 phút |
 | 3. Bằng tay | trình duyệt, tài khoản Google thật | chỉ những gì máy không làm được — bảng ở đầu Lớp 3 | ~30 phút, một lần |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 110 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 111 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`), **giao diện** (`tests/ui/run.js`: trang thật trong Chromium, mỗi vai trò một cửa sổ, đi hết
 các quy trình — xem dưới) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
@@ -45,7 +45,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (110 kịch bản) · gói chế bản và hình (cần MacTeX) ·
+Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (111 kịch bản) · gói chế bản và hình (cần MacTeX) ·
 giao diện · từ bên ngoài (người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy chặn dữ liệu, bộ hiển thị, máy chủ mô phỏng, giao diện và **không đẩy mã** nếu có lỗi.
 
@@ -77,7 +77,7 @@ từ nút Run — dùng `runAllTests`, hoặc tạm thêm một hàm gọi `runT
 
 ### Chạy gì, khi nào
 
-Toàn bộ (~110 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
+Toàn bộ (~111 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
 Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trước mỗi lần đẩy mã; lớp 2 chỉ để bắt chỗ Google khác bản mô phỏng.
 
 | Khi nào | Chạy | Thời gian |
@@ -236,6 +236,7 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 |---|---|---|
 | 12.1 | Khách trên trang web không gọi được setUser, setup, nhập, vá, kiểm thử, resetPractice | T1 |
 | 12.2 | Cài đặt lại trên Sheet cũ: tab thiếu cột mới ở cuối (Checks.ket_qua) được thêm tiêu đề, dữ liệu giữ nguyên | QT |
+| 12.3 | Sao lưu: bản sao Sheet vào thư mục sao lưu, đủ các tab và dữ liệu; chạy lại cùng ngày thay bản cũ; giữ BACKUP_KEEP bản mới nhất; chỉ chủ chạy tay được | QT |
 
 **13. Kỳ phản biện**
 

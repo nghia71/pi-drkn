@@ -74,6 +74,7 @@ function autoTests(e) {
   if (!fromTrigger_(e)) adminOnly_();
   var props = PropertiesService.getScriptProperties();
   try { syncFigures_(); } catch (err) { Logger.log('dựng hình (GitHub): ' + err.message); }   // lưới an toàn: hình từ nhập / vá
+  nightlyBackup_();                                                                            // sao lưu Sheet dữ liệu (Backup.gs)
   if (props.getProperty(AUTO_JOB)) return 'đang có lượt kiểm thử chạy dở';
   var b = build_(), today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   var hour = Number(Utilities.formatDate(new Date(), tz_(), 'H'));
@@ -157,7 +158,7 @@ function runOne_(t) {
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
     delete TEST_CONF.EXPORT_FOLDER_ID; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
     TEST_CONF.TEST_USERS = '';   // mặc định: T1, T2 là người thường; 11.3 bật lại
-    delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE;   // không gọi GitHub thật; 16.8 dùng kho giả
+    delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE; delete TEST_CONF.BACKUP_FOLDER_ID; delete TEST_CONF.BACKUP_KEEP;   // không gọi GitHub thật; 16.8 dùng kho giả
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
   TK.results.push([t.id, t.title, t.who, ok ? 'ĐẠT' : 'LỖI', msg, Date.now() - t1]);
@@ -852,7 +853,8 @@ function defineTests_() {
                 applyPatchLatest: function () { applyPatchLatest(); }, setupTests: function () { setupTests(); },
                 runTests: function () { runTests('1'); }, resetPractice: function () { resetPractice(); },
                 runSmoke: function () { runSmoke(); }, autoTests: function () { autoTests(); }, autoTestsNext: function () { autoTestsNext(); },
-                installAutoTests: function () { installAutoTests(); }, removeAutoTests: function () { removeAutoTests(); } };
+                installAutoTests: function () { installAutoTests(); }, removeAutoTests: function () { removeAutoTests(); },
+                backupNow: function () { backupNow(); } };
     try {
       [A.T1, '', A.LA].forEach(function (who) {
         TEST_CONF.ACTIVE_USER = who;
@@ -1451,6 +1453,28 @@ function defineTests_() {
       ok_(!(figKey_(TB) in (TEST_CONF.FIG_CLOUD_STATE ? JSON.parse(TEST_CONF.FIG_CLOUD_STATE).loi : {})), 'quên lỗi của hình cũ');
       throws_(function () { call_(login_(A.T2), 'figureSync'); }, 'Không có quyền');
     });
+  });
+
+  test_('12.3', 'Sao lưu: bản sao Sheet vào thư mục sao lưu, đủ các tab và dữ liệu; chạy lại cùng ngày thay bản cũ; giữ BACKUP_KEEP bản mới nhất; chỉ chủ chạy tay được', 'QT', function () {
+    var fold = DriveApp.createFolder('Pi ĐRKN — kiểm thử sao lưu (xoá được)');
+    TEST_CONF.BACKUP_FOLDER_ID = fold.getId(); TEST_CONF.BACKUP_KEEP = '3';
+    var names = function () { var o = [], it = fold.getFiles(); while (it.hasNext()) o.push(it.next().getName()); return o.sort(); };
+    try {
+      ['2026-10-01', '2026-10-02', '2026-10-03'].forEach(function (d) { TEST_CONF.TODAY = d; backup_(); });
+      eq_(names(), ['2026-10-01', '2026-10-02', '2026-10-03'].map(function (d) { return BACKUP_PREFIX + d; }));
+      var r = backup_();                                             // cùng ngày: thay, không thêm
+      eq_(names().length, 3, 'chạy lại cùng ngày không thêm bản');
+      var copy = SpreadsheetApp.openById(r.id);
+      Object.keys(SCHEMA).forEach(function (t) { ok_(copy.getSheetByName(t), 'bản sao có tab ' + t); });
+      eq_(copy.getSheetByName('Problems').getLastRow(), sheet_('Problems').getLastRow(), 'đủ dòng Problems');
+      TEST_CONF.TODAY = '2026-10-04'; eq_(backup_().xoa, 1, 'xoá bản cũ nhất');
+      eq_(names()[0], BACKUP_PREFIX + '2026-10-02');
+      TEST_CONF.ACTIVE_USER = A.T1;
+      try { throws_(function () { backupNow(); }, 'Chỉ chạy được'); } finally { delete TEST_CONF.ACTIVE_USER; }
+    } finally {
+      var it = fold.getFiles(); while (it.hasNext()) it.next().setTrashed(true);
+      fold.setTrashed(true); delete TEST_CONF.BACKUP_FOLDER_ID; delete TEST_CONF.BACKUP_KEEP;
+    }
   });
 
   // 17. Thêm bài trên trang web (VP, NCB, PT, TBT, Quản trị) và thêm ảnh

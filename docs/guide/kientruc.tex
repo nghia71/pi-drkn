@@ -116,7 +116,7 @@ Kiểm thử dùng Sheet riêng „Pi ĐRKN — kiểm thử" với dữ liệu 
 \crow{0}{apps/signin/}{ứng dụng đăng nhập (một tệp \texttt{Code.gs})}
 \crow{-6.5}{apps/main/*.gs}{máy chủ: \texttt{Web} (vào hệ thống) · \texttt{Auth} (phiên, vai trò) · \texttt{Api} (mọi thao tác của trang) · \texttt{Db}, \texttt{Schema} (Sheet) ·
  \texttt{Rounds} (kỳ phản biện, thư) · \texttt{Board} (bảng chọn bài) · \texttt{Close} (khoá kỳ, tệp .tex) · \texttt{Fig}, \texttt{FigCloud} (hình) ·
- \texttt{Intake} (thêm bài) · \texttt{Import}, \texttt{Patch} (nhập, vá) · \texttt{Setup} · \texttt{Tests} (110 kịch bản)}
+ \texttt{Intake} (thêm bài) · \texttt{Import}, \texttt{Patch} (nhập, vá) · \texttt{Setup}, \texttt{Backup} (sao lưu) · \texttt{Tests} (111 kịch bản)}
 \crow{-14}{apps/main/ui/}{trang web: \texttt{Index.html} (một trang), \texttt{Styles.html}, \texttt{Icons.html} (Lucide)}
 \crow{-19}{shared/pi-render.js}{hiển thị LaTeX của Pi trên trang (macro, công thức qua MathJax, chặn HTML)}
 \crow{-24}{templates/}{\texttt{dinhdang.tex} (mẫu in của Pi), \texttt{hinh-mau.tex} (mẫu dựng hình)}
@@ -200,7 +200,7 @@ MacTeX nếu cần gói chế bản / dựng hình tay.\\
 • \texttt{deploy.local.env}, \texttt{.clasp.json} chỉ nằm trên máy người triển khai.\\
 • Hai người biết triển khai; một người giữ quyền Quản trị dự phòng.\\
 • Mã thông báo GitHub hết hạn tối đa 1 năm: ghi lịch đổi.\\
-• Sao lưu: tải bản Sheet định kỳ (sắp có: tự động mỗi đêm).}
+• Sao lưu: tự động mỗi đêm (30 bản, thư mục „Pi ĐRKN — sao lưu"); khôi phục: setup.md mục 15.}
 \end{tikzpicture}
 \end{frame}
 
@@ -210,7 +210,7 @@ MacTeX nếu cần gói chế bản / dựng hình tay.\\
 \begin{column}{0.5\textwidth}\sm{%
 \textbf{Tự chạy (trigger của tài khoản chủ)}\\
 • \texttt{sendReminders} — mỗi ngày 8 giờ: thư nhắc 3 và 1 ngày trước hạn.\\
-• \texttt{autoTests} — mỗi giờ: bản mới → \texttt{runSmoke}; 2 giờ sáng → toàn bộ; kèm đồng bộ hình.\\
+• \texttt{autoTests} — mỗi giờ: bản mới → \texttt{runSmoke}; 2 giờ sáng → toàn bộ; kèm đồng bộ hình; 1 giờ sáng → sao lưu Sheet.\\
 • \texttt{dongBoHinh} — sau khi lưu bài có TikZ, lặp mỗi 3 phút khi còn hình chờ GitHub.\\[2mm]
 \textbf{Giới hạn của Google (tài khoản thường)}\\
 • Một lần chạy tối đa 6 phút (kiểm thử, nhập tự chạy tiếp).\\

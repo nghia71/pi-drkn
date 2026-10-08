@@ -151,5 +151,19 @@ Sau lần triển khai có tính năng này: chạy `setup` (thêm cột `mo_loi
 
 ## 14. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.
-Rồi chạy `installAutoTests` (một lần): kiểm thử tự chạy sau mỗi lần triển khai và mỗi đêm; chỉ có thư khi có lỗi.
+Rồi chạy `installAutoTests` (một lần): kiểm thử tự chạy sau mỗi lần triển khai và mỗi đêm; chỉ có thư khi có lỗi. Cùng trigger này sao lưu dữ liệu mỗi đêm (mục 15).
 Trên máy, cho kiểm thử giao diện: `npm install` (một lần); kiểm thử dùng Google Chrome đã cài trên máy (hoặc Chromium của `npx playwright install chromium`).
+
+## 15. Sao lưu và khôi phục
+Trigger mỗi giờ của `installAutoTests` (mục 14) sao lưu **mỗi ngày một lần**, lần chạy đầu tiên sau `BACKUP_HOUR` giờ
+(Script property, mặc định 1 giờ sáng giờ Việt Nam): một bản sao của Sheet dữ liệu tên `Pi ĐRKN — dữ liệu — sao lưu NNNN-TT-NN`
+trong thư mục Drive **Pi ĐRKN — sao lưu** (tạo tự động; chỉ tài khoản chủ thấy). Giữ `BACKUP_KEEP` bản mới nhất (mặc định 30),
+bản cũ hơn vào Thùng rác. Sao lưu không được thì có thư gửi tài khoản chủ. Sao lưu ngay (ví dụ trước khi nhập, vá dữ liệu lớn):
+trình soạn thảo → `backupNow` → Run.
+
+Khôi phục (Sheet dữ liệu bị xoá nhầm, hỏng dữ liệu):
+1. Drive → **Pi ĐRKN — sao lưu** → chọn bản của ngày cần → Make a copy → đổi tên thành `Pi ĐRKN — dữ liệu`.
+2. Mở bản vừa tạo, chép mã trong địa chỉ (đoạn giữa `/d/` và `/edit`).
+3. Dự án chính → Project Settings → Script properties → `SHEET_ID` = mã đó. Có hiệu lực ngay, không cần triển khai lại.
+4. Giữ Sheet cũ (đổi tên thành `… — hỏng NNNN-TT-NN`) cho tới khi chắc mọi thứ đúng. Việc làm sau thời điểm sao lưu phải làm lại.
+Ảnh và hình (thư mục **Pi ĐRKN — hình**), gói chế bản không nằm trong bản sao — chúng là tệp Drive, có Thùng rác 30 ngày của Drive.
