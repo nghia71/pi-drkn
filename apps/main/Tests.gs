@@ -3,7 +3,9 @@
  *   setupTests()   một lần: tạo Sheet "Pi ĐRKN — kiểm thử" (dữ liệu bịa, tách hẳn khỏi dữ liệu thật)
  *   runAllTests()  mỗi lần kiểm thử: chạy mọi kịch bản, ghi kết quả vào tab "Kết quả" và Execution log.
  *                  Nếu sắp hết 6 phút, dừng lại và báo — chạy lại runAllTests() để chạy tiếp phần còn lại.
- *   runTests('3')  chỉ chạy nhóm 3 (hoặc một kịch bản: runTests('3.6')).
+ *   runTests('3')  chỉ chạy nhóm 3 (hoặc một kịch bản: runTests('3.6'); nhiều nhóm: runTests('3,13,13.12')).
+ *   runSmoke()     bộ nhanh (~15 kịch bản, 3–4 phút): mỗi phần chính một kịch bản — sau mỗi lần sửa nhỏ.
+ *   installAutoTests()  một lần: tự chạy runSmoke sau mỗi lần triển khai (thư báo kết quả) và toàn bộ mỗi đêm (thư khi có lỗi).
  *
  * Ba tài khoản (giống trang "Testing the pipeline" của MCC):
  *   QT  = tài khoản chạy bộ kiểm thử (Nghĩa, chủ hệ thống)
@@ -35,6 +37,82 @@ function setupTests() {
 
 function runAllTests() { return runTests(''); }
 
+/** Bộ nhanh: mỗi phần chính một kịch bản tiêu biểu (quyền, ẩn danh, sửa, nhận xét, trạng thái, kỳ, bảng, khoá kỳ, hình, thêm bài). */
+var SMOKE_TESTS = '1.1,1.7,2.1,3.4,3.6,4.1,5.1,6.3,10.1,13.4,13.12,14.4,15.6,16.3,17.1';
+function runSmoke() { return runTests(SMOKE_TESTS); }
+
+/* ---------------- kiểm thử tự động trên Google ----------------
+ * installAutoTests() (chạy MỘT LẦN từ trình soạn thảo) đặt một trigger mỗi giờ gọi autoTests():
+ *   - sau mỗi lần scripts/deploy.sh (mã BUILD mới, deploy.sh ghi vào Build.gs): chạy runSmoke, gửi thư kết quả (đạt hay lỗi);
+ *   - mỗi đêm lúc TEST_HOUR giờ (mặc định 2, giờ của hệ thống): chạy toàn bộ, chỉ gửi thư khi có lỗi.
+ * Mỗi lần Apps Script cho chạy tối đa 6 phút: còn dở thì tự hẹn chạy tiếp sau 1 phút (autoTestsNext) cho tới hết.
+ * removeAutoTests() để thôi. Thư gửi tới tài khoản chủ. */
+var AUTO_JOB = 'AUTO_TEST_JOB';            // việc đang chạy dở: {loai: 'sau triển khai' | 'hằng đêm', filter, build}
+
+function installAutoTests() {
+  adminOnly_();
+  removeAutoTests();
+  ScriptApp.newTrigger('autoTests').timeBased().everyHours(1).create();
+  Logger.log('Đã đặt kiểm thử tự động: mỗi giờ kiểm tra bản triển khai mới (chạy runSmoke), mỗi đêm lúc ' + Number(conf_('TEST_HOUR') || 2) +
+             ' giờ chạy toàn bộ. Thư gửi tới ' + Session.getEffectiveUser().getEmail() + '. Bản đang chạy: ' + build_() + '.');
+}
+
+function removeAutoTests() {
+  adminOnly_();
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (['autoTests', 'autoTestsNext'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t);
+  });
+  PropertiesService.getScriptProperties().deleteProperty(AUTO_JOB);
+}
+
+/** Mã bản triển khai (deploy.sh ghi vào Build.gs: commit + giờ); không có thì rỗng. */
+function build_() { return typeof BUILD === 'string' ? BUILD : ''; }
+
+/** Trigger mỗi giờ: có việc dở thì để autoTestsNext làm; bản mới → bộ nhanh; tới giờ đêm → toàn bộ. */
+function autoTests(e) {
+  if (!fromTrigger_(e)) adminOnly_();
+  var props = PropertiesService.getScriptProperties();
+  try { syncFigures_(); } catch (err) { Logger.log('dựng hình (GitHub): ' + err.message); }   // lưới an toàn: hình từ nhập / vá
+  if (props.getProperty(AUTO_JOB)) return 'đang có lượt kiểm thử chạy dở';
+  var b = build_(), today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  var hour = Number(Utilities.formatDate(new Date(), tz_(), 'H'));
+  var job = null;
+  if (b && b !== props.getProperty('AUTO_TESTED_BUILD')) job = { loai: 'sau triển khai', filter: SMOKE_TESTS, build: b };
+  else if (hour === Number(conf_('TEST_HOUR') || 2) && props.getProperty('AUTO_FULL_DAY') !== today) {
+    job = { loai: 'hằng đêm', filter: '', build: b }; props.setProperty('AUTO_FULL_DAY', today);
+  }
+  if (!job) return 'không có gì để chạy';
+  props.deleteProperty('TEST_CURSOR_' + (job.filter || 'all'));
+  props.setProperty(AUTO_JOB, JSON.stringify(job));
+  return autoTestsNext();
+}
+
+/** Chạy một đoạn ≤ 6 phút của việc đang dở; còn thì hẹn tiếp sau 1 phút; xong thì gửi thư. */
+function autoTestsNext(e) {
+  if (!fromTrigger_(e)) adminOnly_();
+  var props = PropertiesService.getScriptProperties();
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'autoTestsNext') ScriptApp.deleteTrigger(t); });
+  var job = JSON.parse(props.getProperty(AUTO_JOB) || 'null');
+  if (!job) return 'không có việc dở';
+  var msg;
+  try { msg = runTests(job.filter); }
+  catch (e) { props.deleteProperty(AUTO_JOB); throw e; }
+  if (msg.indexOf('TẠM DỪNG') === 0) { ScriptApp.newTrigger('autoTestsNext').timeBased().after(60 * 1000).create(); return msg; }
+  props.deleteProperty(AUTO_JOB);
+  if (job.loai === 'sau triển khai') props.setProperty('AUTO_TESTED_BUILD', job.build);
+  var ss = SpreadsheetApp.openById(props.getProperty('TEST_SHEET_ID'));
+  var rows = ss.getSheetByName('Kết quả').getDataRange().getValues().slice(1);
+  var fails = rows.filter(function (r) { return r[3] !== 'ĐẠT'; });
+  if (fails.length || job.loai === 'sau triển khai') {
+    MailApp.sendEmail(Session.getEffectiveUser().getEmail(),
+      '[Pi ĐRKN] Kiểm thử ' + job.loai + ': ' + (fails.length ? fails.length + ' LỖI' : 'đạt ' + rows.length + '/' + rows.length),
+      'Bản: ' + (job.build || '(không rõ)') + '\n' + msg + '\n\n' +
+      fails.map(function (r) { return String(r[0]) + ' — ' + r[1] + '\n    ' + r[4]; }).join('\n\n') + (fails.length ? '\n\n' : '') +
+      'Kết quả đầy đủ: ' + ss.getUrl());
+  }
+  return msg;
+}
+
 function runTests(filter) {
   adminOnly_();
   var props = PropertiesService.getScriptProperties();
@@ -48,7 +126,8 @@ function runTests(filter) {
   var cursorKey = 'TEST_CURSOR_' + (filter || 'all');
   var start = Number(props.getProperty(cursorKey) || 0);
   if (start === 0) ensureTabs_(SpreadsheetApp.openById(sheetId));   // tab, cột mới của lần triển khai mới — khỏi phải chạy lại setupTests
-  var list = TK.tests.filter(function (t) { return !filter || t.id === filter || t.id.indexOf(filter + '.') === 0; });
+  var want = String(filter || '').split(',').map(function (s) { return s.trim(); }).filter(String);
+  var list = TK.tests.filter(function (t) { return !want.length || want.some(function (f) { return t.id === f || t.id.indexOf(f + '.') === 0; }); });
   DB_OVERRIDE = sheetId;
   TEST_CONF = { SECRET: Utilities.getUuid() + Utilities.getUuid(), BLIND_REVIEW: 'true', SIGNIN_URL: 'https://example.com/dang-nhap' };
   var i = start, stopped = false;
@@ -77,6 +156,7 @@ function runOne_(t) {
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
     delete TEST_CONF.EXPORT_FOLDER_ID; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
     TEST_CONF.TEST_USERS = '';   // mặc định: T1, T2 là người thường; 11.3 bật lại
+    delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE;   // không gọi GitHub thật; 16.8 dùng kho giả
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
   TK.results.push([t.id, t.title, t.who, ok ? 'ĐẠT' : 'LỖI', msg, Date.now() - t1]);
@@ -580,6 +660,22 @@ function defineTests_() {
     eq_(can('PB'), undefined, 'phản biện không nhận');
   });
 
+  test_('6.10', 'Không SL / SL-Fail: phải ghi lý do (lưu thành mục đã đóng của bài); bài Không SL không giao phản biện, không xếp vào bảng; đổi lại được', 'QT', function () {
+    var tok = login_(A.QT);
+    throws_(function () { call_(tok, 'setStatus', { ma_bai: 'TEST-04', trang_thai: 'Không SL' }); }, 'Lý do');
+    call_(tok, 'setStatus', { ma_bai: 'TEST-04', trang_thai: 'Không SL', ly_do: 'Bài quá dễ, đã có trong đề thi cũ.' });
+    eq_(findRow_('Problems', 'ma_bai', 'TEST-04').data.trang_thai, 'Không SL');
+    var c = rows_('Checks').filter(function (x) { return x.ma_bai === 'TEST-04'; })[0];
+    eq_([c.noi_dung, c.trang_thai, c.ket_qua], ['Trạng thái: Mới → Không SL', 'xong', 'Bài quá dễ, đã có trong đề thi cũ.']);
+    eq_(call_(tok, 'listProblems').filter(function (p) { return p.ma_bai === 'TEST-04'; })[0].checks, 0, 'không thành chấm "cần kiểm tra"');
+    throws_(function () { call_(tok, 'assign', { ky: 'K-MO', ma_bai: 'TEST-04', email: A.T1 }); }, 'không giao phản biện');
+    call_(tok, 'newBoard', { so: '10/2026' });
+    throws_(function () { call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-04' }); }, 'đã loại');
+    call_(tok, 'setStatus', { ma_bai: 'TEST-04', trang_thai: 'SL' });
+    call_(tok, 'place', { so: '10/2026', vi_tri: 1, ma_bai: 'TEST-04' });
+    ok_(auditHas_('trạng thái', 'TEST-04 → Không SL (Bài quá dễ'));
+  });
+
   // 7. Xem như vai trò
   test_('7.1', 'Quản trị "xem như PB" thấy đúng như phản biện, rồi trở lại', 'QT', function () {
     putRows_('Assignments', [{ ky: 'K-MO', ma_bai: 'TEST-05', email: A.QT }]);
@@ -753,7 +849,9 @@ function defineTests_() {
     var fns = { setUser: function () { setUser(A.T1, 'x', 'Quản trị'); }, setup: function () { setup(); },
                 importLatest: function () { importLatest(); }, importBatch: function () { importBatch('x'); },
                 applyPatchLatest: function () { applyPatchLatest(); }, setupTests: function () { setupTests(); },
-                runTests: function () { runTests('1'); }, resetPractice: function () { resetPractice(); } };
+                runTests: function () { runTests('1'); }, resetPractice: function () { resetPractice(); },
+                runSmoke: function () { runSmoke(); }, autoTests: function () { autoTests(); }, autoTestsNext: function () { autoTestsNext(); },
+                installAutoTests: function () { installAutoTests(); }, removeAutoTests: function () { removeAutoTests(); } };
     try {
       [A.T1, '', A.LA].forEach(function (who) {
         TEST_CONF.ACTIVE_USER = who;
@@ -809,7 +907,8 @@ function defineTests_() {
     var l = call_(login_(A.T2), 'listProblems'), row = l.filter(function (p) { return p.ma_bai === 'TEST-04'; })[0];
     ok_(row, 'PB thấy bài vừa giao'); eq_(row.giao.han, '2026-10-20'); eq_(row.giao.xong, false);
     setUsers_({ QT: 'Quản trị', T1: 'PT', T2: { vai_tro: 'PB', hoat_dong: false } });
-    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-05', email: A.T2 }); }, 'tạm ngưng');
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-02', email: A.T2 }); }, 'tạm ngưng');
+    throws_(function () { call_(tok, 'assign', { ky: 'K2', ma_bai: 'TEST-05', email: A.T1 }); }, 'PL — không giao phản biện');
   });
   test_('13.3', 'Thư mời: mỗi phản biện một thư, không có đề / tên tác giả; gửi lại không gửi trùng; thiếu hạn mức thì không gửi gì', 'QT', function () {
     TEST_CONF.TODAY = '2026-10-10';
@@ -951,6 +1050,20 @@ function defineTests_() {
     eq_(lg(tok), '', 'đóng lại');
     ok_(auditHas_('mở lời giải cho phản biện', 'K-MO')); ok_(auditHas_('đóng lời giải', 'K-MO'));
     throws_(function () { call_(login_(A.QT), 'releaseSolutions', { ky: 'K-DONG' }); });
+  });
+
+  test_('13.13', 'Xoá kỳ: chỉ kỳ chưa có phiếu (xoá cả phân công); kỳ có phiếu chỉ đóng được; chỉ PT, Quản trị', 'T1', function () {
+    var qt = login_(A.QT);
+    call_(qt, 'openRound', { ky: 'K-NHAM', han_phan_bien: '2099-01-01' });
+    call_(qt, 'assign', { ky: 'K-NHAM', ma_bai: 'TEST-02', email: A.T1 });
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'deleteRound', { ky: 'K-NHAM' }); }, 'Không có quyền');
+    eq_(call_(qt, 'deleteRound', { ky: 'K-NHAM' }).phan_cong, 1);
+    eq_(findRow_('Rounds', 'ky', 'K-NHAM'), null); eq_(rows_('Assignments').filter(function (x) { return x.ky === 'K-NHAM'; }).length, 0);
+    eq_(rows_('Assignments').filter(function (x) { return x.ky === 'K-MO'; }).length, 3, 'kỳ khác giữ nguyên');
+    putRows_('Reviews', [{ id: 'r1', ky: 'K-MO', ma_bai: 'TEST-02', email: A.T2, diem: 'chọn' }]);
+    throws_(function () { call_(qt, 'deleteRound', { ky: 'K-MO' }); }, 'chỉ đóng được');
+    ok_(auditHas_('xoá kỳ', 'K-NHAM'));
   });
 
   // 14. Bảng chọn bài
@@ -1306,6 +1419,39 @@ function defineTests_() {
     });
   });
 
+  test_('16.8', 'Dựng hình tự động (GitHub, kho giả): gửi đúng mã TikZ của hình chưa dựng, không gửi lại; lấy SVG về thư mục hình, ghi lỗi dựng, chặn SVG có mã chạy được; dọn kho; chưa cài thì không làm gì; PB không bấm được', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'figureSync'); }, 'Chưa bật');
+    withFolders(function (ex, fig) {
+      var gh = TEST_CONF.GH_FAKE = fakeGitHub_();
+      var TA = TZ, TB = TZ.replace('1,1', '2,2'), TC = TZ.replace('1,1', '3,3'), ka = figKey_(TA), kb = figKey_(TB), kc = figKey_(TC);
+      setP('TEST-01', { hinh: TA, loi_giai: 'Lời giải ' + TB }); setP('TEST-02', { de_bai: 'Đề ' + TC });
+      var r = call_(login_(A.T1), 'figureSync');
+      eq_(r.gui.sort(), [ka, kb, kc].sort(), 'gửi ba hình chưa dựng');
+      eq_(r.cho.length, 3, 'ba hình đang chờ GitHub (để tự hẹn lần sau)');
+      eq_(gh.files()['hang-doi/tikz-' + ka + '.tex'], TA, 'đúng mã TikZ, không kèm đề');
+      ok_(!JSON.stringify(gh.files()).match(/Lời giải|Đề /), 'chỉ có khối tikzpicture');
+      eq_(call_(login_(A.T1), 'figureSync').gui, [], 'chạy lại: không gửi lại hình đang chờ');
+      // GitHub Actions dựng xong: A ra SVG, B lỗi, C ra SVG có mã chạy được; thêm một SVG lạ
+      gh.workflow({ a: SVG_OK, c: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', b: null }, { a: ka, b: kb, c: kc });
+      gh.put('svg/tikz-0000000000000000.svg', SVG_OK);
+      r = call_(login_(A.T1), 'figureSync');
+      eq_(r.lay, [ka], 'lấy về đúng một SVG hợp lệ');
+      ok_(fig.getFilesByName('tikz-' + ka + '.svg').hasNext(), 'SVG nằm trong thư mục hình');
+      ok_(!fig.getFilesByName('tikz-' + kc + '.svg').hasNext(), 'SVG có mã chạy được không được lưu');
+      has_s_(r.loi[kb], 'Undefined control sequence'); has_s_(r.loi[kc], 'mã chạy được');
+      eq_(Object.keys(gh.files()).filter(function (p) { return /^(svg|loi|hang-doi)\//.test(p); }), [], 'kho được dọn');
+      var v = call_(login_(A.T1), 'figures');
+      ok_(v.items.some(function (x) { return x.ma === kb && /Undefined/.test(x.loi); }), 'trang Hình hiện lỗi dựng');
+      ok_(v.items.some(function (x) { return x.ma === ka && x.da_dung; }), 'A đã dựng');
+      eq_(call_(login_(A.T1), 'figureSync').gui, [], 'hình lỗi không gửi lại cho tới khi sửa TikZ');
+      setP('TEST-01', { loi_giai: 'Lời giải ' + TB.replace('2,2', '2,5') });
+      eq_(call_(login_(A.T1), 'figureSync').gui, [figKey_(TB.replace('2,2', '2,5'))], 'sửa TikZ → gửi hình mới');
+      ok_(!(figKey_(TB) in (TEST_CONF.FIG_CLOUD_STATE ? JSON.parse(TEST_CONF.FIG_CLOUD_STATE).loi : {})), 'quên lỗi của hình cũ');
+      throws_(function () { call_(login_(A.T2), 'figureSync'); }, 'Không có quyền');
+    });
+  });
+
   // 17. Thêm bài trên trang web (VP, NCB, PT, TBT, Quản trị) và thêm ảnh
   var SVG_A = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10"/><text x="1" y="8">A</text></svg>';
   var PNG_1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -1478,4 +1624,45 @@ function resetPractice() {
   audit_(Session.getEffectiveUser().getEmail(), 'resetPractice', msg);
   Logger.log(msg);
   return msg;
+}
+
+/** Kho GitHub giả cho 16.8: đủ các lời gọi của FigCloud.gs (contents, git/ref, git/commits, git/trees). */
+function fakeGitHub_() {
+  var trees = { t0: {} }, commits = { c0: { tree: 't0', parent: null } }, head = 'c0', n = 0;
+  var cur = function () { return trees[commits[head].tree]; };
+  var commit = function (t, msg) { var tid = 't' + (++n), cid = 'c' + n; trees[tid] = t; commits[cid] = { tree: tid, parent: head, msg: msg }; head = cid; };
+  var api = function (method, path, body) {
+    var m;
+    if (method === 'get' && (m = path.match(/^\/contents\/([^?]+)\?ref=main$/))) {
+      var p = m[1], t = cur();
+      if (t[p] != null) return { type: 'file', path: p, name: p.split('/').pop(), content: Utilities.base64Encode(Utilities.newBlob(t[p]).getBytes()) };
+      var list = Object.keys(t).filter(function (k) { return k.indexOf(p + '/') === 0; }).map(function (k) { return { type: 'file', path: k, name: k.slice(p.length + 1) }; });
+      return list.length ? list : null;
+    }
+    if (method === 'get' && path === '/git/ref/heads/main') return { object: { sha: head } };
+    if (method === 'get' && (m = path.match(/^\/git\/commits\/(\w+)$/))) return { tree: { sha: commits[m[1]].tree } };
+    if (method === 'post' && path === '/git/trees') {
+      var t2 = {}, base = trees[body.base_tree]; for (var k in base) t2[k] = base[k];
+      body.tree.forEach(function (e) { if (e.sha === null) { if (!(e.path in t2)) throw new Error('GitHub 422: không có ' + e.path); delete t2[e.path]; } else t2[e.path] = e.content; });
+      trees['t' + (++n)] = t2; return { sha: 't' + n };
+    }
+    if (method === 'post' && path === '/git/commits') { commits['c' + (++n)] = { tree: body.tree, parent: body.parents[0], msg: body.message }; return { sha: 'c' + n }; }
+    if (method === 'patch' && path === '/git/refs/heads/main') {
+      if (commits[body.sha].parent !== head) throw new Error('GitHub 422: không phải fast-forward');
+      head = body.sha; return {};
+    }
+    throw new Error('kho giả không biết ' + method + ' ' + path);
+  };
+  api.files = function () { return cur(); };
+  api.put = function (p, text) { var t = {}, c = cur(); for (var k in c) t[k] = c[k]; t[p] = text; commit(t, 'put'); };
+  /** như GitHub Actions: out = {nhãn: SVG | null (lỗi)}, keys = {nhãn: mã}; xoá hàng đợi. */
+  api.workflow = function (out, keys) {
+    var t = {}, c = cur(); for (var k in c) if (k.indexOf('hang-doi/') !== 0) t[k] = c[k];
+    Object.keys(out).forEach(function (l) {
+      if (out[l] == null) t['loi/tikz-' + keys[l] + '.txt'] = 'XeLaTeX: ! Undefined control sequence.';
+      else t['svg/tikz-' + keys[l] + '.svg'] = out[l];
+    });
+    commit(t, 'Dựng hình');
+  };
+  return api;
 }

@@ -12,19 +12,25 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
 </head>
 <body>
+<?!= include_('ui/Icons') ?>
 <header>
-  <h1>Đề ra kỳ này</h1>
-  <div class="bar">
-    <span id="me"></span>
+  <div class="top">
+    <a href="#" class="brand" id="go-home"><span class="pi">π</span><span>Đề ra kỳ này</span></a>
+    <span class="who"><svg class="ic"><use href="#i-user"/></svg><span id="me"></span></span>
+    <select id="view-as" hidden><option value="">Vai trò thật</option></select>
+  </div>
+  <nav class="tabs" aria-label="Các trang">
+    <button id="go-list" class="tab on"><svg class="ic"><use href="#i-list"/></svg>Danh sách</button>
+    <button id="go-rounds" class="tab" hidden><svg class="ic"><use href="#i-users"/></svg>Kỳ phản biện</button>
+    <button id="go-boards" class="tab" hidden><svg class="ic"><use href="#i-layout-grid"/></svg>Bảng chọn bài</button>
+    <button id="go-figs" class="tab" hidden><svg class="ic"><use href="#i-image"/></svg>Hình</button>
+    <button id="go-add" class="tab" hidden><svg class="ic"><use href="#i-file-plus"/></svg>Thêm bài</button>
+  </nav>
+  <div class="fbar" aria-label="Lọc và sắp xếp danh sách">
     <select id="f-topic"><option value="">Mọi chủ đề</option><option>ĐS</option><option>SH</option><option>HH</option><option>TH</option></select>
     <select id="f-level"><option value="">Mọi mức</option><option>A</option><option>B</option></select>
-    <select id="f-status"><option value="_mo">Đang xử lý (Mới, SL)</option><option value="">Mọi trạng thái</option><option>Mới</option><option>SL</option><option>SL-OK</option><option>SL-Fail</option><option>PL</option></select>
+    <select id="f-status"><option value="_mo">Đang xử lý (Mới, SL)</option><option value="">Mọi trạng thái</option><option>Mới</option><option>SL</option><option>SL-OK</option><option>SL-Fail</option><option>Không SL</option><option>PL</option></select>
     <select id="f-sort" title="Sắp xếp"><option value="moi">Mới nhận trước</option><option value="viec">Cần xử lý trước</option><option value="chude">Chủ đề, mức</option><option value="ma">Mã A→Z</option></select>
-    <select id="view-as" hidden><option value="">Vai trò thật</option></select>
-    <button id="go-rounds" class="sm" hidden>Kỳ phản biện</button>
-    <button id="go-boards" class="sm" hidden>Bảng chọn bài</button>
-    <button id="go-figs" class="sm" hidden>Hình</button>
-    <button id="go-add" class="sm" hidden>Thêm bài</button>
   </div>
 </header>
 <main>
@@ -72,6 +78,56 @@ function showMe(me) {
   ga.hidden = !me.eff.some(function (r) { return ['VP', 'NCB', 'PT', 'TBT', 'Quản trị'].indexOf(r) >= 0; });
   ga.onclick = function () { if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; } nav({ v: 'add' }); openAdd(); };
 }
+/* Trang đang xem: đánh dấu mục trên thanh, hiện bộ lọc chỉ ở danh sách (theo phần nào của <main> đang hiện). */
+var VIEW_TAB = { list: 'go-list', page: 'go-list', rounds: 'go-rounds', boards: 'go-boards', figs: 'go-figs', add: 'go-add' };
+function syncView() {
+  var v = ['list', 'page', 'rounds', 'boards', 'figs', 'add'].filter(function (id) { return !document.getElementById(id).hidden; })[0] || 'list';
+  document.body.setAttribute('data-view', v);
+  document.querySelectorAll('nav.tabs .tab').forEach(function (t) { t.classList.toggle('on', t.id === VIEW_TAB[v]); });
+}
+new MutationObserver(syncView).observe(document.querySelector('main'), { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+document.getElementById('go-list').onclick = document.getElementById('go-home').onclick = function (e) {
+  if (e) e.preventDefault();
+  if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; }
+  // bấm "Danh sách" = bắt đầu lại: về trang đầu (30 bài), đầu trang; quay lại từ một bài thì giữ nguyên chỗ đang xem
+  if (LIST_N > LIST_PAGE || LIST_Y) { LIST_N = LIST_PAGE; LIST_Y = 0; LIST_STALE = true; }
+  nav({}); showList();
+};
+/* Biểu tượng cho nút và tiêu đề mục — thêm tự động theo chữ / thuộc tính của nút, nên mọi nút mới đều nhất quán.
+ * Nút không hoàn tác được: viền đỏ; nút đang chờ bấm lần hai ("Bấm lần nữa…"): màu cảnh báo. */
+var BTN_ICON = [[/^Sửa/, 'pencil'], [/^Thêm ảnh/, 'image-plus'], [/^Thêm vào danh sách/, 'file-plus'], [/^\+ ?Thêm|^Thêm|^Lập bảng|^Mở kỳ|^Giao$/, 'plus'],
+  [/^Lưu/, 'check'], [/^Huỷ|^Đóng$/, 'x'], [/^Gửi/, 'send'], [/^Duyệt|duyệt$/, 'check'], [/^Trả lại/, 'rotate-ccw'], [/^Mở lại/, 'lock-open'],
+  [/^Khoá kỳ|^Đóng kỳ/, 'lock'], [/^Tải (SVG )?lên/, 'upload'], [/^Dựng ngay/, 'refresh-cw'], [/^Tải/, 'download'], [/^Mở lời giải/, 'eye'], [/^Đóng lời giải/, 'eye-off'],
+  [/^Đánh dấu/, 'check-check'], [/^Bỏ đánh dấu|^Đánh lại số/, 'rotate-ccw'], [/^Xem thêm/, 'chevron-down'], [/^Thu gọn/, 'chevron-up'], [/^Xem lịch sử/, 'history'],
+  [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
+var DANGER = /^(Đóng kỳ|Xoá|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải)/;
+var H3_ICON = [[/^(Sửa )?Đề bài/, 'file-text'], [/^(Sửa )?Lời giải/, 'lightbulb'], [/^(Sửa )?Hình/, 'image'], [/^Thảo luận/, 'message-square'],
+  [/^Phiếu phản biện/, 'clipboard-check'], [/^Khoá kỳ/, 'lock'], [/^Dựng hình/, 'image'], [/^Mở kỳ/, 'plus'], [/^Bài \d/, 'file-text']];
+function decorate(root) {
+  root.querySelectorAll('button:not(.tab)').forEach(function (b) {
+    // "+ Thêm …": dấu + trong chữ thay bằng biểu tượng
+    var tn = Array.prototype.filter.call(b.childNodes, function (n) { return n.nodeType === 3 && n.nodeValue.trim(); })[0];
+    if (tn && /^\s*\+\s*/.test(tn.nodeValue)) tn.nodeValue = tn.nodeValue.replace(/^\s*\+\s*/, '');
+    var t = (b.textContent || '').trim(), has = b.querySelector('.ic');
+    b.classList.toggle('armed', /^Bấm lần nữa/.test(t));
+    if (DANGER.test(t)) b.classList.add('danger');
+    if (/^[↑↓×]$/.test(t)) { if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', b.title || t); return; }
+    var want = null; BTN_ICON.some(function (m) { if (m[0].test(t)) { want = m[1]; return true; } return false; });
+    if (has && has.getAttribute('data-n') === want) return;
+    if (has) has.remove();
+    if (want) b.insertAdjacentHTML('afterbegin', ic(want).replace('<svg ', '<svg data-n="' + want + '" '));
+  });
+  root.querySelectorAll('h3').forEach(function (h) {
+    if (h.querySelector(':scope > .ic')) return;
+    var t = (h.textContent || '').trim(), want = null;
+    H3_ICON.some(function (m) { if (m[0].test(t)) { want = m[1]; return true; } return false; });
+    if (want) h.insertAdjacentHTML('afterbegin', ic(want));
+  });
+  root.querySelectorAll('.chip.w:not([data-i])').forEach(function (c) { c.setAttribute('data-i', 1); c.insertAdjacentHTML('afterbegin', ic('triangle-alert')); });
+}
+var DECO_T = null;
+new MutationObserver(function () { if (!DECO_T) DECO_T = setTimeout(function () { DECO_T = null; decorate(document.querySelector('main')); }, 0); })
+  .observe(document.querySelector('main'), { subtree: true, childList: true, characterData: true });
 Promise.resolve(ME0).then(function (me) {
   showMe(me);
   if (me.roles.indexOf('Quản trị') >= 0) {
@@ -170,16 +226,43 @@ function renderList() {
     more.querySelector('button').onclick = function () { LIST_Y = window.scrollY; LIST_N += LIST_PAGE; renderList(); window.scrollTo(0, LIST_Y); };
     L.appendChild(more);
   }
+  if (LIST_N > LIST_PAGE && all.length > LIST_PAGE) {
+    var less = document.createElement('p');
+    less.innerHTML = '<button class="sm">Thu gọn (' + LIST_PAGE + ' bài đầu)</button>';
+    less.querySelector('button').onclick = function () { LIST_N = LIST_PAGE; LIST_Y = 0; renderList(); window.scrollTo(0, 0); };
+    L.appendChild(less);
+  }
   typeset(L);
 }
 function val(id) { return document.getElementById(id).value; }
+/** Thời điểm ISO → "08/10/2026 20:35" theo giờ của máy người xem; chữ khác thì để nguyên. */
+function vnTime(d) {
+  var t = new Date(d); if (!/^\d{4}-\d{2}-\d{2}T/.test(String(d || '')) || isNaN(t)) return String(d || '');
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return p(t.getDate()) + '/' + p(t.getMonth() + 1) + '/' + t.getFullYear() + ' ' + p(t.getHours()) + ':' + p(t.getMinutes());
+}
 function vnDate(d) { var m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(d || ''); }
 /** Chip cho phản biện: hạn, đã có phiếu, đã xong. */
 function giaoChip(g) {
   if (!g) return '';
   return g.xong ? '<span class="chip ok">đã xong</span>' : '<span class="chip w">' + (g.han ? 'hạn ' + esc(vnDate(g.han)) : 'chưa có hạn') + (g.phieu ? ' · đã có phiếu' : ' · chưa có phiếu') + '</span>';
 }
-function chip(t) { return t ? '<span class="chip">' + esc(t) + '</span>' : ''; }
+/* Nhãn: trạng thái có màu + biểu tượng + chữ (không chỉ màu); chủ đề, mức: viền mảnh; nhãn không bao giờ bấm được. */
+var TAG = { 'Mới': ['st-moi', 'circle-dot', 'mới nhận, chưa vào shortlist'], 'SL': ['st-sl', 'hourglass', 'trong shortlist, đang phản biện'],
+  'SL-OK': ['st-ok', 'circle-check', 'đạt, chờ đăng'], 'SL-Fail': ['st-fail', 'circle-x', 'chưa đạt ở lần xét này'],
+  'Không SL': ['st-khong', 'ban', 'không vào shortlist, thôi xem'], 'PL': ['st-pl', 'book-open', 'đã đăng'],
+  'đang chọn': ['st-sl', 'pencil', ''], 'chờ duyệt': ['st-moi', 'hourglass', ''], 'đã duyệt': ['st-ok', 'circle-check', ''], 'đã khoá': ['st-pl', 'lock', ''],
+  'mở': ['st-ok', 'circle-dot', 'kỳ đang mở'], 'đóng': ['st-pl', 'lock', 'kỳ đã đóng'] };
+var TOPIC_FULL = { SH: 'Số học', 'ĐS': 'Đại số', HH: 'Hình học', TH: 'Tổ hợp' };
+function ic(name) { return '<svg class="ic" aria-hidden="true"><use href="#i-' + name + '"/></svg>'; }
+function chip(t) {
+  if (!t) return '';
+  var g = TAG[t];
+  if (g) return '<span class="chip ' + g[0] + '"' + (g[2] ? ' title="' + escA(g[2]) + '"' : '') + '>' + ic(g[1]) + esc(t) + '</span>';
+  if (TOPIC_FULL[t]) return '<span class="chip t-topic" title="' + escA(TOPIC_FULL[t]) + '">' + esc(t) + '</span>';
+  if (/^Mức /.test(t)) return '<span class="chip t-level">' + esc(t) + '</span>';
+  return '<span class="chip">' + esc(t) + '</span>';
+}
 
 // Bộ nhớ tạm phía trình duyệt: mở lại bài / danh sách hiện ngay, rồi cập nhật khi máy chủ trả lời.
 var PCACHE = {}, LCACHE = {}, LROWS = {};
@@ -210,19 +293,19 @@ function renderProblem(ma, d, loading) {
     '<span class="au">' + esc(d.author ? d.author.ten_in + (d.author.don_vi ? ' (' + d.author.don_vi + ')' : '') : (p.tac_gia || '')) + '</span></div>' +
     (d.can && d.can.status && !loading ? '<p class="sm-t">Trạng thái: <select id="st-sel">' + d.lists.statuses.map(function (x) {
       return '<option' + (x === p.trang_thai ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') +
-      '</select> <button class="sm" data-act="status">Đổi trạng thái</button></p>' : '') +
-    (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(p.cap_nhat) : '') + '</p>' : '') +
-    '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx">' + de.html + '</div></div>' +
+      '</select> <button class="sm" data-act="status">Đổi trạng thái</button></p><div class="inl" data-for="st"></div>' : '') +
+    (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(vnTime(p.cap_nhat)) : '') + '</p>' : '') +
+    '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx de">' + de.html + '</div></div>' +
     (p.hinh || ed ? '<div id="sec-hinh"><h3>Hình' + btn('hinh') + (ed ? ' <button class="sm" data-pic="1">Thêm ảnh…</button>' : '') + '</h3>' + hinhHtml(d) +
       '<div class="inl" data-for="pic"></div></div>' : '') +
     (loading ? '<p class="mut">Đang tải lời giải và thảo luận…</p>' :
-    '<div id="sec-loi_giai">' + (lg ? '<h3>Lời giải' + btn('loi_giai') + '</h3><div class="tx">' + lg.html + '</div>'
+    '<div id="sec-loi_giai">' + (lg ? '<h3>Lời giải' + btn('loi_giai') + '</h3><div class="tx lg">' + lg.html + '</div>'
                                     : '<h3>Lời giải' + btn('loi_giai') + '</h3><p class="mut">' + (d.loi_giai_an
                                         ? '(chưa mở — hãy tự giải trước; phụ trách chuyên mục sẽ mở lời giải cho phản biện sau)' : '(không có lời giải)') + '</p>') + '</div>' +
     (warn.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(warn.join('; ')) + '</p>' : '') +
     (d.limited ? '' : '<details id="props"' + (PROPS_OPEN ? ' open' : '') + '><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
     (d.mine || []).map(reviewForm).join('') + (d.reviews ? reviewsList(d.reviews) : '') +
-    '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.ai || c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
+    '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(commentHtml).join('') + '</div>' +
     '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>');
   document.getElementById('back').onclick = function (e) {
     e.preventDefault();
@@ -351,6 +434,12 @@ function act(ma, b) {
   if (a === 'status') {
     var st = document.getElementById('st-sel').value;
     if (st === d.problem.trang_thai) return;
+    if ((d.lists.reasonStatuses || []).indexOf(st) >= 0) {
+      inlineForm('st', [{ k: 'ly_do', label: 'Lý do chuyển sang ' + st + ' (ghi lại trong Nguồn & chỉnh sửa)', type: 'area' }], 'Chuyển sang ' + st, function (v) {
+        return done(call('setStatus', { ma_bai: ma, trang_thai: st, ly_do: v.ly_do }));
+      });
+      return;
+    }
     b.disabled = true;
     done(call('setStatus', { ma_bai: ma, trang_thai: st })).then(null, function () { b.disabled = false; });
   } else if (a === 'check-new') {
@@ -470,7 +559,7 @@ function openEditor(ma, field) {
         sec.querySelector('.newer pre').textContent = newer;
         st.textContent = 'Đã lấy bản mới nhất (phiên bản ' + nd.problem.phien_ban + ').';
         var v = document.getElementById('ver');
-        if (v) v.textContent = 'Phiên bản ' + nd.problem.phien_ban + (nd.problem.nguoi_cap_nhat ? ' · sửa lần cuối: ' + nd.problem.nguoi_cap_nhat + ', ' + nd.problem.cap_nhat : '');
+        if (v) v.textContent = 'Phiên bản ' + nd.problem.phien_ban + (nd.problem.nguoi_cap_nhat ? ' · sửa lần cuối: ' + nd.problem.nguoi_cap_nhat + ', ' + vnTime(nd.problem.cap_nhat) : '');
         draw();
       });
     });
@@ -483,12 +572,12 @@ function closeEditor(ma, field) {
   sec.innerHTML = '<h3>' + FIELD_TITLE[field] + ' <button class="sm" data-edit="' + field + '">Sửa</button>' +
     (field === 'hinh' ? ' <button class="sm" data-pic="1">Thêm ảnh…</button>' : '') + '</h3>' +
     (field === 'hinh' ? hinhHtml(PCACHE[ma]) :
-     t ? '<div class="tx">' + t.html + '</div>' + (t.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(t.warnings.join('; ')) + '</p>' : '')
+     t ? '<div class="tx ' + (field === 'de_bai' ? 'de' : 'lg') + '">' + t.html + '</div>' + (t.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(t.warnings.join('; ')) + '</p>' : '')
        : '<p class="mut">(không có ' + FIELD_NAME[field] + ')</p>');
   sec.querySelector('[data-edit]').onclick = function () { openEditor(ma, field); };
   if (field === 'hinh') { sec.insertAdjacentHTML('beforeend', '<div class="inl" data-for="pic"></div>'); sec.querySelector('[data-pic]').onclick = function () { picForm(ma); }; }
   var v = document.getElementById('ver');
-  if (v) v.textContent = 'Phiên bản ' + (p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + p.nguoi_cap_nhat + ', ' + p.cap_nhat : '');
+  if (v) v.textContent = 'Phiên bản ' + (p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + p.nguoi_cap_nhat + ', ' + vnTime(p.cap_nhat) : '');
   typeset(sec);
 }
 
@@ -505,13 +594,23 @@ function reviewForm(g) {
     '<div class="rv-pv tx">' + (v.nhan_xet ? PiRender.render(v.nhan_xet).html : '') + '</div>' +
     '<div class="edbar">' + (g.xong ? '<button data-act="rv-undo">Bỏ đánh dấu xong</button>'
       : '<button class="pri" data-act="rv-save">Lưu phiếu</button> <button data-act="rv-done"' + (g.review ? '' : ' disabled title="Lưu phiếu trước"') + '>Đánh dấu đã xong</button>') +
-    ' <span class="st mut">' + (v.ngay ? 'Lưu lần cuối: ' + esc(v.ngay) : '') + '</span></div></div>';
+    ' <span class="st mut">' + (v.ngay ? 'Lưu lần cuối: ' + esc(vnTime(v.ngay)) : '') + '</span></div></div>';
 }
+/* Nhận xét: chữ không chân (là lời của người), khác chữ có chân của đề / lời giải (là nội dung bài); phản biện và ban biên tập
+ * khác màu viền và có nhãn — không chỉ dựa vào màu. */
+function commentHtml(c) {
+  var pb = c.vai === 'pb';
+  return '<div class="cm ' + (pb ? 'pb' : 'bbt') + '"><div class="cm-h"><span class="cm-role">' + ic(pb ? 'user' : 'users') + (pb ? 'Phản biện' : 'Ban biên tập') +
+    '</span><b>' + esc(c.ai || c.email) + '</b><span class="mut">' + esc(vnTime(c.ngay)) + '</span></div><div class="cm-b">' + PiRender.render(c.noi_dung).html + '</div></div>';
+}
+var REC_TAG = { 'chọn': 'st-ok', 'sửa rồi chọn': 'st-sl', 'không chọn': 'st-fail' };
 function reviewsList(rs) {
   if (!rs.length) return '';
   return '<details class="rvs"><summary>Phiếu phản biện (' + rs.length + ')</summary>' + rs.map(function (v) {
-    return '<div class="cm"><b>' + esc(v.email || 'trước hệ thống') + '</b> · kỳ ' + esc(v.ky) + ' · ' + (v.muc_de_nghi ? 'mức ' + esc(v.muc_de_nghi) + ' · ' : '') +
-      '<b>' + esc(v.diem || '') + '</b> <span class="mut">' + esc(v.ngay) + '</span><div>' + PiRender.render(String(v.nhan_xet || '')).html + '</div></div>';
+    return '<div class="cm pb"><div class="cm-h"><span class="cm-role">' + ic('clipboard-check') + 'Phiếu</span><b>' + esc(v.email || 'trước hệ thống') + '</b>' +
+      '<span class="mut">kỳ ' + esc(v.ky) + '</span>' + (v.muc_de_nghi ? '<span class="chip t-level">Mức ' + esc(v.muc_de_nghi) + '</span>' : '') +
+      (v.diem ? '<span class="chip ' + (REC_TAG[v.diem] || '') + '">' + esc(v.diem) + '</span>' : '') + '<span class="mut">' + esc(vnTime(v.ngay)) + '</span></div>' +
+      '<div class="cm-b">' + PiRender.render(String(v.nhan_xet || '')).html + '</div></div>';
   }).join('') + '</details>';
 }
 
@@ -535,7 +634,10 @@ function renderRounds() {
     '<button class="pri" data-r="open">Mở kỳ</button></div></div>';
   var rounds = v.rounds.slice().sort(function (a, b) { return (a.trang_thai === 'mở' ? 0 : 1) - (b.trang_thai === 'mở' ? 0 : 1); });
   if (!rounds.length) h += '<p class="mut">Chưa có kỳ nào.</p>';
+  var nClosed = rounds.filter(function (r) { return r.trang_thai !== 'mở'; }).length, closedOpened = false;
   rounds.forEach(function (r) {
+    // kỳ đã đóng gom vào một mục thu gọn, cuối trang
+    if (r.trang_thai !== 'mở' && !closedOpened) { closedOpened = true; h += '<details class="closed-rounds"><summary>Kỳ đã đóng (' + nClosed + ')</summary>'; }
     var as = r.assignments, open = r.trang_thai === 'mở', man = v.manage && open;
     var done = as.filter(function (a) { return a.xong; }).length, ph = as.filter(function (a) { return a.phieu; }).length;
     var notInvited = {}; as.forEach(function (a) { if (!a.moi_luc) notInvited[a.email] = 1; });
@@ -549,7 +651,8 @@ function renderRounds() {
     if (man) h += '<div class="row"><label>Đổi hạn <input type="date" data-k="han" value="' + escA(r.han_phan_bien) + '" min="' + today + '"></label>' +
       '<button class="sm" data-r="deadline">Lưu hạn</button>' +
       '<button class="sm" data-r="invite"' + (nInv ? '' : ' disabled') + '>Gửi thư mời (' + nInv + ' người chưa mời)</button>' +
-      '<button class="sm" data-r="close">Đóng kỳ…</button><span class="st mut"></span></div>';
+      '<button class="sm" data-r="close">Đóng kỳ…</button>' + (ph ? '' : '<button class="sm" data-r="del">Xoá kỳ…</button>') + '<span class="st mut"></span></div>';
+    else if (v.manage && !ph) h += '<div class="row"><button class="sm" data-r="del">Xoá kỳ…</button><span class="st mut"></span></div>';
     var byP = {}; as.forEach(function (a) { (byP[a.ma_bai] = byP[a.ma_bai] || []).push(a); });
     var codes = Object.keys(byP).sort();
     h += codes.length ? '<div class="tbl-wrap"><table class="as"><tr><th>Bài</th><th>Phản biện</th><th>Mời</th><th>Phiếu</th><th>Xong</th><th>Đã nhắc</th>' + (man ? '<th></th>' : '') + '</tr>' +
@@ -568,6 +671,7 @@ function renderRounds() {
       '<button class="sm pri" data-r="assign">Giao</button></div>';
     h += '</div>';
   });
+  if (closedOpened) h += '</details>';
   R.innerHTML = h;
   document.getElementById('r-back').onclick = function (e) { e.preventDefault(); nav({}); showList(); };
   R.onclick = function (ev) {
@@ -593,7 +697,10 @@ function renderRounds() {
       if (!q('ma') || !q('pb')) { alertBox('Chọn bài và phản biện.'); return; }
       run(call('assign', { ky: ky, ma_bai: q('ma'), email: q('pb') }));
     } else if (a === 'unassign') run(call('unassign', { ky: ky, ma_bai: b.getAttribute('data-ma'), email: b.getAttribute('data-email') }));
-    else if (a === 'sol') {
+    else if (a === 'del') {
+      if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Bấm lần nữa: xoá kỳ ' + ky + ' và mọi phân công của kỳ'; return; }
+      run(call('deleteRound', { ky: ky }), 'Đã xoá kỳ ' + ky + '.');
+    } else if (a === 'sol') {
       var mo = b.getAttribute('data-mo') === '1';
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = mo ? 'Bấm lần nữa: mọi phản biện của kỳ ' + ky + ' sẽ thấy lời giải' : 'Bấm lần nữa để ẩn lời giải'; return; }
       run(call('releaseSolutions', { ky: ky, mo: mo }), mo ? 'Đã mở lời giải cho phản biện của kỳ ' + ky + '.' : 'Đã ẩn lời giải của kỳ ' + ky + '.');
@@ -666,7 +773,7 @@ function renderBoards() {
         if (p && p.muc && p.muc !== lv && b.trang_thai !== 'đã duyệt') notes.push('mức bài ' + p.muc + ' ≠ vị trí ' + lv);
         if (notes.length) warn++;
         return '<tr><td>' + pos + '</td><td>mức ' + lv + '</td><td><a href="#" class="code" data-open="' + escA(r.ma_bai) + '">' + esc(r.ma_bai) + '</a></td>' +
-          '<td>' + esc(p ? p.chu_de : '') + '</td><td>' + esc(p ? p.muc : '') + '</td><td>' + esc(p ? p.trang_thai : '') + '</td><td>' + phieuText(p && p.phieu) + '</td>' +
+          '<td>' + esc(p ? p.chu_de : '') + '</td><td>' + esc(p ? p.muc : '') + '</td><td>' + (p ? chip(p.trang_thai) : '') + '</td><td>' + phieuText(p && p.phieu) + '</td>' +
           '<td class="w">' + esc(notes.join('; ')) + '</td>' +
           (edit ? '<td class="nw"><button class="sm" data-b="up" data-pos="' + pos + '"' + (pos > 1 ? '' : ' disabled') + ' title="Lên">↑</button>' +
                   '<button class="sm" data-b="down" data-pos="' + pos + '"' + (pos < v.layout.length ? '' : ' disabled') + ' title="Xuống">↓</button>' +
@@ -923,7 +1030,11 @@ function renderFigs() {
   var shown = FIG_ONLY_TODO ? items.filter(function (x) { return !x.da_dung; }) : items;
   F.innerHTML = '<p><a href="#" id="f-back">← Danh sách</a></p><h2 class="pg">Hình</h2>' +
     '<p class="sm-t">' + tikz.length + ' hình TikZ (' + todo.length + ' chưa dựng) · ' + pics.length + ' ảnh (' + lost.length + ' không có trong thư mục hình).</p>' +
-    '<div class="card"><h3>Dựng hình TikZ</h3><ol class="sm-t">' +
+    (FV.cloud ? '<div class="card"><h3>Dựng tự động (GitHub)</h3><p class="sm-t">Hình TikZ mới hay vừa sửa được dựng tự động trong vài phút ' +
+      '(kho riêng tư; chỉ gửi mã TikZ của hình, không gửi đề). ' + (FV.cloud.cho ? '<b>Đang chờ ' + FV.cloud.cho + ' hình.</b> ' : '') +
+      (FV.cloud.luc ? '<span class="mut">Lần cuối: ' + esc(vnTime(FV.cloud.luc)) + '.</span>' : '') + '</p>' +
+      '<p><button class="pri sm" data-f="sync">Dựng ngay</button> <span class="st mut sm-t" id="f-sync"></span></p></div>' : '') +
+    '<div class="card"><h3>' + (FV.cloud ? 'Dựng tay (trên máy)' : 'Dựng hình TikZ') + '</h3><ol class="sm-t">' +
     '<li><button class="sm" data-f="src"' + (todo.length ? '' : ' disabled') + '>Tải các hình chưa dựng (.zip)</button> ' +
     '<button class="sm" data-f="all"' + (tikz.length ? '' : ' disabled') + '>Tải mã của mọi hình TikZ</button></li>' +
     '<li>Trên máy (cần MacTeX): <code>python3 tools/hinh/build.py ~/Downloads/hinh-chua-dung.zip</code> → tệp <code>hinh-svg.zip</code> cạnh tệp tải về.</li>' +
@@ -935,7 +1046,9 @@ function renderFigs() {
       shown.map(function (x) {
         return '<tr><td><a href="#" class="code" data-open="' + escA(x.ma_bai) + '">' + esc(x.ma_bai) + '</a></td><td>' + esc(x.trang_thai) + '</td>' +
           '<td>' + esc(x.noi) + '</td><td class="code">' + esc(x.ma || x.ten) + '</td>' +
-          '<td>' + (x.da_dung ? '<span class="chip ok">' + (x.ma ? 'đã dựng' : 'có tệp') + '</span>' : '<span class="chip w">' + (x.ma ? 'chưa dựng' : 'thiếu tệp') + '</span>') + '</td></tr>';
+          '<td>' + (x.da_dung ? '<span class="chip ok">' + (x.ma ? 'đã dựng' : 'có tệp') + '</span>' : x.loi ? '<span class="chip st-fail">lỗi dựng</span>' :
+                   '<span class="chip w">' + (x.ma ? 'chưa dựng' : 'thiếu tệp') + '</span>') + '</td></tr>' +
+          (x.loi ? '<tr><td></td><td colspan="4" class="sm-t"><span class="bad">' + esc(x.loi) + '</span> — sửa TikZ rồi lưu, hình được dựng lại.</td></tr>' : '');
       }).join('') + '</table></div>' : '<p class="mut">Không có hình nào' + (FIG_ONLY_TODO ? ' cần dựng.' : '.') + '</p>');
   document.getElementById('f-back').onclick = function (e) { e.preventDefault(); nav({}); showList(); };
   document.getElementById('f-todo').onchange = function (e) { FIG_ONLY_TODO = e.target.checked; renderFigs(); };
@@ -944,6 +1057,18 @@ function renderFigs() {
     if (o) { ev.preventDefault(); nav({ ma: o.getAttribute('data-open') }); openProblem(o.getAttribute('data-open')); return; }
     var b = ev.target.closest('[data-f]'); if (!b || b.disabled) return;
     var k = b.getAttribute('data-f');
+    if (k === 'sync') {
+      b.disabled = true; document.getElementById('f-sync').textContent = 'Đang gửi / lấy hình…';
+      call('figureSync', {}).then(function (r) {
+        PCACHE = {};
+        return call('figures', {}).then(function (v) {
+          FV = v; renderFigs();
+          document.getElementById('f-sync').textContent = 'Đã lấy ' + r.lay.length + ' hình, gửi ' + r.gui.length + ' hình' +
+            (r.cho.length ? '; ' + r.cho.length + ' hình đang dựng — trang tự cập nhật khi mở lại sau vài phút.' : '.');
+        });
+      }, function () { b.disabled = false; document.getElementById('f-sync').textContent = ''; });
+      return;
+    }
     if (k === 'src' || k === 'all') {
       b.disabled = true;
       call('figureSources', { tat_ca: k === 'all' }).then(function (r) {
@@ -1036,7 +1161,7 @@ function loadHistory(ma) {
   call('revisions', { ma_bai: ma }).then(function (rs) {
     if (!rs || !rs.length) { H.innerHTML = '<p class="mut">Chưa có lần sửa nào qua hệ thống.</p>'; return; }
     H.innerHTML = rs.map(function (r) {
-      return '<details class="rev"><summary>Phiên bản ' + esc(r.phien_ban) + ' · ' + esc(FIELD_NAME[r.truong] || r.truong) + ' · ' + esc(r.email) + ' · ' + esc(r.ngay) + '</summary>' +
+      return '<details class="rev"><summary>Phiên bản ' + esc(r.phien_ban) + ' · ' + esc(FIELD_NAME[r.truong] || r.truong) + ' · ' + esc(r.email) + ' · ' + esc(vnTime(r.ngay)) + '</summary>' +
         diffHtml(r.cu == null ? '' : String(r.cu), r.moi == null ? '' : String(r.moi)) + '</details>';
     }).join('');
   }, function () { H.innerHTML = '<button class="sm" id="hist-load">Xem lịch sử</button>'; document.getElementById('hist-load').onclick = function () { loadHistory(ma); }; });

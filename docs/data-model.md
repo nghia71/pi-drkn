@@ -5,7 +5,7 @@
 ## Mã bài
 `YYYY-MM-NN` + chữ cái: năm-tháng-số thứ tự hồ sơ trong tháng của Văn phòng + thứ tự bài trong hồ sơ
 (ví dụ `2026-06-10a`). Mã không bao giờ đổi. Thuộc tính đổi theo vòng đời và được hiển thị kèm mã:
-chủ đề (ĐS/SH/HH/TH), mức (A/B), trạng thái (Mới / SL / SL-OK / SL-Fail / PL), đăng (Pi tháng/năm · số in P…).
+chủ đề (ĐS/SH/HH/TH), mức (A/B), trạng thái (Mới / SL / SL-OK / SL-Fail / Không SL / PL — Không SL: không vào shortlist, thôi xem; Không SL và SL-Fail phải ghi lý do, lưu thành một mục đã đóng của bài; bài Không SL không giao phản biện, không xếp vào bảng), đăng (Pi tháng/năm · số in P…).
 Bài chưa xác định được hồ sơ gốc dùng mã tạm (ví dụ `SL09-1042`), ghi trong cột `ma_tam`.
 
 ## Bảng
@@ -52,13 +52,14 @@ phiên bản 1, bản gốc = văn bản lúc thêm; Provenance (thư mục, t�
 Ảnh của đề: tên trong cột Hình; ảnh lời giải: `\includegraphics{…}` cuối lời giải.
 
 **Danh sách bài**: mặc định chỉ bài đang xử lý (Mới, SL); sắp xếp mới nhận trước (thư mục mới trước, trong thư mục a, b…),
-cần xử lý trước, chủ đề rồi mức, hoặc theo mã; mỗi lần hiện 30 bài ("Xem thêm"). Phản biện thấy mọi bài được giao.
+cần xử lý trước, chủ đề rồi mức, hoặc theo mã; mỗi lần hiện 30 bài ("Xem thêm", "Thu gọn"; bấm thẻ Danh sách thì về 30 bài đầu). Phản biện thấy mọi bài được giao.
 
 **Kỳ phản biện** (tab Rounds, Assignments, Reviews): PT, Quản trị mở kỳ (tên, hạn), giao bài cho người có vai trò PB,
-gửi thư mời, đổi hạn, đóng kỳ; TBT, NCB xem tiến độ. Phản biện điền **Phiếu phản biện** (mức đề nghị A/B; đề nghị
+gửi thư mời, đổi hạn, đóng kỳ; TBT, NCB xem tiến độ. Kỳ chưa có phiếu nào (mở nhầm, mở thử) thì PT, Quản trị **xoá** được
+(xoá luôn các dòng phân công của kỳ; ghi Audit); kỳ đã có phiếu chỉ đóng được — kỳ đã đóng được gộp vào mục "Kỳ đã đóng". Phản biện điền **Phiếu phản biện** (mức đề nghị A/B; đề nghị
 chọn / sửa rồi chọn / không chọn; nhận xét) — một phiếu cho mỗi kỳ, bài, người; lưu lại thì thay phiếu cũ — rồi **đánh dấu xong**
 (khoá phiếu). Phản biện chỉ thấy phiếu của mình; TBT, PT, NCB, Quản trị thấy mọi phiếu kèm email.
-Thảo luận: phản biện thấy nhận xét của nhau nhưng **ẩn danh** ("Bạn", "Phản biện 1, 2…", "Ban biên tập"; không có email).
+Thảo luận: nhận xét của phản biện và của ban biên tập hiện khác nhau (viền màu, nhãn "Phản biện" / "Ban biên tập"); phản biện thấy nhận xét của nhau nhưng **ẩn danh** ("Bạn", "Phản biện 1, 2…", "Ban biên tập"; không có email).
 Ngày hạn được lưu như chữ `NNNN-TT-NN` (không để Sheets đổi thành kiểu ngày). Cột `nhac` ghi các mốc đã nhắc (ví dụ `3,1`).
 
 **Bảng chọn bài** (tab Issues, Shortlist): mỗi số báo (ví dụ `10/2026`) một bảng, các vị trí theo thứ tự in, mức của vị trí theo

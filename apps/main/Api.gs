@@ -55,6 +55,7 @@ function api_(token, method, args) {
     case 'setDeadline': return setDeadline_(w, args);
     case 'closeRound': return closeRound_(w, args);
     case 'releaseSolutions': return releaseSolutions_(w, args);
+    case 'deleteRound': return deleteRound_(w, args);
     case 'sendInvites': return sendInvites_(w, args);
     case 'submitReview': return submitReview_(w, args);
     case 'markDone': return markDone_(w, args);
@@ -74,6 +75,7 @@ function api_(token, method, args) {
     case 'uploadPictures': return uploadPictures_(w, args);
     case 'figureSources': return figureSources_(w, args);
     case 'uploadFigures': return uploadFigures_(w, args);
+    case 'figureSync': return figureSync_(w);
     case 'closeIssue': return closeIssue_(w, args);
     case 'exportOf': return exportOf_(w, args);
     default: throw new Error('Không có thao tác ' + method);
@@ -160,9 +162,9 @@ function getProblem_(w, ma, noAudit) {
   var out;
   if (full) {
     out = { problem: p, provenance: of('Provenance')[0] || null, corrections: of('Corrections'), checks: of('Checks'),
-            conflicts: of('Conflicts'), log: of('ConversionLog'), comments: of('Comments'), canEdit: has_(w, EDITORS),
+            conflicts: of('Conflicts'), log: of('ConversionLog'), comments: commentRoles_(ma, of('Comments')), canEdit: has_(w, EDITORS),
             can: { status: has_(w, STATUS_SETTERS), props: has_(w, PROP_EDITORS), tbt: has_(w, ['TBT']) },
-            lists: { statuses: STATUSES, conflictTypes: CONFLICT_TYPES, conflictStatuses: CONFLICT_STATUSES, tbtConflicts: TBT_CONFLICTS,
+            lists: { statuses: STATUSES, reasonStatuses: REASON_STATUSES, conflictTypes: CONFLICT_TYPES, conflictStatuses: CONFLICT_STATUSES, tbtConflicts: TBT_CONFLICTS,
                      correctionStatuses: CORRECTION_STATUSES } };
   } else {
     // Phản biện chỉ nhận văn bản đã biên tập và thảo luận: nguồn, tên tệp, xung đột, sửa đổi có thể lộ tác giả.
@@ -231,7 +233,7 @@ function saveText_(w, a) {
     }
     return r;
   });
-  if (!res.khong_doi) audit_(w.email, 'sửa', a.ma_bai + ' ' + a.truong + ' → phiên bản ' + res.phien_ban + (res.sua_doi ? ' (nội dung toán)' : ''));
+  if (!res.khong_doi) { audit_(w.email, 'sửa', a.ma_bai + ' ' + a.truong + ' → phiên bản ' + res.phien_ban + (res.sua_doi ? ' (nội dung toán)' : '')); figTouched_(text); }
   return res;
 }
 
@@ -290,8 +292,16 @@ function anonComments_(w, ma, comments) {
   return comments.map(function (c) {
     var e = String(c.email).trim().toLowerCase(), k = order.indexOf(e);
     return { id: c.id, ma_bai: c.ma_bai, tra_loi_cho: c.tra_loi_cho, noi_dung: c.noi_dung, ngay: c.ngay,
-             ai: e === w.email ? 'Bạn' : k >= 0 ? 'Phản biện ' + (k + 1) : 'Ban biên tập' };
+             ai: e === w.email ? 'Bạn' : k >= 0 ? 'Phản biện ' + (k + 1) : 'Ban biên tập',
+             vai: e === w.email || k >= 0 ? 'pb' : 'bbt' };
   });
+}
+
+/** Ban biên tập xem thảo luận: đánh dấu nhận xét của phản biện (người từng được giao bài này) để trang hiện khác nhận xét của ban biên tập. */
+function commentRoles_(ma, comments) {
+  var pb = {};
+  rows_('Assignments').forEach(function (a) { if (a.ma_bai === ma) pb[String(a.email).trim().toLowerCase()] = true; });
+  return comments.map(function (c) { c.vai = pb[String(c.email).trim().toLowerCase()] ? 'pb' : 'bbt'; return c; });
 }
 
 /**
@@ -382,8 +392,13 @@ function setStatus_(w, a) {
   need_(w, STATUS_SETTERS);
   if (STATUSES.indexOf(a.trang_thai) < 0) throw new Error('Trạng thái không hợp lệ.');
   needProblem_(w, a.ma_bai);
-  var hit = findRow_('Problems', 'ma_bai', a.ma_bai);
-  update_('Problems', hit.row, { trang_thai: a.trang_thai, cap_nhat: now_(), nguoi_cap_nhat: w.email });
-  audit_(w.email, 'trạng thái', a.ma_bai + ' → ' + a.trang_thai);
+  var lyDo = shortText_(a.ly_do, 'Lý do', 2000, REASON_STATUSES.indexOf(a.trang_thai) >= 0);
+  var hit = findRow_('Problems', 'ma_bai', a.ma_bai), cu = hit.data.trang_thai, t = now_();
+  if (cu === a.trang_thai) return true;
+  update_('Problems', hit.row, { trang_thai: a.trang_thai, cap_nhat: t, nguoi_cap_nhat: w.email });
+  // quyết định loại (hoặc đổi trạng thái có ghi lý do) lưu thành một mục đã đóng — hiện trong "Nguồn & chỉnh sửa" của bài
+  if (lyDo) append_('Checks', { id: newId_(), ma_bai: a.ma_bai, noi_dung: 'Trạng thái: ' + (cu || '—') + ' → ' + a.trang_thai, trang_thai: 'xong',
+                                nguoi: w.email, ngay: t, ket_qua: lyDo });
+  audit_(w.email, 'trạng thái', a.ma_bai + ' → ' + a.trang_thai + (lyDo ? ' (' + lyDo + ')' : ''));
   return true;
 }

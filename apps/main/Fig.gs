@@ -8,7 +8,7 @@
  *    hình (FIG_FOLDER_ID) tên tikz-<mã>.svg. Sửa TikZ thì mã đổi: trang hiện "chưa dựng" cho tới khi có SVG mới — không bao giờ
  *    hiện hình cũ cho mã mới.
  *  - Dựng SVG ở máy: trang "Hình" → tải các hình chưa dựng (.zip) → tools/hinh/build.py → tải hinh-svg.zip lên trang "Hình".
- *    (Giai đoạn 2, sau này: GitHub Actions trong một kho RIÊNG TƯ.) Không bao giờ dựng hình của đề chưa đăng trên dịch vụ công cộng.
+ *    Giai đoạn 2 (FigCloud.gs): GitHub Actions trong một kho RIÊNG TƯ dựng tự động. Không bao giờ dựng hình của đề chưa đăng trên dịch vụ công cộng.
  *  - Trang web hiện SVG/ảnh bằng <img src="data:…">: trình duyệt không chạy mã trong ảnh; SVG tải lên vẫn được kiểm tra.
  */
 var FIG_MANAGERS = EDITORS;                    // NCB, PT, Quản trị: tải mã nguồn hình, tải SVG lên
@@ -141,7 +141,9 @@ function figureList_(w) {
 
 function figuresView_(w) {
   need_(w, FIG_MANAGERS);
-  return { items: figureList_(w).map(function (x) { var y = {}; for (var k in x) if (k !== 'src') y[k] = x[k]; return y; }) };
+  var st = figCloudOn_() ? figCloudState_() : null, loi = (st && st.loi) || {};
+  return { items: figureList_(w).map(function (x) { var y = {}; for (var k in x) if (k !== 'src') y[k] = x[k]; if (x.ma && loi[x.ma] && !x.da_dung) y.loi = loi[x.ma]; return y; }),
+           cloud: st ? { cho: (st.cho || []).length, luc: st.luc || '' } : null };
 }
 
 /** Zip mã nguồn các hình TikZ (mặc định: chỉ hình chưa dựng) để dựng ở máy bằng tools/hinh/build.py. */

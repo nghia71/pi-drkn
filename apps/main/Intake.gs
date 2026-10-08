@@ -124,6 +124,7 @@ function addSubmission_(w, a) {
   });
   READ_MEMO_ = READ_MEMO_ && {};
   audit_(who, 'thêm bài', res.map(function (r) { return r.ma_bai; }).join(', ') + ' — tác giả ' + author.ten_in);
+  figTouched_(items.map(function (b) { return b.de + '\n' + b.lg; }).join('\n'));
   return { bai: res };
 }
 

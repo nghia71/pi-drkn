@@ -13,6 +13,9 @@
 5. **Thông tin cá nhân** (điện thoại, email, tài khoản ngân hàng, số giấy tờ, địa chỉ nhà) không đưa vào hệ thống, trừ
    cột `lien_he` của tab Authors (chỉ VP, PT, TBT, Quản trị xem). Thông tin của học sinh chưa đủ 18 tuổi cũng vậy.
 6. **Không dùng dịch vụ ngoài** (trình biên dịch LaTeX trực tuyến, AI công cộng…) với bài chưa đăng.
+   Ngoại lệ đã duyệt (Nghĩa, 2026-10-08): dựng hình tự động gửi **mã TikZ của hình** (không có đề, lời giải, tác giả) vào kho GitHub
+   **riêng tư** của Pi (`GITHUB_REPO`), dựng bằng GitHub Actions; SVG lấy về thì tệp trong kho bị xoá (lịch sử commit vẫn giữ mã TikZ —
+   kho phải luôn riêng tư; xoá kho khi thôi dùng).
 7. Mỗi lần xem/sửa bài được ghi vào tab Audit.
 8. **Phản biện chỉ nhận văn bản đã biên tập và thảo luận** của bài được giao — không nhận nguồn, tên tệp, xung đột, sửa đổi,
    bản gốc (những thứ có thể lộ tác giả).

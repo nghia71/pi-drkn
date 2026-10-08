@@ -1,0 +1,40 @@
+{
+ "_ghi_chu": "Bài BỊA cho kiểm thử giao diện (tests/ui/run.js), không phải bài thật. %K được thay bằng một số.",
+ "mau": [
+  [
+   "ĐS",
+   "Cho các số thực dương $a,b,c$ thỏa mãn $a+b+c=3$. Chứng minh rằng $$a^2+b^2+c^2\\ge 3.$$",
+   "Theo bất đẳng thức Cauchy–Schwarz, $3(a^2+b^2+c^2)\\ge (a+b+c)^2=9$."
+  ],
+  [
+   "SH",
+   "Tìm mọi số nguyên dương $n$ sao cho $n^2+%K$ chia hết cho $n+1$.",
+   "Ta có $n^2+%K=(n+1)(n-1)+%K+1$ nên $n+1\\mid %K+1$."
+  ],
+  [
+   "HH",
+   "Cho tam giác $ABC$ có $AB=%K$, $AC=%K+1$ và $\\angle BAC=60^\\circ$. Tính độ dài $BC$.",
+   "Theo định lý cô-sin, $BC^2=AB^2+AC^2-AB\\cdot AC$."
+  ],
+  [
+   "TH",
+   "Có bao nhiêu cách xếp $%K$ viên bi khác màu vào $3$ hộp sao cho không hộp nào rỗng?",
+   "Dùng nguyên lý bù trừ: $3^{%K}-3\\cdot 2^{%K}+3$."
+  ],
+  [
+   "ĐS",
+   "Giải hệ phương trình $$\\begin{cases} x+y=%K\\\\ xy=%K-1. \\end{cases}$$",
+   "$x,y$ là nghiệm của $t^2-%Kt+%K-1=0$, tức $t=1$ hoặc $t=%K-1$."
+  ],
+  [
+   "SH",
+   "Chứng minh rằng với mọi số nguyên $n$, số $n^5-n$ chia hết cho $%K0$.",
+   "Theo định lý Fermat nhỏ, $n^5\\equiv n \\pmod 5$; và $n^5-n$ chẵn."
+  ]
+ ],
+ "tep_tex": "\\textbf{Bài toán 1. Thử}\nTìm số nguyên dương $n$ nhỏ nhất để $2^n>n^3$.\n\n\\textbf{Lời giải.}\nThử trực tiếp: $n=10$ vì $2^{10}=1024>1000$, còn $2^9=512<729$.\n",
+ "bai_go_tay": {
+  "de": "Cho hình vuông $ABCD$ cạnh $1$. Điểm $M$ chạy trên cạnh $CD$. Tìm giá trị nhỏ nhất của $MA+MB$.",
+  "lg": "Lấy đối xứng $A$ qua $CD$ được $A'$; khi đó $MA+MB=MA'+MB\\ge A'B=\\sqrt5$."
+ }
+}

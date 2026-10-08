@@ -16,3 +16,8 @@ jobs:
         run: node tests/render.test.js
       - name: Server tests on the Apps Script simulator (invented data only)
         run: node tools/gas-sim/run-tests.js
+      - name: UI tests in Chromium (invented data only)
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node tests/ui/run.js --no-shots

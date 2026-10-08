@@ -8,9 +8,13 @@ cd "$(dirname "$0")/.."
 python3 scripts/guard.py --all
 node tests/render.test.js
 node tools/gas-sim/run-tests.js | tail -1   # bộ kiểm thử máy chủ trên bản mô phỏng; lỗi thì dừng, không đẩy
+node tests/ui/run.js --no-shots             # giao diện trong Chromium (bỏ qua nếu chưa cài: npm install && npx playwright install chromium)
 
 # giao diện cần pi-render.js dưới dạng tệp HTML của Apps Script
 { echo '<script>'; cat shared/pi-render.js; echo '</script>'; } > apps/main/ui/RenderJs.html
+
+# mã bản triển khai: trigger kiểm thử tự động (installAutoTests) thấy bản mới thì chạy runSmoke và gửi thư kết quả
+echo "var BUILD = '$(git rev-parse --short HEAD 2>/dev/null || echo ?)$(git diff --quiet 2>/dev/null || echo '+sửa') $(date -u +%Y-%m-%dT%H:%MZ)';" > apps/main/Build.gs
 
 [ -f deploy.local.env ] && source deploy.local.env
 msg="${1:-$(git log -1 --format=%h' '%s 2>/dev/null || echo update)}"
