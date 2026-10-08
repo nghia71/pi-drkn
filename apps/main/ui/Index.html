@@ -294,7 +294,7 @@ function renderProblem(ma, d, loading) {
     (d.can && d.can.status && !loading ? '<p class="sm-t">Trạng thái: <select id="st-sel">' + d.lists.statuses.map(function (x) {
       return '<option' + (x === p.trang_thai ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') +
       '</select> <button class="sm" data-act="status">Đổi trạng thái</button></p><div class="inl" data-for="st"></div>' : '') +
-    (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(p.cap_nhat) : '') + '</p>' : '') +
+    (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(vnTime(p.cap_nhat)) : '') + '</p>' : '') +
     '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx de">' + de.html + '</div></div>' +
     (p.hinh || ed ? '<div id="sec-hinh"><h3>Hình' + btn('hinh') + (ed ? ' <button class="sm" data-pic="1">Thêm ảnh…</button>' : '') + '</h3>' + hinhHtml(d) +
       '<div class="inl" data-for="pic"></div></div>' : '') +
@@ -559,7 +559,7 @@ function openEditor(ma, field) {
         sec.querySelector('.newer pre').textContent = newer;
         st.textContent = 'Đã lấy bản mới nhất (phiên bản ' + nd.problem.phien_ban + ').';
         var v = document.getElementById('ver');
-        if (v) v.textContent = 'Phiên bản ' + nd.problem.phien_ban + (nd.problem.nguoi_cap_nhat ? ' · sửa lần cuối: ' + nd.problem.nguoi_cap_nhat + ', ' + nd.problem.cap_nhat : '');
+        if (v) v.textContent = 'Phiên bản ' + nd.problem.phien_ban + (nd.problem.nguoi_cap_nhat ? ' · sửa lần cuối: ' + nd.problem.nguoi_cap_nhat + ', ' + vnTime(nd.problem.cap_nhat) : '');
         draw();
       });
     });
@@ -577,7 +577,7 @@ function closeEditor(ma, field) {
   sec.querySelector('[data-edit]').onclick = function () { openEditor(ma, field); };
   if (field === 'hinh') { sec.insertAdjacentHTML('beforeend', '<div class="inl" data-for="pic"></div>'); sec.querySelector('[data-pic]').onclick = function () { picForm(ma); }; }
   var v = document.getElementById('ver');
-  if (v) v.textContent = 'Phiên bản ' + (p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + p.nguoi_cap_nhat + ', ' + p.cap_nhat : '');
+  if (v) v.textContent = 'Phiên bản ' + (p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + p.nguoi_cap_nhat + ', ' + vnTime(p.cap_nhat) : '');
   typeset(sec);
 }
 
@@ -594,7 +594,7 @@ function reviewForm(g) {
     '<div class="rv-pv tx">' + (v.nhan_xet ? PiRender.render(v.nhan_xet).html : '') + '</div>' +
     '<div class="edbar">' + (g.xong ? '<button data-act="rv-undo">Bỏ đánh dấu xong</button>'
       : '<button class="pri" data-act="rv-save">Lưu phiếu</button> <button data-act="rv-done"' + (g.review ? '' : ' disabled title="Lưu phiếu trước"') + '>Đánh dấu đã xong</button>') +
-    ' <span class="st mut">' + (v.ngay ? 'Lưu lần cuối: ' + esc(v.ngay) : '') + '</span></div></div>';
+    ' <span class="st mut">' + (v.ngay ? 'Lưu lần cuối: ' + esc(vnTime(v.ngay)) : '') + '</span></div></div>';
 }
 /* Nhận xét: chữ không chân (là lời của người), khác chữ có chân của đề / lời giải (là nội dung bài); phản biện và ban biên tập
  * khác màu viền và có nhãn — không chỉ dựa vào màu. */
@@ -609,7 +609,7 @@ function reviewsList(rs) {
   return '<details class="rvs"><summary>Phiếu phản biện (' + rs.length + ')</summary>' + rs.map(function (v) {
     return '<div class="cm pb"><div class="cm-h"><span class="cm-role">' + ic('clipboard-check') + 'Phiếu</span><b>' + esc(v.email || 'trước hệ thống') + '</b>' +
       '<span class="mut">kỳ ' + esc(v.ky) + '</span>' + (v.muc_de_nghi ? '<span class="chip t-level">Mức ' + esc(v.muc_de_nghi) + '</span>' : '') +
-      (v.diem ? '<span class="chip ' + (REC_TAG[v.diem] || '') + '">' + esc(v.diem) + '</span>' : '') + '<span class="mut">' + esc(v.ngay) + '</span></div>' +
+      (v.diem ? '<span class="chip ' + (REC_TAG[v.diem] || '') + '">' + esc(v.diem) + '</span>' : '') + '<span class="mut">' + esc(vnTime(v.ngay)) + '</span></div>' +
       '<div class="cm-b">' + PiRender.render(String(v.nhan_xet || '')).html + '</div></div>';
   }).join('') + '</details>';
 }
@@ -1143,7 +1143,7 @@ function loadHistory(ma) {
   call('revisions', { ma_bai: ma }).then(function (rs) {
     if (!rs || !rs.length) { H.innerHTML = '<p class="mut">Chưa có lần sửa nào qua hệ thống.</p>'; return; }
     H.innerHTML = rs.map(function (r) {
-      return '<details class="rev"><summary>Phiên bản ' + esc(r.phien_ban) + ' · ' + esc(FIELD_NAME[r.truong] || r.truong) + ' · ' + esc(r.email) + ' · ' + esc(r.ngay) + '</summary>' +
+      return '<details class="rev"><summary>Phiên bản ' + esc(r.phien_ban) + ' · ' + esc(FIELD_NAME[r.truong] || r.truong) + ' · ' + esc(r.email) + ' · ' + esc(vnTime(r.ngay)) + '</summary>' +
         diffHtml(r.cu == null ? '' : String(r.cu), r.moi == null ? '' : String(r.moi)) + '</details>';
     }).join('');
   }, function () { H.innerHTML = '<button class="sm" id="hist-load">Xem lịch sử</button>'; document.getElementById('hist-load').onclick = function () { loadHistory(ma); }; });

@@ -1,0 +1,13 @@
+{
+  "name": "pi-drkn",
+  "private": true,
+  "description": "Công cụ kiểm thử trên máy (không cần cho Apps Script)",
+  "scripts": {
+    "test": "scripts/test-all.sh",
+    "ui": "node tests/ui/run.js"
+  },
+  "devDependencies": {
+    "mathjax": "3.2.2",
+    "playwright": "1.56.1"
+  }
+}

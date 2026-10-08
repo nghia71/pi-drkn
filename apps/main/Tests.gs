@@ -5,7 +5,7 @@
  *                  Nếu sắp hết 6 phút, dừng lại và báo — chạy lại runAllTests() để chạy tiếp phần còn lại.
  *   runTests('3')  chỉ chạy nhóm 3 (hoặc một kịch bản: runTests('3.6'); nhiều nhóm: runTests('3,13,13.12')).
  *   runSmoke()     bộ nhanh (~15 kịch bản, 3–4 phút): mỗi phần chính một kịch bản — sau mỗi lần sửa nhỏ.
- *   installNightlyTests()  một lần: chạy toàn bộ mỗi đêm (tự chạy tiếp sau mỗi 6 phút), gửi thư cho chủ nếu có lỗi.
+ *   installAutoTests()  một lần: tự chạy runSmoke sau mỗi lần triển khai (thư báo kết quả) và toàn bộ mỗi đêm (thư khi có lỗi).
  *
  * Ba tài khoản (giống trang "Testing the pipeline" của MCC):
  *   QT  = tài khoản chạy bộ kiểm thử (Nghĩa, chủ hệ thống)
@@ -41,41 +41,73 @@ function runAllTests() { return runTests(''); }
 var SMOKE_TESTS = '1.1,1.7,2.1,3.4,3.6,4.1,5.1,6.3,10.1,13.4,13.12,14.4,15.6,16.3,17.1';
 function runSmoke() { return runTests(SMOKE_TESTS); }
 
-/** Chạy MỘT LẦN từ trình soạn thảo: chạy toàn bộ kiểm thử mỗi đêm lúc TEST_HOUR giờ (mặc định 2). removeNightlyTests() để thôi. */
-function installNightlyTests() {
+/* ---------------- kiểm thử tự động trên Google ----------------
+ * installAutoTests() (chạy MỘT LẦN từ trình soạn thảo) đặt một trigger mỗi giờ gọi autoTests():
+ *   - sau mỗi lần scripts/deploy.sh (mã BUILD mới, deploy.sh ghi vào Build.gs): chạy runSmoke, gửi thư kết quả (đạt hay lỗi);
+ *   - mỗi đêm lúc TEST_HOUR giờ (mặc định 2, giờ của hệ thống): chạy toàn bộ, chỉ gửi thư khi có lỗi.
+ * Mỗi lần Apps Script cho chạy tối đa 6 phút: còn dở thì tự hẹn chạy tiếp sau 1 phút (autoTestsNext) cho tới hết.
+ * removeAutoTests() để thôi. Thư gửi tới tài khoản chủ. */
+var AUTO_JOB = 'AUTO_TEST_JOB';            // việc đang chạy dở: {loai: 'sau triển khai' | 'hằng đêm', filter, build}
+
+function installAutoTests() {
   adminOnly_();
-  removeNightlyTests();
-  var hour = Number(conf_('TEST_HOUR') || 2);
-  ScriptApp.newTrigger('nightlyTests').timeBased().everyDays(1).atHour(hour).inTimezone(tz_()).create();
-  Logger.log('Đã đặt kiểm thử hằng đêm lúc ' + hour + ' giờ; có lỗi thì gửi thư cho ' + Session.getEffectiveUser().getEmail() + '.');
+  removeAutoTests();
+  ScriptApp.newTrigger('autoTests').timeBased().everyHours(1).create();
+  Logger.log('Đã đặt kiểm thử tự động: mỗi giờ kiểm tra bản triển khai mới (chạy runSmoke), mỗi đêm lúc ' + Number(conf_('TEST_HOUR') || 2) +
+             ' giờ chạy toàn bộ. Thư gửi tới ' + Session.getEffectiveUser().getEmail() + '. Bản đang chạy: ' + build_() + '.');
 }
 
-function removeNightlyTests() {
+function removeAutoTests() {
   adminOnly_();
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === 'nightlyTests' || t.getHandlerFunction() === 'nightlyTestsNext') ScriptApp.deleteTrigger(t);
+    if (['autoTests', 'autoTestsNext'].indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t);
   });
+  PropertiesService.getScriptProperties().deleteProperty(AUTO_JOB);
 }
 
-/** Trigger hằng đêm: bắt đầu lại từ đầu. */
-function nightlyTests() {
+/** Mã bản triển khai (deploy.sh ghi vào Build.gs: commit + giờ); không có thì rỗng. */
+function build_() { return typeof BUILD === 'string' ? BUILD : ''; }
+
+/** Trigger mỗi giờ: có việc dở thì để autoTestsNext làm; bản mới → bộ nhanh; tới giờ đêm → toàn bộ. */
+function autoTests() {
   adminOnly_();
-  PropertiesService.getScriptProperties().deleteProperty('TEST_CURSOR_all');
-  nightlyTestsNext();
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty(AUTO_JOB)) return 'đang có lượt kiểm thử chạy dở';
+  var b = build_(), today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
+  var hour = Number(Utilities.formatDate(new Date(), tz_(), 'H'));
+  var job = null;
+  if (b && b !== props.getProperty('AUTO_TESTED_BUILD')) job = { loai: 'sau triển khai', filter: SMOKE_TESTS, build: b };
+  else if (hour === Number(conf_('TEST_HOUR') || 2) && props.getProperty('AUTO_FULL_DAY') !== today) {
+    job = { loai: 'hằng đêm', filter: '', build: b }; props.setProperty('AUTO_FULL_DAY', today);
+  }
+  if (!job) return 'không có gì để chạy';
+  props.deleteProperty('TEST_CURSOR_' + (job.filter || 'all'));
+  props.setProperty(AUTO_JOB, JSON.stringify(job));
+  return autoTestsNext();
 }
 
-/** Chạy một đoạn ≤ 6 phút; còn thì hẹn chạy tiếp sau 1 phút; xong thì gửi thư nếu có lỗi. */
-function nightlyTestsNext() {
+/** Chạy một đoạn ≤ 6 phút của việc đang dở; còn thì hẹn tiếp sau 1 phút; xong thì gửi thư. */
+function autoTestsNext() {
   adminOnly_();
-  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'nightlyTestsNext') ScriptApp.deleteTrigger(t); });
-  var msg = runTests('');
-  if (msg.indexOf('TẠM DỪNG') === 0) { ScriptApp.newTrigger('nightlyTestsNext').timeBased().after(60 * 1000).create(); return msg; }
-  var ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('TEST_SHEET_ID'));
+  var props = PropertiesService.getScriptProperties();
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'autoTestsNext') ScriptApp.deleteTrigger(t); });
+  var job = JSON.parse(props.getProperty(AUTO_JOB) || 'null');
+  if (!job) return 'không có việc dở';
+  var msg;
+  try { msg = runTests(job.filter); }
+  catch (e) { props.deleteProperty(AUTO_JOB); throw e; }
+  if (msg.indexOf('TẠM DỪNG') === 0) { ScriptApp.newTrigger('autoTestsNext').timeBased().after(60 * 1000).create(); return msg; }
+  props.deleteProperty(AUTO_JOB);
+  if (job.loai === 'sau triển khai') props.setProperty('AUTO_TESTED_BUILD', job.build);
+  var ss = SpreadsheetApp.openById(props.getProperty('TEST_SHEET_ID'));
   var rows = ss.getSheetByName('Kết quả').getDataRange().getValues().slice(1);
   var fails = rows.filter(function (r) { return r[3] !== 'ĐẠT'; });
-  if (fails.length) {
-    MailApp.sendEmail(Session.getEffectiveUser().getEmail(), '[Pi ĐRKN] Kiểm thử hằng đêm: ' + fails.length + ' lỗi',
-      fails.map(function (r) { return String(r[0]) + ' — ' + r[1] + '\n    ' + r[4]; }).join('\n\n') + '\n\nKết quả đầy đủ: ' + ss.getUrl());
+  if (fails.length || job.loai === 'sau triển khai') {
+    MailApp.sendEmail(Session.getEffectiveUser().getEmail(),
+      '[Pi ĐRKN] Kiểm thử ' + job.loai + ': ' + (fails.length ? fails.length + ' LỖI' : 'đạt ' + rows.length + '/' + rows.length),
+      'Bản: ' + (job.build || '(không rõ)') + '\n' + msg + '\n\n' +
+      fails.map(function (r) { return String(r[0]) + ' — ' + r[1] + '\n    ' + r[4]; }).join('\n\n') + (fails.length ? '\n\n' : '') +
+      'Kết quả đầy đủ: ' + ss.getUrl());
   }
   return msg;
 }
@@ -816,8 +848,8 @@ function defineTests_() {
                 importLatest: function () { importLatest(); }, importBatch: function () { importBatch('x'); },
                 applyPatchLatest: function () { applyPatchLatest(); }, setupTests: function () { setupTests(); },
                 runTests: function () { runTests('1'); }, resetPractice: function () { resetPractice(); },
-                runSmoke: function () { runSmoke(); }, nightlyTests: function () { nightlyTests(); },
-                nightlyTestsNext: function () { nightlyTestsNext(); }, installNightlyTests: function () { installNightlyTests(); } };
+                runSmoke: function () { runSmoke(); }, autoTests: function () { autoTests(); }, autoTestsNext: function () { autoTestsNext(); },
+                installAutoTests: function () { installAutoTests(); }, removeAutoTests: function () { removeAutoTests(); } };
     try {
       [A.T1, '', A.LA].forEach(function (who) {
         TEST_CONF.ACTIVE_USER = who;

@@ -7,13 +7,14 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 
 | Lớp | Chạy ở đâu | Cách chạy | Thời gian |
 |---|---|---|---|
-| 1. Trên máy | máy quản trị, không cần Google | `scripts/test-all.sh` (tự chạy trong `scripts/deploy.sh` và trên GitHub) | ~10 giây |
-| 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | `runSmoke` sau mỗi lần triển khai; `runAllTests` mỗi đêm (tự động) | 3–4 phút / ~30 phút |
-| 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
+| 1. Trên máy | máy quản trị, không cần Google | `scripts/test-all.sh` — **tự chạy** trong `scripts/deploy.sh` (lỗi thì không đẩy mã) và trên GitHub mỗi lần đẩy | ~2 phút |
+| 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | **tự chạy** (`installAutoTests`, một lần): `runSmoke` sau mỗi lần triển khai, toàn bộ mỗi đêm; kết quả qua thư | 3–4 phút / ~30 phút |
+| 3. Bằng tay | trình duyệt, tài khoản Google thật | chỉ những gì máy không làm được — bảng ở đầu Lớp 3 | ~30 phút, một lần |
 
 Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 109 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
-bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
+bộ hiển thị công thức (`tests/render.test.js`), **giao diện** (`tests/ui/run.js`: trang thật trong Chromium, mỗi vai trò một cửa sổ, đi hết
+các quy trình — xem dưới) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
 công thức hiện ra trên màn hình, điện thoại.
 
@@ -44,13 +45,31 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (109 kịch bản) ·
-từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
-`scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
+Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (109 kịch bản) · gói chế bản và hình (cần MacTeX) ·
+giao diện · từ bên ngoài (người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
+`scripts/deploy.sh` tự chạy chặn dữ liệu, bộ hiển thị, máy chủ mô phỏng, giao diện và **không đẩy mã** nếu có lỗi.
+
+### Giao diện (tests/ui/run.js)
+
+Cài một lần trên máy: `npm install && npx playwright install chromium` (chưa cài thì phần này được bỏ qua, không báo lỗi).
+Trang thật (`ui/Index.html`) chạy trong Chromium, nối vào máy chủ trên bản mô phỏng, **dữ liệu bịa** (bài năm 2030, địa chỉ @example.com).
+Mỗi vai trò một cửa sổ (Quản trị, PT, TBT, NCB, BTK, hai PB) đi hết: danh sách (lọc, sắp xếp, xem thêm / thu gọn, xem như PB) · thêm bài
+(tệp .tex, ảnh của đề / lời giải, tác giả mới) · sửa đề, xem trước, hai người cùng sửa, sửa nội dung toán, huỷ, lịch sử · mục cần kiểm tra,
+xung đột · Không SL có lý do · kỳ phản biện (mở, xoá kỳ mở nhầm, giao, thư mời, phiếu, ẩn danh, mã độc trong nhận xét, mở lời giải, đóng kỳ) ·
+hình TikZ (sửa, chặn \input, tải mã nguồn, tải SVG lên) · bảng chọn bài (xếp, gửi, trả lại, duyệt) · khoá kỳ (số in, .tex chỉ có đề) ·
+BTK · điện thoại (không cuộn ngang) · chế độ tối. Sai một bước → báo lỗi, mã thoát 1; trang có lỗi JavaScript hay hộp thoại bật lên cũng là lỗi.
+
+Mỗi lần chạy (không có `--no-shots`) còn chụp màn hình từng bước và ghép thành **trang hướng dẫn bằng hình**: `out/ui/index.html`
+(mở bằng trình duyệt; thư mục `out/` không vào kho). Ảnh luôn khớp với giao diện hiện tại vì được chụp lại mỗi lần.
 
 ## Lớp 2 — trên Google
 
-Trình soạn thảo dự án chính → chọn `runAllTests` → Run. Kết quả: Execution log (mỗi dòng ĐẠT/LỖI) và tab "Kết quả"
+**Tự động** (cài một lần): trình soạn thảo dự án chính → chọn `installAutoTests` → Run. Một trigger mỗi giờ:
+- thấy bản triển khai mới (`scripts/deploy.sh` ghi mã bản vào `Build.gs`) → chạy `runSmoke`, gửi thư "Kiểm thử sau triển khai: đạt 15/15" hoặc danh sách lỗi;
+- lúc `TEST_HOUR` giờ mỗi đêm (Script property, mặc định 2) → chạy toàn bộ, **chỉ gửi thư khi có lỗi**.
+Mỗi đoạn 6 phút xong thì tự hẹn đoạn tiếp sau 1 phút cho tới hết. Thôi: `removeAutoTests`. Không cần chạy tay sau mỗi lần triển khai.
+
+**Bằng tay** (khi muốn xem ngay): trình soạn thảo dự án chính → chọn `runAllTests` → Run. Kết quả: Execution log (mỗi dòng ĐẠT/LỖI) và tab "Kết quả"
 của Sheet kiểm thử. Nếu log báo **TẠM DỪNG** (Apps Script giới hạn 6 phút mỗi lần chạy), bấm Run lần nữa — bộ kiểm thử chạy tiếp
 từ chỗ dừng. Chạy riêng một nhóm: `runTests('3')`; một kịch bản: `runTests('3.6')` (chọn hàm `runTests` không truyền được tham số
 từ nút Run — dùng `runAllTests`, hoặc tạm thêm một hàm gọi `runTests('3')`).
@@ -62,10 +81,10 @@ Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trướ
 
 | Khi nào | Chạy | Thời gian |
 |---|---|---|
-| Sau mỗi lần `scripts/deploy.sh` | `runSmoke` — mỗi phần chính một kịch bản (đăng nhập, quyền, ẩn danh, sửa, nhận xét, trạng thái, kỳ, lời giải, bảng, khoá kỳ, hình, thêm bài) | 3–4 phút |
-| Thay đổi chỉ ở một phần | thêm nhóm của phần đó (bảng dưới), ví dụ một hàm tạm `function t() { runTests('13,14'); }` | vài phút |
-| Mỗi đêm (tự động) | toàn bộ — `installNightlyTests` chạy một lần; có lỗi thì thư gửi tới tài khoản chủ | — |
-| Trước mỗi kỳ chọn bài, trước khi khoá kỳ | `runAllTests` (hoặc xem thư đêm qua) | ~30 phút |
+| Sau mỗi lần `scripts/deploy.sh` | tự động: `runSmoke` — mỗi phần chính một kịch bản; thư báo kết quả trong vòng một giờ | 3–4 phút |
+| Mỗi đêm | tự động: toàn bộ; thư chỉ khi có lỗi | ~30 phút |
+| Muốn biết ngay một phần (bảng dưới) | bằng tay, ví dụ một hàm tạm `function t() { runTests('13,14'); }` | vài phút |
+| Trước khi khoá kỳ | xem thư đêm qua (không có thư = đạt) | — |
 
 | Tệp sửa | Nhóm |
 |---|---|
@@ -81,8 +100,6 @@ Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trướ
 | `Db.gs`, `Schema.gs`, `Setup.gs` (dùng chung) | toàn bộ |
 | chỉ `ui/` (giao diện) | lớp 1 là đủ (10.1 nếu sửa bộ hiển thị) — rồi xem bằng mắt |
 
-Kiểm thử hằng đêm: trình soạn thảo → `installNightlyTests` → Run (một lần; giờ chạy: Script property `TEST_HOUR`, mặc định 2 giờ).
-Mỗi đoạn 6 phút xong thì tự hẹn đoạn tiếp sau 1 phút cho tới hết; không lỗi thì không có thư. Thôi: `removeNightlyTests`.
 Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau: `runTests('6,13.12')`.
 
 ### Danh sách kịch bản tự động
@@ -293,6 +310,26 @@ hạn 10 phút, kiểm tra phiên bản khi sửa, kiểm tra quyền trước k
 thì đúng các kịch bản tương ứng báo LỖI.
 
 ## Lớp 3 — bằng tay, ba tài khoản thật
+
+Phần lớn các bài dưới đây đã **tự động** (lớp 1: giao diện + máy chủ mô phỏng; lớp 2: trên Google). Bằng tay chỉ còn những gì cần
+Google thật, hộp thư thật, máy Mac hay điện thoại thật — làm **một lần** để quen hệ thống, rồi chỉ làm lại khi phần đó thay đổi.
+
+| Bài | Đã tự động | Còn làm tay |
+|---|---|---|
+| B1 | 1.1–1.10 | màn hình xin quyền của Google, đăng nhập thật |
+| B2, B3, B4 | giao diện mục 5; 3.4, 5.1, 5.4, 5.5 | — |
+| B5 | 1.7 | người lạ thật qua Google (một lần) |
+| B6 | 2.2 | — |
+| B7 | — | trình duyệt có nhiều tài khoản Google: nhìn dòng "Xin chào" |
+| B8 | 1.4 | — |
+| B9 | giao diện mục 1; 7.1–7.3 | — |
+| B10 | bộ hiển thị; giao diện mục 9 | công thức của **bài thật**, trên điện thoại thật |
+| B11, B12 | giao diện mục 3, 4; nhóm 4, 6 | — |
+| B13 | giao diện mục 5; nhóm 13 | thư mời và thư nhắc **đến hộp thư thật** (bước 3–4, 8) |
+| B14 | giao diện mục 7; nhóm 14 | — |
+| B15 | giao diện mục 8; nhóm 15; tests/khoaky.test.py | gói trên Drive → `tools/khoaky/build.py` trên Mac, xem PDF (bước 6) |
+| B16 | giao diện mục 6; nhóm 16; tests/hinh.test.py | dựng hình thật trên Mac (bước 4) — hoặc tự động qua GitHub (setup.md) |
+| B17 | giao diện mục 2, 5; nhóm 17 | — |
 
 ### Bài luyện tập và nút đặt lại
 
