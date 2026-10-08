@@ -19,7 +19,7 @@ function doGet(e) {
   var t = HtmlService.createTemplateFromFile('ui/Index');
   t.token = newSession_(email);
   var roles = String(u.data.vai_tro).split(',').map(function (r) { return r.trim(); }).filter(String);
-  t.meJson = JSON.stringify({ email: email, name: u.data.ten, roles: roles, eff: roles });   // khỏi gọi 'me' lần đầu
+  t.meJson = JSON.stringify({ email: email, name: u.data.ten, roles: roles, eff: roles, trial: trialInfo_() });   // khỏi gọi 'me' lần đầu
   audit_(email, 'đăng nhập', '');
   return t.evaluate().setTitle('Pi — Đề ra kỳ này').addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }

@@ -160,7 +160,7 @@ function runOne_(t) {
     delete TEST_CONF.EXPORT_FOLDER_ID; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
     TEST_CONF.TEST_USERS = ''; TEST_CONF.PRACTICE_USERS = '';   // mặc định: T1, T2 là người thường; 11.3, 11.4 bật lại
     [TK.acc.T1, TK.acc.T2].forEach(function (e) { CacheService.getScriptCache().remove('errn:' + e); });   // giới hạn ghi lỗi (Feedback.gs)
-    delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE; delete TEST_CONF.BACKUP_FOLDER_ID; delete TEST_CONF.BACKUP_KEEP;   // không gọi GitHub thật; 16.8 dùng kho giả
+    delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE; delete TEST_CONF.BACKUP_FOLDER_ID; delete TEST_CONF.BACKUP_KEEP; delete TEST_CONF.TRIAL;   // không gọi GitHub thật; 16.8 dùng kho giả
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
   TK.results.push([t.id, t.title, t.who, ok ? 'ĐẠT' : 'LỖI', msg, Date.now() - t1]);
@@ -1539,6 +1539,69 @@ function defineTests_() {
     has_s_(TEST_OUTBOX[0].body, A.T1 + ', ' + A.T2);
     eq_(feedbackDigest_(true), 0, 'không có gì mới'); eq_(TEST_OUTBOX.length, 1, 'không gửi thư rỗng');
     eq_(feedbackDigest_(false), null, 'hôm nay đã tóm tắt');
+  });
+
+  // 19. Dùng thử trên bài thật: chụp dữ liệu, đưa về, kết thúc
+  var withTrialFolder = function (fn) {
+    var f = DriveApp.createFolder('Pi ĐRKN — kiểm thử dùng thử (xoá được)'); TEST_CONF.BACKUP_FOLDER_ID = f.getId();
+    try { fn(f); } finally { var it = f.getFiles(); while (it.hasNext()) it.next().setTrashed(true); f.setTrashed(true); }
+  };
+  test_('19.1', 'Dùng thử: Quản trị bắt đầu (chụp dữ liệu, mọi trang biết đang dùng thử); đưa về: bài, kỳ, bảng, thảo luận như trước; GIỮ người dùng, nhật ký, góp ý, lỗi; số báo "10/2026" vẫn là chữ; chụp trạng thái trước khi đưa về', 'QT', function () {
+    withTrialFolder(function (fold) {
+      var qt = login_(A.QT);
+      putRows_('Issues', [{ so: "'10/2026", trang_thai: 'đang chọn' }]);
+      eq_(call_(qt, 'me').trial, null);
+      call_(qt, 'trial', { viec: 'bat_dau' });
+      ok_(call_(login_(A.T1), 'me').trial.tu, 'mọi người biết đang dùng thử');
+      throws_(function () { call_(qt, 'trial', { viec: 'bat_dau' }); }, 'Đang dùng thử rồi');
+      // làm việc như thật
+      call_(qt, 'setStatus', { ma_bai: 'TEST-01', trang_thai: 'SL' });
+      call_(qt, 'addComment', { ma_bai: 'TEST-02', noi_dung: 'nhận xét trong lúc dùng thử' });
+      call_(qt, 'openRound', { ky: 'PB-THU-NGHIEM', han_phan_bien: addDays_(today_(), 5) });
+      call_(login_(A.T1), 'feedback', { noi_dung: 'góp ý trong lúc dùng thử' });
+      call_(login_(A.T1), 'logError', { loi: 'lỗi trong lúc dùng thử' });
+      setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+      var r = call_(qt, 'trial', { viec: 'dua_ve' });
+      ok_(r.tab > 10, 'đưa về các tab dữ liệu');
+      eq_(findRow_('Problems', 'ma_bai', 'TEST-01').data.trang_thai, 'Mới', 'trạng thái như trước');
+      ok_(!rows_('Comments').some(function (c) { return c.noi_dung === 'nhận xét trong lúc dùng thử'; }), 'thảo luận như trước');
+      ok_(!findRow_('Rounds', 'ky', 'PB-THU-NGHIEM'), 'kỳ mở trong lúc dùng thử không còn');
+      eq_(String(sheet_('Issues').getRange(2, 1, 1, 1).getValues()[0][0]).replace(/^'/, ''), '10/2026', 'số báo vẫn là chữ (không thành ngày)');
+      ok_(rows_('Feedback').some(function (f) { return f.noi_dung === 'góp ý trong lúc dùng thử'; }), 'giữ góp ý');
+      ok_(rows_('Errors').length === 1, 'giữ lỗi');
+      eq_(findRow_('Users', 'email', A.T1).data.vai_tro, 'NCB', 'giữ người dùng, vai trò');
+      ok_(rows_('Audit').some(function (x) { return x.hanh_dong === 'bắt đầu dùng thử'; }), 'giữ nhật ký');
+      var names = [], it = fold.getFiles(); while (it.hasNext()) names.push(it.next().getName());
+      ok_(names.some(function (n) { return /trước dùng thử/.test(n); }) && names.some(function (n) { return /trước khi đưa về/.test(n); }), 'có bản chụp trước dùng thử và trước khi đưa về');
+      eq_(call_(qt, 'me').trial.lan_dua_ve, 1);
+      call_(qt, 'setStatus', { ma_bai: 'TEST-04', trang_thai: 'SL' });     // đưa về lần nữa vẫn được
+      call_(qt, 'trial', { viec: 'dua_ve' });
+      eq_(findRow_('Problems', 'ma_bai', 'TEST-04').data.trang_thai, 'Mới');
+    });
+  });
+  test_('19.2', 'Kết thúc dùng thử: giữ mọi thay đổi, hoặc đưa về rồi kết thúc; sau đó không còn dòng báo, không đưa về được nữa; chỉ Quản trị bắt đầu / kết thúc; TBT đưa về được; người khác không', 'QT', function () {
+    withTrialFolder(function () {
+      var qt = login_(A.QT);
+      setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PT' });
+      throws_(function () { call_(login_(A.T2), 'trial', { viec: 'bat_dau' }); }, 'Không có quyền');
+      throws_(function () { call_(qt, 'trial', { viec: 'dua_ve' }); }, 'Không đang dùng thử');
+      call_(qt, 'trial', { viec: 'bat_dau' });
+      call_(qt, 'setStatus', { ma_bai: 'TEST-01', trang_thai: 'SL' });
+      throws_(function () { call_(login_(A.T2), 'trial', { viec: 'dua_ve' }); }, 'Không có quyền');
+      call_(login_(A.T1), 'trial', { viec: 'dua_ve' });
+      eq_(findRow_('Problems', 'ma_bai', 'TEST-01').data.trang_thai, 'Mới', 'TBT đưa về được');
+      throws_(function () { call_(login_(A.T1), 'trial', { viec: 'ket_thuc' }); }, 'Không có quyền');
+      call_(qt, 'setStatus', { ma_bai: 'TEST-01', trang_thai: 'SL' });
+      call_(qt, 'trial', { viec: 'ket_thuc', dua_ve: false });
+      eq_(findRow_('Problems', 'ma_bai', 'TEST-01').data.trang_thai, 'SL', 'giữ mọi thay đổi');
+      eq_(call_(qt, 'me').trial, null, 'không còn dòng báo');
+      throws_(function () { call_(qt, 'trial', { viec: 'dua_ve' }); }, 'Không đang dùng thử');
+      call_(qt, 'trial', { viec: 'bat_dau' });
+      call_(qt, 'setStatus', { ma_bai: 'TEST-04', trang_thai: 'SL' });
+      call_(qt, 'trial', { viec: 'ket_thuc', dua_ve: true });
+      eq_(findRow_('Problems', 'ma_bai', 'TEST-04').data.trang_thai, 'Mới', 'đưa về rồi kết thúc');
+      eq_(call_(qt, 'me').trial, null);
+    });
   });
 
   test_('12.3', 'Sao lưu: bản sao Sheet vào thư mục sao lưu, đủ các tab và dữ liệu; chạy lại cùng ngày thay bản cũ; giữ BACKUP_KEEP bản mới nhất; chỉ chủ chạy tay được', 'QT', function () {

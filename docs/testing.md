@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | **tự chạy** (`installAutoTests`, một lần): `runSmoke` sau mỗi lần triển khai, toàn bộ mỗi đêm; thư chỉ khi có lỗi | 3–4 phút / ~30 phút |
 | 3. Bằng tay | trình duyệt, tài khoản Google thật | chỉ những gì máy không làm được — bảng ở đầu Lớp 3 | ~30 phút, một lần |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 115 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 118 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`), **giao diện** (`tests/ui/run.js`: trang thật trong Chromium, mỗi vai trò một cửa sổ, đi hết
 các quy trình — xem dưới) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
@@ -45,7 +45,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (115 kịch bản) · gói chế bản và hình (cần MacTeX) ·
+Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (118 kịch bản) · gói chế bản và hình (cần MacTeX) ·
 giao diện · từ bên ngoài (người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy chặn dữ liệu, bộ hiển thị, máy chủ mô phỏng, giao diện và **không đẩy mã** nếu có lỗi.
 
@@ -77,7 +77,7 @@ từ nút Run — dùng `runAllTests`, hoặc tạm thêm một hàm gọi `runT
 
 ### Chạy gì, khi nào
 
-Toàn bộ (~115 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
+Toàn bộ (~118 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
 Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trước mỗi lần đẩy mã; lớp 2 chỉ để bắt chỗ Google khác bản mô phỏng.
 
 | Khi nào | Chạy | Thời gian |
@@ -230,6 +230,7 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | 11.2 | Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy | T1+T2 |
 | 11.3 | Hai tài khoản thử (TEST_USERS) mang vai trò ban biên tập thấy mọi bài luyện (B14, B15); với vai trò PB chỉ thấy bài được giao; người khác không thấy | T1+T2 |
 | 11.4 | Người dùng thử (PRACTICE_USERS) mang vai trò ban biên tập thấy bài luyện; bỏ khỏi danh sách thì không thấy | T1 |
+| 11.5 | Nút Đặt lại bài luyện tập: xoá mọi việc trên bài THU (phiếu, thảo luận, sửa) và kỳ / bảng chỉ gồm bài THU (kể cả tên tự đặt); kỳ, bảng có bài thật giữ nguyên; chỉ Quản trị, PT, TBT đang dùng thử | T1 |
 
 **12. Hàm quản trị**
 
@@ -310,6 +311,13 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | 18.1 | Góp ý: mọi người đã vào hệ thống gửi được (mức 1–5 không bắt buộc, kèm trang đang xem, vai trò); trống hoặc mức lạ bị từ chối; chữ bắt đầu bằng "=" lưu như chữ; người chưa vào thì không | T1 |
 | 18.3 | Trang Góp ý: chỉ Quản trị xem góp ý và lỗi (mới nhất trước), đổi trạng thái góp ý; người khác bị từ chối | QT |
 | 18.4 | Thư tóm tắt mỗi sáng: góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mới thì không gửi; mỗi ngày một lần | QT |
+
+**19. **
+
+| Mã | Kịch bản | Tài khoản |
+|---|---|---|
+| 19.1 | Dùng thử: Quản trị bắt đầu (chụp dữ liệu, mọi trang biết đang dùng thử); đưa về: bài, kỳ, bảng, thảo luận như trước; GIỮ người dùng, nhật ký, góp ý, lỗi; số báo "10/2026" vẫn là chữ; chụp trạng thái trước khi đưa về | QT |
+| 19.2 | Kết thúc dùng thử: giữ mọi thay đổi, hoặc đưa về rồi kết thúc; sau đó không còn dòng báo, không đưa về được nữa; chỉ Quản trị bắt đầu / kết thúc; TBT đưa về được; người khác không | QT |
 
 <!-- bảng tự sinh: hết -->
 

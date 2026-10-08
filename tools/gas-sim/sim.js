@@ -47,6 +47,8 @@ class Sheet {
   appendRow(vals) { const r = this.getLastRow() + 1; this.getRange(r, 1, 1, vals.length).setValues([vals]); return this; }
   clear() { this.cells = []; return this; }
   setFrozenRows() { return this; }
+  setName(n) { this.name = n; return this; }
+  copyTo(ss) { const n = new Sheet('Copy of ' + this.name); n.cells = JSON.parse(JSON.stringify(this.cells)); ss.sheets.push(n); return n; }
 }
 class Range {
   constructor(sh, r, c, nr, nc) { Object.assign(this, { sh, r, c, nr, nc }); }

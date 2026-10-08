@@ -14,6 +14,10 @@ Theo đề xuất của thầy {{TEN_TBT}} (cc thư này), Pi mời {{XUNG_HO}} 
 4. Tuần 2–3: {{VIEC_TUAN_2_3}}
 5. Góp ý bất cứ lúc nào bằng nút **Góp ý** ở đầu trang; cuối tuần 3 họp tổng kết 30–45 phút.
 
+**Không sợ làm sai**: tuần đầu là mười bài luyện tập bịa (THU-…), đặt lại được bất cứ lúc nào. Từ tuần 2, khi đầu trang có dòng
+„Đang dùng thử", {{XUNG_HO}} làm việc trên bài thật như thật — dữ liệu đã được chụp lại và đưa về như trước được. Lỗi gặp trên trang
+được ghi lại tự động; góp ý của {{XUNG_HO}} được giữ lại.
+
 **Vào hệ thống**
 - Trình duyệt cập nhật (Chrome, Edge, Safari, Firefox); mở trong cửa sổ chỉ đăng nhập **một** tài khoản Google.
 - Đường dẫn: {{DANG_NHAP}} → kiểm tra dòng „Xin chào …" là {{EMAIL}} → **Vào hệ thống**. Lần đầu Google hỏi cho ứng dụng biết email —

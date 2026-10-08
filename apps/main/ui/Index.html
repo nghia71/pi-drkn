@@ -27,6 +27,7 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
     <button id="go-figs" class="tab" hidden><svg class="ic"><use href="#i-image"/></svg>Hình</button>
     <button id="go-add" class="tab" hidden><svg class="ic"><use href="#i-file-plus"/></svg>Thêm bài</button>
   </nav>
+  <div id="trial-bar" hidden></div>
   <div class="fbar" aria-label="Lọc và sắp xếp danh sách">
     <select id="f-topic"><option value="">Mọi chủ đề</option><option>ĐS</option><option>SH</option><option>HH</option><option>TH</option></select>
     <select id="f-level"><option value="">Mọi mức</option><option>A</option><option>B</option></select>
@@ -84,6 +85,10 @@ var ME;
 function showMe(me) {
   ME = me;
   document.getElementById('me').textContent = me.email + ' · ' + me.eff.join(', ');
+  var tb = document.getElementById('trial-bar');
+  tb.hidden = !me.trial;
+  if (me.trial) tb.innerHTML = ic('flask-conical') + '<span><b>Đang dùng thử</b> từ ' + esc(vnDate(me.trial.tu)) +
+    ' — thầy cô cứ làm như thật: mọi thay đổi trên bài có thể được đưa về như trước khi dùng thử. Góp ý: nút Góp ý ở đầu trang.</span>';
   var gr = document.getElementById('go-rounds');
   gr.hidden = !me.eff.some(function (r) { return ['TBT', 'PT', 'NCB', 'Quản trị'].indexOf(r) >= 0; });
   gr.onclick = function () { if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; } nav({ v: 'rounds' }); openRounds(); };
@@ -118,10 +123,10 @@ var BTN_ICON = [[/^Sửa/, 'pencil'], [/^Thêm ảnh/, 'image-plus'], [/^Thêm v
   [/^Lưu/, 'check'], [/^Huỷ|^Đóng$/, 'x'], [/^Gửi/, 'send'], [/^Duyệt|duyệt$/, 'check'], [/^Trả lại/, 'rotate-ccw'], [/^Mở lại/, 'lock-open'],
   [/^Khoá kỳ|^Đóng kỳ/, 'lock'], [/^Tải (SVG )?lên/, 'upload'], [/^Dựng ngay/, 'refresh-cw'], [/^Góp ý$/, 'message-square'], [/^Gửi góp ý/, 'send'], [/^Tải/, 'download'], [/^Mở lời giải/, 'eye'], [/^Đóng lời giải/, 'eye-off'],
   [/^Đánh dấu/, 'check-check'], [/^Bỏ đánh dấu|^Đánh lại số/, 'rotate-ccw'], [/^Xem thêm/, 'chevron-down'], [/^Thu gọn/, 'chevron-up'], [/^Xem lịch sử/, 'history'],
-  [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Đặt lại bài luyện/, 'rotate-ccw'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
-var DANGER = /^(Đóng kỳ|Xoá|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải)/;
+  [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Đặt lại bài luyện/, 'rotate-ccw'], [/^Bắt đầu dùng thử/, 'flask-conical'], [/^Đưa về|^Kết thúc và đưa về/, 'rotate-ccw'], [/^Kết thúc dùng thử/, 'check'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
+var DANGER = /^(Đóng kỳ|Xoá|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải|Đưa về|Kết thúc và đưa về)/;
 var H3_ICON = [[/^(Sửa )?Đề bài/, 'file-text'], [/^(Sửa )?Lời giải/, 'lightbulb'], [/^(Sửa )?Hình/, 'image'], [/^Thảo luận/, 'message-square'],
-  [/^Phiếu phản biện/, 'clipboard-check'], [/^Luyện tập/, 'graduation-cap'], [/^Khoá kỳ/, 'lock'], [/^Dựng hình/, 'image'], [/^Mở kỳ/, 'plus'], [/^Bài \d/, 'file-text']];
+  [/^Phiếu phản biện/, 'clipboard-check'], [/^Luyện tập/, 'graduation-cap'], [/^Dùng thử/, 'flask-conical'], [/^Khoá kỳ/, 'lock'], [/^Dựng hình/, 'image'], [/^Mở kỳ/, 'plus'], [/^Bài \d/, 'file-text']];
 function decorate(root) {
   root.querySelectorAll('button:not(.tab)').forEach(function (b) {
     // "+ Thêm …": dấu + trong chữ thay bằng biểu tượng
@@ -713,6 +718,17 @@ function renderRounds() {
   if (practice) h += '<div class="card tap"><h3>Luyện tập</h3><p class="sm-t">Mười bài <b>THU-01…THU-10</b> là bài bịa để tập — làm gì cũng được. ' +
     '<b>Đặt lại</b> xoá mọi việc đã làm trên chúng (phiếu, thảo luận, sửa đề, trạng thái, kỳ và bảng chọn bài chỉ gồm bài luyện) và đưa về như mới. ' +
     'Bài thật không bị đụng tới.</p><p><button class="sm" data-r="practice">Đặt lại bài luyện tập…</button></p></div>';
+  var isAdmin = ME && ME.roles.indexOf('Quản trị') >= 0, canRestore = ME && ME.eff.some(function (r) { return r === 'Quản trị' || r === 'TBT'; });
+  if (isAdmin || (ME && ME.trial && canRestore)) {
+    h += '<div class="card tap"><h3>Dùng thử trên bài thật</h3>' + (ME.trial
+      ? '<p class="sm-t">Đang dùng thử từ <b>' + esc(vnDate(ME.trial.tu)) + '</b>' + (ME.trial.lan_dua_ve ? ' · đã đưa về ' + ME.trial.lan_dua_ve + ' lần' : '') +
+        '. <b>Đưa về</b>: bài, kỳ, bảng, thảo luận như lúc bắt đầu; giữ người dùng, góp ý, lỗi, nhật ký. Trước khi đưa về, hệ thống chụp trạng thái hiện tại.</p>' +
+        '<p><button class="sm" data-r="trial" data-viec="dua_ve">Đưa về như trước khi dùng thử…</button>' +
+        (isAdmin ? ' <button class="sm" data-r="trial" data-viec="ket_thuc" data-giu="1">Kết thúc dùng thử, giữ mọi thay đổi…</button>' +
+                   ' <button class="sm" data-r="trial" data-viec="ket_thuc">Kết thúc và đưa về…</button>' : '') + '</p>'
+      : '<p class="sm-t">Cho người dùng thử làm việc trên <b>bài thật</b> mà không sợ sai: hệ thống chụp toàn bộ dữ liệu bây giờ; sau đó Quản trị hoặc TBT ' +
+        'đưa về như cũ bất cứ lúc nào. Mọi trang hiện dòng báo đang dùng thử.</p><p><button class="sm" data-r="trial" data-viec="bat_dau">Bắt đầu dùng thử…</button></p>') + '</div>';
+  }
   if (v.manage) h += '<div class="card"><h3>Mở kỳ mới</h3><div class="row"><label>Tên kỳ <input id="r-ky" placeholder="ví dụ: PB-10/2026"></label>' +
     '<label>Hạn <input id="r-han" type="date" min="' + today + '"></label><label>Ghi chú <input id="r-gc"></label>' +
     '<button class="pri" data-r="open">Mở kỳ</button></div></div>';
@@ -784,6 +800,17 @@ function renderRounds() {
     else if (a === 'del') {
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Bấm lần nữa: xoá kỳ ' + ky + ' và mọi phân công của kỳ'; return; }
       run(call('deleteRound', { ky: ky }), 'Đã xoá kỳ ' + ky + '.');
+    } else if (a === 'trial') {
+      var viec = b.getAttribute('data-viec'), giu = b.getAttribute('data-giu') === '1';
+      var ask = { bat_dau: 'Bấm lần nữa: chụp dữ liệu, bắt đầu dùng thử', dua_ve: 'Bấm lần nữa: đưa mọi bài, kỳ, bảng về như lúc bắt đầu dùng thử',
+                  ket_thuc: giu ? 'Bấm lần nữa: kết thúc, giữ mọi thay đổi' : 'Bấm lần nữa: đưa về như trước rồi kết thúc' }[viec];
+      if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = ask; return; }
+      b.disabled = true;
+      call('trial', { viec: viec, dua_ve: viec === 'ket_thuc' ? !giu : undefined }).then(function () {
+        return call('me').then(function (m) { showMe(m); PCACHE = {}; loadListQuiet(); return openRounds(); }).then(function () {
+          alertOk({ bat_dau: 'Đã bắt đầu dùng thử (đã chụp dữ liệu).', dua_ve: 'Đã đưa về như trước khi dùng thử.', ket_thuc: 'Đã kết thúc dùng thử.' }[viec]);
+        });
+      }, function () { b.disabled = false; });
     } else if (a === 'practice') {
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Bấm lần nữa: xoá mọi việc luyện tập, đưa mười bài THU về như mới'; return; }
       b.disabled = true;

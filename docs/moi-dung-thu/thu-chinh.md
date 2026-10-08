@@ -6,7 +6,7 @@ Kính gửi thầy {{TEN}},
 
 Em gửi thầy kế hoạch dùng thử hệ thống quản lý chuyên mục *Đề ra kỳ này* mà em đã xây dựng cho Pi. Hệ thống chạy trên trình duyệt
 (máy tính hoặc điện thoại), thay cho chuỗi email và tệp gửi qua lại: nhận bài, biên tập, phản biện ẩn danh, chọn bài cho từng số,
-đánh số in và xuất tệp chế bản. Thư này để thầy xem trước; khi thầy đồng ý, em mới gửi thư riêng cho từng người.
+đánh số in và xuất tệp chế bản. Thư này để thầy xem trước; khi thầy đồng ý, em mới gửi thư riêng cho từng người. Trong đợt thử không ai phải sợ làm sai: bài luyện tập và cả bài thật đều đưa về như trước được (mục 3).
 
 ## 1. Ai tham gia (đề xuất) và vì sao
 
@@ -28,14 +28,28 @@ Thầy có thể bớt, thêm người hay đổi vai trò — chỉ cần trả
 | Ngày 2–3 | Em đăng ký tài khoản, gửi thư riêng cho từng người (cc thầy) | {{TEN_QT}} | — |
 | Ngày 3–4 | Mỗi người vào hệ thống lần đầu (mục 3), báo nếu không vào được | mọi người | 5–10 phút |
 | Ngày 4–6 | Đọc hướng dẫn của vai trò mình, xem video (khi có) | mọi người | 20–30 phút |
-| Tuần 1 | **Chạy thử trên 10 bài luyện tập** (THU-01…10, bài bịa): mỗi người làm các bước trong hướng dẫn của mình | mọi người | khoảng 1 giờ |
-| Tuần 2–3 | **Bài thật đang có trong hệ thống**: lọc, chọn vào danh sách sơ bộ, một kỳ phản biện nhỏ (3–5 bài), thảo luận; lập bảng chọn bài (chưa khoá số thật) | thầy {{TEN}}, {{TEN_NCB}} | theo nhịp làm việc |
+| Tuần 1 | **Chạy thử trên 10 bài luyện tập** (THU-01…10, bài bịa): mỗi người làm các bước trong hướng dẫn của mình; muốn làm lại thì bấm *Đặt lại bài luyện tập* | mọi người | khoảng 1 giờ |
+| Đầu tuần 2 | Em bấm **Bắt đầu dùng thử trên bài thật**: hệ thống chụp toàn bộ dữ liệu; mọi trang hiện dòng „Đang dùng thử" | {{TEN_QT}} | — |
+| Tuần 2–3 | **Bài thật đang có trong hệ thống**, làm như thật: lọc, chọn vào danh sách sơ bộ, một kỳ phản biện nhỏ (3–5 bài), thảo luận; lập và duyệt bảng chọn bài | thầy {{TEN}}, {{TEN_NCB}} | theo nhịp làm việc |
 | Suốt đợt thử | Góp ý bằng nút **Góp ý** ở mọi trang; lỗi gặp phải được ghi tự động; em xem mỗi sáng, sửa và báo lại | mọi người | — |
-| Cuối tuần 3 | Họp trực tuyến tổng kết: góp ý, quyết định dùng chính thức hay điều chỉnh | mọi người | 30–45 phút |
+| Cuối tuần 3 | Họp trực tuyến tổng kết: góp ý; thầy quyết định **giữ** những gì đã làm trên bài thật hay **đưa về** như trước khi dùng thử; dùng chính thức hay điều chỉnh | mọi người | 30–45 phút |
 | Sau đợt thử | Dùng cho số báo kế tiếp; điều chỉnh theo yêu cầu của Pi | Pi | — |
 | Khi Pi sẵn sàng | **Bàn giao**: chuyển mã nguồn, ứng dụng, dữ liệu sang tài khoản của Pi (tài liệu bàn giao có sẵn; em làm cùng trong một buổi) | Pi, {{TEN_QT}} | một buổi |
 
-## 3. Bắt đầu (khi nhận thư riêng)
+## 3. Dùng thử không sợ sai
+
+- **Bài luyện tập** (tuần 1): mười bài bịa THU-01…THU-10, chỉ người dùng thử thấy. Làm gì cũng được; thầy (hoặc Phụ trách chuyên mục)
+  bấm *Đặt lại bài luyện tập* ở trang Kỳ phản biện để đưa về như mới — bài thật không bị đụng tới.
+- **Dùng thử trên bài thật** (tuần 2–3): trước khi bắt đầu, hệ thống chụp lại toàn bộ dữ liệu. Mọi người làm việc như thật; đầu mọi trang
+  có dòng „Đang dùng thử". Bất cứ lúc nào, em hoặc thầy (với vai trò Tổng biên tập) bấm *Đưa về như trước khi dùng thử*: mọi bài, kỳ phản
+  biện, bảng chọn bài, phiếu, thảo luận trở lại như lúc bắt đầu. Góp ý và lỗi đã ghi **được giữ lại**; trước khi đưa về hệ thống còn chụp
+  trạng thái lúc đó, nên đưa về cũng hoàn tác được.
+- **Không đưa về được**: thư đã gửi (thư mời, thư nhắc) và tệp đã lưu trên Drive (ảnh, gói chế bản) — vô hại. Bài thật mới gửi đến trong
+  ba tuần này xin Văn phòng nhập sau khi kết thúc dùng thử (hoặc thầy chọn kết thúc bằng „giữ mọi thay đổi").
+- **Góp ý, báo lỗi**: nút *Góp ý* ở đầu mọi trang — một câu là đủ, kèm mức dễ dùng 1–5 nếu muốn. Lỗi ai gặp trên trang được ghi lại
+  tự động (ai, trang nào, lỗi gì); em đọc mỗi sáng, sửa trong 1–3 ngày và báo lại.
+
+## 4. Bắt đầu (khi nhận thư riêng)
 
 1. **Chuẩn bị**: trình duyệt cập nhật (Chrome, Edge, Safari, Firefox); tài khoản Google — Gmail, hoặc email cơ quan chạy trên Google
    (email cơ quan của thầy dùng được ngay); mở trong cửa sổ chỉ đăng nhập **một** tài khoản Google.
@@ -50,7 +64,7 @@ Thầy có thể bớt, thêm người hay đổi vai trò — chỉ cần trả
    {{VIDEO: đường dẫn video khi có}}
 5. **Góp ý**: nút **Góp ý** ở đầu mọi trang — chỗ nào khó dùng, thiếu, sai. Không cần chụp màn hình: lỗi gặp phải được ghi tự động.
 
-## 4. Dữ liệu và an toàn
+## 5. Dữ liệu và an toàn
 
 - Dữ liệu (bài, phiếu, thảo luận) nằm trong Google Sheet và thư mục Drive riêng, không chia sẻ; sao lưu tự động mỗi đêm (giữ 30 bản).
 - Phản biện chấm **ẩn danh**: không thấy tên tác giả; phản biện khác thấy nhau là „Phản biện 1, 2…".
@@ -58,7 +72,7 @@ Thầy có thể bớt, thêm người hay đổi vai trò — chỉ cần trả
 - Không dùng dịch vụ AI hay trang LaTeX trực tuyến công cộng với bài chưa đăng.
 - Mã nguồn công khai trên GitHub (không chứa dữ liệu): https://github.com/nghia71/pi-drkn — Pi có thể kiểm tra, tự cài đặt, nhận bàn giao.
 
-## 5. Cài đặt, triển khai, bàn giao
+## 6. Cài đặt, triển khai, bàn giao
 
 Trong đợt thử, hệ thống chạy trên tài khoản của em — Pi không cần cài gì. Sau đợt thử, nếu Pi muốn tự vận hành hay điều chỉnh:
 tài liệu cài đặt từ đầu, kiến trúc và bàn giao có sẵn trong kho mã (slide kiến trúc, `docs/setup.md`, `docs/handover.md`);

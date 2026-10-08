@@ -175,3 +175,16 @@ trình duyệt; mỗi người tối đa 20 dòng mỗi giờ). Hai tab tự t�
 Quản trị: hộp Góp ý → **Xem góp ý và lỗi đã nhận** (đổi trạng thái góp ý: mới, đã xem, đã sửa, không làm).
 Mỗi sáng (Script property `DIGEST_HOUR`, mặc định 7 giờ) trigger của `installAutoTests` gửi tài khoản chủ **một thư tóm tắt**
 góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mới thì không gửi. Thư có đường dẫn vào hệ thống nếu đã đặt `SIGNIN_URL` (mục 5).
+
+## 17. Dùng thử: bài luyện tập và bài thật
+- **Bài luyện tập** (THU-01…10, bịa): người dùng thử thấy khi email của họ ở Script property `PRACTICE_USERS` (mục 14, `docs/testing.md`).
+  Trang **Kỳ phản biện** → mục *Luyện tập* → **Đặt lại bài luyện tập** (Quản trị, PT, TBT đang dùng thử): xoá mọi việc đã làm trên
+  bài luyện (phiếu, thảo luận, sửa, trạng thái, kỳ và bảng chỉ gồm bài luyện), đưa mười bài về như mới; bài thật không bị đụng.
+- **Dùng thử trên bài thật** (`Trial.gs`): trang Kỳ phản biện → mục *Dùng thử trên bài thật* (Quản trị) → **Bắt đầu dùng thử**:
+  hệ thống chụp toàn bộ Sheet dữ liệu (bản sao trong thư mục sao lưu); mọi trang hiện dòng „Đang dùng thử". Mọi người làm việc như thật.
+  **Đưa về như trước khi dùng thử** (Quản trị hoặc TBT, làm được nhiều lần): thay bài, kỳ, bảng, phiếu, thảo luận, lịch sử… bằng bản
+  chụp; **giữ** người dùng (`Users`), nhật ký (`Audit`), góp ý (`Feedback`), lỗi (`Errors`); trước khi đưa về, chụp trạng thái hiện tại
+  (đưa về cũng hoàn tác được: mục 15 với bản „trước khi đưa về"). **Kết thúc dùng thử** (Quản trị): giữ mọi thay đổi, hoặc đưa về rồi kết thúc.
+  Không đưa về được: thư đã gửi (thư mời, nhắc hạn) và tệp trên Drive (ảnh, gói chế bản) — vô hại.
+  Lưu ý: việc làm thật trong lúc dùng thử (ví dụ Văn phòng nhập bài mới thật) cũng bị đưa về — nhập bài thật sau khi kết thúc,
+  hoặc kết thúc bằng „giữ mọi thay đổi".

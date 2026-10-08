@@ -34,7 +34,7 @@ function api_(token, method, args) {
   var w = who_(token);
   args = args || {};
   switch (method) {
-    case 'me': return { email: w.email, name: w.name, roles: w.roles, eff: w.eff };
+    case 'me': return { email: w.email, name: w.name, roles: w.roles, eff: w.eff, trial: trialInfo_() };
     case 'listProblems': return listProblems_(w, args);
     case 'getProblem': return getProblem_(w, args.ma_bai);
     case 'bundle': return bundle_(w);
@@ -61,6 +61,7 @@ function api_(token, method, args) {
     case 'feedbackList': return feedbackList_(w);
     case 'feedbackStatus': return feedbackStatus_(w, args);
     case 'resetPractice': return practiceReset_(w);
+    case 'trial': return trialAction_(w, args);
     case 'sendInvites': return sendInvites_(w, args);
     case 'submitReview': return submitReview_(w, args);
     case 'markDone': return markDone_(w, args);

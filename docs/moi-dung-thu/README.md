@@ -19,6 +19,8 @@ khi soạn thư (Gmail), không commit bản đã điền.
 5. Thử đăng nhập bằng **một** tài khoản của người dùng thử (hoặc nhờ một người thử trước) — nếu gặp „Truy cập bị chặn",
    xem `docs/huong-dan` slide „Trước khi bắt đầu".
 6. Điền thư, đọc lại các đường dẫn, gửi. Theo dõi: thư tóm tắt góp ý và lỗi mỗi sáng (`docs/setup.md` mục 16).
+7. Đầu tuần 2: trang Kỳ phản biện → **Bắt đầu dùng thử** (chụp dữ liệu). Họp tổng kết: **Kết thúc dùng thử** — giữ, hoặc đưa về
+   (`docs/setup.md` mục 17). Xoá `PRACTICE_USERS` khi xong.
 
 ## Đường dẫn (cố định)
 

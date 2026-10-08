@@ -597,6 +597,26 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   check(c.findRow_('Problems', 'ma_bai', 'THU-05').data.trang_thai === 'Mới', 'đặt lại: bài luyện về như mới');
   delete c.TEST_CONF.PRACTICE_USERS;
 
+  step = 'dùng thử trên bài thật';
+  c.TEST_CONF.BACKUP_FOLDER_ID = c.DriveApp.createFolder('sao lưu (thử)').getId();
+  await tab(qt, 'go-rounds');
+  await shot(qt, 'dung-thu-bat-dau', 'Dùng thử trên bài thật: Quản trị bắt đầu — hệ thống chụp toàn bộ dữ liệu; sau đó đưa về như cũ được bất cứ lúc nào.', false,
+    [{ sel: '.card.tap', has: 'Dùng thử', t: 'Dùng thử trên bài thật' }, { sel: '[data-viec=bat_dau]', t: 'Bắt đầu dùng thử — bấm hai lần' }]);
+  await twice(qt, '[data-viec=bat_dau]');
+  check(!(await qt.$eval('#trial-bar', e => e.hidden)), 'dòng báo đang dùng thử');
+  const tbtv = await O(TBT);
+  check(!(await tbtv.$eval('#trial-bar', e => e.hidden)), 'mọi người thấy dòng báo');
+  await openProb(tbtv, P2); await tbtv.selectOption('#st-sel', 'SL'); await tbtv.click('[data-act=status]'); await idle(tbtv, 300);
+  check(c.findRow_('Problems', 'ma_bai', P2).data.trang_thai === 'SL', 'làm như thật trong lúc dùng thử');
+  await tab(tbtv, 'go-rounds');
+  await shot(tbtv, 'dung-thu-dua-ve', 'Đang dùng thử: mọi trang có dòng báo; Quản trị hoặc TBT đưa mọi bài, kỳ, bảng về như lúc bắt đầu (giữ góp ý, lỗi, người dùng).', false,
+    [{ sel: '#trial-bar', t: 'Dòng báo đang dùng thử (mọi trang, mọi người)' }, { sel: '[data-viec=dua_ve]', t: 'Đưa về như trước khi dùng thử — bấm hai lần' }]);
+  await twice(tbtv, '[data-viec=dua_ve]');
+  check(c.findRow_('Problems', 'ma_bai', P2).data.trang_thai === 'Không SL', 'đưa về: trạng thái như lúc bắt đầu');
+  await tab(qt, 'go-rounds');
+  await twice(qt, '[data-viec=ket_thuc][data-giu="1"]');
+  check(await qt.$eval('#trial-bar', e => e.hidden), 'kết thúc: hết dòng báo');
+
   /* ---------- 10. Điện thoại, chế độ tối ---------- */
   section('10. Điện thoại và chế độ tối', 'Cùng trang trên điện thoại (390 px) và khi máy đặt chế độ tối.');
   const ph = await O(PB2, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
