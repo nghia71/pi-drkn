@@ -75,34 +75,49 @@
 \newcommand\chuanbi{%
 \begin{frame}{Trước khi bắt đầu}
 \footnotesize
-\begin{buoc}[itemsep=1.2mm]
+\begin{buoc}[itemsep=0.6mm]
 \item \textbf{Máy}: máy tính, máy tính bảng hay điện thoại; trình duyệt cập nhật — Chrome, Edge, Safari hoặc Firefox.
 \item \textbf{Tài khoản Google}: Gmail, hoặc email cơ quan chạy trên Google. Email khác (không phải Google): tạo tài khoản Google bằng chính
   địa chỉ đó (accounts.google.com $\to$ Tạo tài khoản $\to$ \emph{Dùng địa chỉ email hiện tại của tôi}), hoặc dùng một Gmail cá nhân.
-\item \textbf{Một tài khoản Google trong cửa sổ}: trình duyệt đang đăng nhập nhiều tài khoản Google thì mở cửa sổ riêng tư (ẩn danh),
-  chỉ đăng nhập đúng tài khoản đã đăng ký với Pi.
+\item \textbf{Một tài khoản Google trong cửa sổ}: trình duyệt đang đăng nhập nhiều tài khoản Google thì mở cửa sổ riêng tư (ẩn danh: Ctrl+Shift+N,
+  trên Mac Cmd+Shift+N), chỉ đăng nhập đúng tài khoản đã đăng ký với Pi.
 \item \textbf{Lần đầu}: Google hỏi cho ứng dụng biết địa chỉ email — bấm \emph{Cho phép}. Ứng dụng không xin quyền nào khác.
 \item \textbf{Thấy „Truy cập bị chặn" (Access blocked)}: quản trị email cơ quan chặn ứng dụng ngoài — dùng một Gmail cá nhân
   (báo Quản trị để đổi email trong hệ thống), hoặc nhờ quản trị email cơ quan cho phép. Không vào được, trang trắng: chụp màn hình gửi Quản trị.
-\item Trình duyệt để mặc định: bật JavaScript, cho phép cookie của Google, cho phép tải tệp về máy.
+\item Không cần cài hay chỉnh gì thêm trên trình duyệt.
 \end{buoc}
 \end{frame}}
 
 % Góp ý, báo lỗi — chung cho mọi vai trò
-\newcommand\gopy{\manhinh[Lỗi thầy cô gặp trên trang được ghi lại tự động — không cần chụp màn hình gửi đi.]{gop-y}{Góp ý, báo lỗi}}
+\newcommand\gopy{\manhinh[Lỗi xảy ra bên trong trang được ghi lại tự động. Không vào được trang: chụp màn hình gửi Quản trị.]{gop-y}{Góp ý, báo lỗi}}
 
 % Dùng thử — chung cho mọi vai trò
 \newcommand\dungthu{%
-\begin{frame}{Dùng thử: cứ làm, không sợ sai}
+\begin{frame}{Dùng thử: thao tác hoàn tác được}
 \small
-\begin{buoc}[itemsep=1.5mm]
+\begin{buoc}[itemsep=0.8mm]
 \item \textbf{Bài luyện tập} THU-01…THU-10: bài bịa, chỉ người dùng thử thấy (phản biện: khi được giao). Kỳ phản biện, bảng chọn bài
-  luyện tập đặt tên bắt đầu bằng \textbf{THU-}. Muốn làm lại từ đầu: báo Phụ trách chuyên mục / Tổng biên tập bấm
+  luyện tập đặt tên bắt đầu bằng \textbf{THU-}. Muốn làm lại từ đầu: báo Phụ trách chuyên mục, Tổng biên tập hoặc Quản trị bấm
   \emph{Đặt lại bài luyện tập} — việc của mọi người trên bài luyện bị xoá, bài thật không bị đụng tới.
 \item \textbf{Dùng thử trên bài thật}: khi đầu trang có dòng \emph{„Đang dùng thử"}, thầy cô làm việc trên bài thật như thật.
-  Hệ thống đã chụp toàn bộ dữ liệu lúc bắt đầu; Quản trị hoặc Tổng biên tập đưa mọi bài, kỳ, bảng, phiếu, thảo luận về như trước bất cứ lúc nào.
-\item \textbf{Góp ý của thầy cô được giữ lại} khi đưa về, cùng danh sách lỗi hệ thống ghi được.
+  Hệ thống đã lưu một bản sao toàn bộ dữ liệu lúc bắt đầu; Quản trị hoặc Tổng biên tập đưa mọi bài, kỳ, bảng, phiếu, thảo luận
+  (kể cả kỳ đã khoá) về như trước bất cứ lúc nào.
+\item \textbf{Góp ý của thầy cô được giữ lại} khi đưa về, cùng danh sách lỗi hệ thống ghi được và tài khoản người dùng.
   Thư đã gửi và tệp đã lưu trên Drive thì không đưa về được.
 \item Hết đợt dùng thử, dòng báo biến mất: từ đó mọi việc là thật.
+\end{buoc}
+\end{frame}}
+
+% Thuật ngữ — cho các vai trò ban biên tập
+\newcommand\thuatngu{%
+\begin{frame}{Trạng thái và thuật ngữ}
+\footnotesize
+\begin{buoc}[itemsep=0.8mm]
+\item \textbf{Mới}: bài vừa nhận. \textbf{SL}: vào danh sách sơ bộ (shortlist). \textbf{Không SL}: không vào danh sách sơ bộ, thôi xem (ghi lý do).
+\item \textbf{SL-OK}: Tổng biên tập đã duyệt vào bảng chọn bài của một số báo. \textbf{SL-Fail}: Tổng biên tập loại hẳn (ghi lý do).
+  \textbf{PL}: đã đăng (sau khi khoá kỳ).
+\item \textbf{Mức} A, B: độ khó của bài. \textbf{Xung đột}: hai ý kiến khác nhau về mức, tác giả hay trùng bài — Tổng biên tập quyết định.
+\item \textbf{Kỳ phản biện}: một đợt gửi bài cho phản biện, có hạn. \textbf{Khoá kỳ}: chốt số báo — đánh số in (P…), tạo gói chế bản.
+\item \textbf{Bấm hai lần}: nút quan trọng (Duyệt, Khoá kỳ, Xoá kỳ, Mở lại để sửa) đổi thành „Bấm lần nữa…" (màu cảnh báo) — bấm lần thứ hai để làm.
 \end{buoc}
 \end{frame}}

@@ -10,13 +10,13 @@ Theo đề xuất của thầy {{TEN_TBT}} (cc thư này), Pi mời {{XUNG_HO}} 
 
 **Việc của {{XUNG_HO}} trong đợt thử** (khoảng {{THOI_GIAN}}):
 1. Vào hệ thống lần đầu trước {{HAN_VAO}} (5 phút).
-2. Đọc hướng dẫn của vai trò (20–30 phút): {{DUONG_DAN_HUONG_DAN}} {{VIDEO: bỏ nếu chưa có}}
+2. Đọc hướng dẫn của vai trò (20–30 phút): {{DUONG_DAN_HUONG_DAN}} (PDF, có ảnh từng bước)
 3. Tuần đầu: làm các bước trong hướng dẫn với **bài luyện tập** (THU-…, bài bịa) — {{VIEC_TUAN_1}}
 4. Tuần 2–3: {{VIEC_TUAN_2_3}}
 5. Góp ý bất cứ lúc nào bằng nút **Góp ý** ở đầu trang; cuối tuần 3 họp tổng kết 30–45 phút.
 
-**Không sợ làm sai**: dữ liệu đã được chụp lại trước đợt thử; đầu mọi trang có dòng „Đang dùng thử" — {{XUNG_HO}} cứ làm như thật,
-mọi việc đưa về như trước được. Lỗi xảy ra trên trang được ghi lại tự động; góp ý của {{XUNG_HO}} được giữ lại.
+**Mọi thao tác hoàn tác được**: dữ liệu đã được lưu một bản sao trước đợt thử; đầu mọi trang có dòng „Đang dùng thử" — {{XUNG_HO}} cứ làm như thật,
+mọi việc đưa về như trước được (trừ thư đã gửi, tệp trên Drive). Lỗi xảy ra trên trang được ghi lại tự động; góp ý của {{XUNG_HO}} được giữ lại.
 
 **Vào hệ thống**
 - Trình duyệt cập nhật (Chrome, Edge, Safari, Firefox); mở trong cửa sổ chỉ đăng nhập **một** tài khoản Google.
