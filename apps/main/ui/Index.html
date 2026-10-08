@@ -89,6 +89,8 @@ new MutationObserver(syncView).observe(document.querySelector('main'), { subtree
 document.getElementById('go-list').onclick = document.getElementById('go-home').onclick = function (e) {
   if (e) e.preventDefault();
   if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; }
+  // bấm "Danh sách" = bắt đầu lại: về trang đầu (30 bài), đầu trang; quay lại từ một bài thì giữ nguyên chỗ đang xem
+  if (LIST_N > LIST_PAGE || LIST_Y) { LIST_N = LIST_PAGE; LIST_Y = 0; LIST_STALE = true; }
   nav({}); showList();
 };
 /* Biểu tượng cho nút và tiêu đề mục — thêm tự động theo chữ / thuộc tính của nút, nên mọi nút mới đều nhất quán.
@@ -96,9 +98,9 @@ document.getElementById('go-list').onclick = document.getElementById('go-home').
 var BTN_ICON = [[/^Sửa/, 'pencil'], [/^Thêm ảnh/, 'image-plus'], [/^Thêm vào danh sách/, 'file-plus'], [/^\+ ?Thêm|^Thêm|^Lập bảng|^Mở kỳ|^Giao$/, 'plus'],
   [/^Lưu/, 'check'], [/^Huỷ|^Đóng$/, 'x'], [/^Gửi/, 'send'], [/^Duyệt|duyệt$/, 'check'], [/^Trả lại/, 'rotate-ccw'], [/^Mở lại/, 'lock-open'],
   [/^Khoá kỳ|^Đóng kỳ/, 'lock'], [/^Tải (SVG )?lên/, 'upload'], [/^Tải/, 'download'], [/^Mở lời giải/, 'eye'], [/^Đóng lời giải/, 'eye-off'],
-  [/^Đánh dấu/, 'check-check'], [/^Bỏ đánh dấu|^Đánh lại số/, 'rotate-ccw'], [/^Xem thêm/, 'chevron-down'], [/^Xem lịch sử/, 'history'],
+  [/^Đánh dấu/, 'check-check'], [/^Bỏ đánh dấu|^Đánh lại số/, 'rotate-ccw'], [/^Xem thêm/, 'chevron-down'], [/^Thu gọn/, 'chevron-up'], [/^Xem lịch sử/, 'history'],
   [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
-var DANGER = /^(Đóng kỳ|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải)/;
+var DANGER = /^(Đóng kỳ|Xoá|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải)/;
 var H3_ICON = [[/^(Sửa )?Đề bài/, 'file-text'], [/^(Sửa )?Lời giải/, 'lightbulb'], [/^(Sửa )?Hình/, 'image'], [/^Thảo luận/, 'message-square'],
   [/^Phiếu phản biện/, 'clipboard-check'], [/^Khoá kỳ/, 'lock'], [/^Dựng hình/, 'image'], [/^Mở kỳ/, 'plus'], [/^Bài \d/, 'file-text']];
 function decorate(root) {
@@ -224,9 +226,21 @@ function renderList() {
     more.querySelector('button').onclick = function () { LIST_Y = window.scrollY; LIST_N += LIST_PAGE; renderList(); window.scrollTo(0, LIST_Y); };
     L.appendChild(more);
   }
+  if (LIST_N > LIST_PAGE && all.length > LIST_PAGE) {
+    var less = document.createElement('p');
+    less.innerHTML = '<button class="sm">Thu gọn (' + LIST_PAGE + ' bài đầu)</button>';
+    less.querySelector('button').onclick = function () { LIST_N = LIST_PAGE; LIST_Y = 0; renderList(); window.scrollTo(0, 0); };
+    L.appendChild(less);
+  }
   typeset(L);
 }
 function val(id) { return document.getElementById(id).value; }
+/** Thời điểm ISO → "08/10/2026 20:35" theo giờ của máy người xem; chữ khác thì để nguyên. */
+function vnTime(d) {
+  var t = new Date(d); if (!/^\d{4}-\d{2}-\d{2}T/.test(String(d || '')) || isNaN(t)) return String(d || '');
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return p(t.getDate()) + '/' + p(t.getMonth() + 1) + '/' + t.getFullYear() + ' ' + p(t.getHours()) + ':' + p(t.getMinutes());
+}
 function vnDate(d) { var m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(d || ''); }
 /** Chip cho phản biện: hạn, đã có phiếu, đã xong. */
 function giaoChip(g) {
@@ -281,17 +295,17 @@ function renderProblem(ma, d, loading) {
       return '<option' + (x === p.trang_thai ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') +
       '</select> <button class="sm" data-act="status">Đổi trạng thái</button></p><div class="inl" data-for="st"></div>' : '') +
     (ed ? '<p class="mut sm-t" id="ver">Phiên bản ' + esc(p.phien_ban || 0) + (p.nguoi_cap_nhat ? ' · sửa lần cuối: ' + esc(p.nguoi_cap_nhat) + ', ' + esc(p.cap_nhat) : '') + '</p>' : '') +
-    '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx">' + de.html + '</div></div>' +
+    '<div id="sec-de_bai"><h3>Đề bài' + btn('de_bai') + '</h3><div class="tx de">' + de.html + '</div></div>' +
     (p.hinh || ed ? '<div id="sec-hinh"><h3>Hình' + btn('hinh') + (ed ? ' <button class="sm" data-pic="1">Thêm ảnh…</button>' : '') + '</h3>' + hinhHtml(d) +
       '<div class="inl" data-for="pic"></div></div>' : '') +
     (loading ? '<p class="mut">Đang tải lời giải và thảo luận…</p>' :
-    '<div id="sec-loi_giai">' + (lg ? '<h3>Lời giải' + btn('loi_giai') + '</h3><div class="tx">' + lg.html + '</div>'
+    '<div id="sec-loi_giai">' + (lg ? '<h3>Lời giải' + btn('loi_giai') + '</h3><div class="tx lg">' + lg.html + '</div>'
                                     : '<h3>Lời giải' + btn('loi_giai') + '</h3><p class="mut">' + (d.loi_giai_an
                                         ? '(chưa mở — hãy tự giải trước; phụ trách chuyên mục sẽ mở lời giải cho phản biện sau)' : '(không có lời giải)') + '</p>') + '</div>' +
     (warn.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(warn.join('; ')) + '</p>' : '') +
     (d.limited ? '' : '<details id="props"' + (PROPS_OPEN ? ' open' : '') + '><summary>Nguồn &amp; chỉnh sửa</summary>' + props(d) + '</details>') +
     (d.mine || []).map(reviewForm).join('') + (d.reviews ? reviewsList(d.reviews) : '') +
-    '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(function (c) { return '<div class="cm"><b>' + esc(c.ai || c.email) + '</b> <span class="mut">' + esc(c.ngay) + '</span><div>' + PiRender.render(c.noi_dung).html + '</div></div>'; }).join('') + '</div>' +
+    '<h3>Thảo luận</h3><div id="cm">' + d.comments.map(commentHtml).join('') + '</div>' +
     '<textarea id="cm-new" rows="4" placeholder="Nhận xét (có thể viết công thức $…$)"></textarea><button id="cm-send">Gửi nhận xét</button>');
   document.getElementById('back').onclick = function (e) {
     e.preventDefault();
@@ -558,7 +572,7 @@ function closeEditor(ma, field) {
   sec.innerHTML = '<h3>' + FIELD_TITLE[field] + ' <button class="sm" data-edit="' + field + '">Sửa</button>' +
     (field === 'hinh' ? ' <button class="sm" data-pic="1">Thêm ảnh…</button>' : '') + '</h3>' +
     (field === 'hinh' ? hinhHtml(PCACHE[ma]) :
-     t ? '<div class="tx">' + t.html + '</div>' + (t.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(t.warnings.join('; ')) + '</p>' : '')
+     t ? '<div class="tx ' + (field === 'de_bai' ? 'de' : 'lg') + '">' + t.html + '</div>' + (t.warnings.length ? '<p class="w">Cảnh báo hiển thị: ' + esc(t.warnings.join('; ')) + '</p>' : '')
        : '<p class="mut">(không có ' + FIELD_NAME[field] + ')</p>');
   sec.querySelector('[data-edit]').onclick = function () { openEditor(ma, field); };
   if (field === 'hinh') { sec.insertAdjacentHTML('beforeend', '<div class="inl" data-for="pic"></div>'); sec.querySelector('[data-pic]').onclick = function () { picForm(ma); }; }
@@ -582,11 +596,21 @@ function reviewForm(g) {
       : '<button class="pri" data-act="rv-save">Lưu phiếu</button> <button data-act="rv-done"' + (g.review ? '' : ' disabled title="Lưu phiếu trước"') + '>Đánh dấu đã xong</button>') +
     ' <span class="st mut">' + (v.ngay ? 'Lưu lần cuối: ' + esc(v.ngay) : '') + '</span></div></div>';
 }
+/* Nhận xét: chữ không chân (là lời của người), khác chữ có chân của đề / lời giải (là nội dung bài); phản biện và ban biên tập
+ * khác màu viền và có nhãn — không chỉ dựa vào màu. */
+function commentHtml(c) {
+  var pb = c.vai === 'pb';
+  return '<div class="cm ' + (pb ? 'pb' : 'bbt') + '"><div class="cm-h"><span class="cm-role">' + ic(pb ? 'user' : 'users') + (pb ? 'Phản biện' : 'Ban biên tập') +
+    '</span><b>' + esc(c.ai || c.email) + '</b><span class="mut">' + esc(vnTime(c.ngay)) + '</span></div><div class="cm-b">' + PiRender.render(c.noi_dung).html + '</div></div>';
+}
+var REC_TAG = { 'chọn': 'st-ok', 'sửa rồi chọn': 'st-sl', 'không chọn': 'st-fail' };
 function reviewsList(rs) {
   if (!rs.length) return '';
   return '<details class="rvs"><summary>Phiếu phản biện (' + rs.length + ')</summary>' + rs.map(function (v) {
-    return '<div class="cm"><b>' + esc(v.email || 'trước hệ thống') + '</b> · kỳ ' + esc(v.ky) + ' · ' + (v.muc_de_nghi ? 'mức ' + esc(v.muc_de_nghi) + ' · ' : '') +
-      '<b>' + esc(v.diem || '') + '</b> <span class="mut">' + esc(v.ngay) + '</span><div>' + PiRender.render(String(v.nhan_xet || '')).html + '</div></div>';
+    return '<div class="cm pb"><div class="cm-h"><span class="cm-role">' + ic('clipboard-check') + 'Phiếu</span><b>' + esc(v.email || 'trước hệ thống') + '</b>' +
+      '<span class="mut">kỳ ' + esc(v.ky) + '</span>' + (v.muc_de_nghi ? '<span class="chip t-level">Mức ' + esc(v.muc_de_nghi) + '</span>' : '') +
+      (v.diem ? '<span class="chip ' + (REC_TAG[v.diem] || '') + '">' + esc(v.diem) + '</span>' : '') + '<span class="mut">' + esc(v.ngay) + '</span></div>' +
+      '<div class="cm-b">' + PiRender.render(String(v.nhan_xet || '')).html + '</div></div>';
   }).join('') + '</details>';
 }
 
@@ -610,7 +634,10 @@ function renderRounds() {
     '<button class="pri" data-r="open">Mở kỳ</button></div></div>';
   var rounds = v.rounds.slice().sort(function (a, b) { return (a.trang_thai === 'mở' ? 0 : 1) - (b.trang_thai === 'mở' ? 0 : 1); });
   if (!rounds.length) h += '<p class="mut">Chưa có kỳ nào.</p>';
+  var nClosed = rounds.filter(function (r) { return r.trang_thai !== 'mở'; }).length, closedOpened = false;
   rounds.forEach(function (r) {
+    // kỳ đã đóng gom vào một mục thu gọn, cuối trang
+    if (r.trang_thai !== 'mở' && !closedOpened) { closedOpened = true; h += '<details class="closed-rounds"><summary>Kỳ đã đóng (' + nClosed + ')</summary>'; }
     var as = r.assignments, open = r.trang_thai === 'mở', man = v.manage && open;
     var done = as.filter(function (a) { return a.xong; }).length, ph = as.filter(function (a) { return a.phieu; }).length;
     var notInvited = {}; as.forEach(function (a) { if (!a.moi_luc) notInvited[a.email] = 1; });
@@ -624,7 +651,8 @@ function renderRounds() {
     if (man) h += '<div class="row"><label>Đổi hạn <input type="date" data-k="han" value="' + escA(r.han_phan_bien) + '" min="' + today + '"></label>' +
       '<button class="sm" data-r="deadline">Lưu hạn</button>' +
       '<button class="sm" data-r="invite"' + (nInv ? '' : ' disabled') + '>Gửi thư mời (' + nInv + ' người chưa mời)</button>' +
-      '<button class="sm" data-r="close">Đóng kỳ…</button><span class="st mut"></span></div>';
+      '<button class="sm" data-r="close">Đóng kỳ…</button>' + (ph ? '' : '<button class="sm" data-r="del">Xoá kỳ…</button>') + '<span class="st mut"></span></div>';
+    else if (v.manage && !ph) h += '<div class="row"><button class="sm" data-r="del">Xoá kỳ…</button><span class="st mut"></span></div>';
     var byP = {}; as.forEach(function (a) { (byP[a.ma_bai] = byP[a.ma_bai] || []).push(a); });
     var codes = Object.keys(byP).sort();
     h += codes.length ? '<div class="tbl-wrap"><table class="as"><tr><th>Bài</th><th>Phản biện</th><th>Mời</th><th>Phiếu</th><th>Xong</th><th>Đã nhắc</th>' + (man ? '<th></th>' : '') + '</tr>' +
@@ -643,6 +671,7 @@ function renderRounds() {
       '<button class="sm pri" data-r="assign">Giao</button></div>';
     h += '</div>';
   });
+  if (closedOpened) h += '</details>';
   R.innerHTML = h;
   document.getElementById('r-back').onclick = function (e) { e.preventDefault(); nav({}); showList(); };
   R.onclick = function (ev) {
@@ -668,7 +697,10 @@ function renderRounds() {
       if (!q('ma') || !q('pb')) { alertBox('Chọn bài và phản biện.'); return; }
       run(call('assign', { ky: ky, ma_bai: q('ma'), email: q('pb') }));
     } else if (a === 'unassign') run(call('unassign', { ky: ky, ma_bai: b.getAttribute('data-ma'), email: b.getAttribute('data-email') }));
-    else if (a === 'sol') {
+    else if (a === 'del') {
+      if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Bấm lần nữa: xoá kỳ ' + ky + ' và mọi phân công của kỳ'; return; }
+      run(call('deleteRound', { ky: ky }), 'Đã xoá kỳ ' + ky + '.');
+    } else if (a === 'sol') {
       var mo = b.getAttribute('data-mo') === '1';
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = mo ? 'Bấm lần nữa: mọi phản biện của kỳ ' + ky + ' sẽ thấy lời giải' : 'Bấm lần nữa để ẩn lời giải'; return; }
       run(call('releaseSolutions', { ky: ky, mo: mo }), mo ? 'Đã mở lời giải cho phản biện của kỳ ' + ky + '.' : 'Đã ẩn lời giải của kỳ ' + ky + '.');

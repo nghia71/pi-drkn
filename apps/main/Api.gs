@@ -55,6 +55,7 @@ function api_(token, method, args) {
     case 'setDeadline': return setDeadline_(w, args);
     case 'closeRound': return closeRound_(w, args);
     case 'releaseSolutions': return releaseSolutions_(w, args);
+    case 'deleteRound': return deleteRound_(w, args);
     case 'sendInvites': return sendInvites_(w, args);
     case 'submitReview': return submitReview_(w, args);
     case 'markDone': return markDone_(w, args);
@@ -160,7 +161,7 @@ function getProblem_(w, ma, noAudit) {
   var out;
   if (full) {
     out = { problem: p, provenance: of('Provenance')[0] || null, corrections: of('Corrections'), checks: of('Checks'),
-            conflicts: of('Conflicts'), log: of('ConversionLog'), comments: of('Comments'), canEdit: has_(w, EDITORS),
+            conflicts: of('Conflicts'), log: of('ConversionLog'), comments: commentRoles_(ma, of('Comments')), canEdit: has_(w, EDITORS),
             can: { status: has_(w, STATUS_SETTERS), props: has_(w, PROP_EDITORS), tbt: has_(w, ['TBT']) },
             lists: { statuses: STATUSES, reasonStatuses: REASON_STATUSES, conflictTypes: CONFLICT_TYPES, conflictStatuses: CONFLICT_STATUSES, tbtConflicts: TBT_CONFLICTS,
                      correctionStatuses: CORRECTION_STATUSES } };
@@ -290,8 +291,16 @@ function anonComments_(w, ma, comments) {
   return comments.map(function (c) {
     var e = String(c.email).trim().toLowerCase(), k = order.indexOf(e);
     return { id: c.id, ma_bai: c.ma_bai, tra_loi_cho: c.tra_loi_cho, noi_dung: c.noi_dung, ngay: c.ngay,
-             ai: e === w.email ? 'Bạn' : k >= 0 ? 'Phản biện ' + (k + 1) : 'Ban biên tập' };
+             ai: e === w.email ? 'Bạn' : k >= 0 ? 'Phản biện ' + (k + 1) : 'Ban biên tập',
+             vai: e === w.email || k >= 0 ? 'pb' : 'bbt' };
   });
+}
+
+/** Ban biên tập xem thảo luận: đánh dấu nhận xét của phản biện (người từng được giao bài này) để trang hiện khác nhận xét của ban biên tập. */
+function commentRoles_(ma, comments) {
+  var pb = {};
+  rows_('Assignments').forEach(function (a) { if (a.ma_bai === ma) pb[String(a.email).trim().toLowerCase()] = true; });
+  return comments.map(function (c) { c.vai = pb[String(c.email).trim().toLowerCase()] ? 'pb' : 'bbt'; return c; });
 }
 
 /**

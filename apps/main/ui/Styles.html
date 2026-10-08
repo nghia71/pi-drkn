@@ -19,6 +19,7 @@
   --warn:#e8b55c; --warn-s:#2e2512; --bad:#f08a80; --bad-s:#341b18; --info:#8fb8e6; --info-s:#18242f; --mute-s:#252926;
 }}
 *{box-sizing:border-box}
+[hidden]{display:none !important}   /* thuộc tính hidden luôn thắng display của lớp (thẻ mục theo vai trò) */
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--ui);-webkit-text-size-adjust:100%}
 a{color:var(--acc)} a:hover{color:var(--acc-h)}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
@@ -53,7 +54,10 @@ h3 .ic{color:var(--faint)} h3 button{margin-left:4px}
 #b-back + *,#r-back + *{margin-top:0}
 
 /* chữ toán: đề, lời giải, xem trước, nhận xét */
-.tx,.pv,.rv-pv,.cm > div{font:16.5px/1.62 var(--math)}
+.tx,.pv{font:16.5px/1.62 var(--math)}
+/* đề bài: khung, viền nhấn bên trái, chữ lớn hơn — "bài toán"; lời giải: chữ thường, không khung */
+.tx.de{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:6px;padding:8px 16px;font-size:17.5px}
+.tx.lg{font-size:16px;padding:0 2px}
 .tx p{margin:.45em 0} .dm{display:block;overflow-x:auto;overflow-y:hidden}
 code.unk{color:var(--bad)} .c{text-align:center} .r{text-align:right}
 
@@ -122,10 +126,16 @@ table.as tr:hover td{background:color-mix(in srgb,var(--mute-s) 60%,transparent)
 table.as select{max-width:100%} td.nw{white-space:nowrap} table.as .code{white-space:nowrap} tr.w td{color:var(--warn)}
 
 /* ---- thuộc tính, thảo luận, lịch sử ---- */
-details summary{cursor:pointer;color:var(--acc);font-weight:500;margin-top:14px;font-size:13px}
+details.closed-rounds > summary{margin:18px 0 6px} details summary{cursor:pointer;color:var(--acc);font-weight:500;margin-top:14px;font-size:13px}
 .props{font-size:13px;line-height:1.5} .props h4{margin:12px 0 3px;font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
 .props ul{padding-left:18px} .props li{margin:3px 0}
-.cm{border-top:1px solid var(--line);padding:8px 0} .cm b{font:600 13px var(--ui)} .cm .mut{font-size:12px}
+/* nhận xét, phiếu: chữ không chân (lời của người), khung có viền màu theo vai; nhãn vai luôn có chữ */
+.cm{border:1px solid var(--line);border-left:4px solid var(--line2);border-radius:6px;padding:8px 12px;margin:8px 0;background:var(--card)}
+.cm.pb{border-left-color:var(--warn)} .cm.bbt{border-left-color:var(--acc)}
+.cm-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px;margin-bottom:4px} .cm-h b{font:600 13px var(--ui)}
+.cm-role{display:inline-flex;align-items:center;gap:4px;font:600 11px var(--ui);text-transform:uppercase;letter-spacing:.04em}
+.cm.pb .cm-role{color:var(--warn)} .cm.bbt .cm-role{color:var(--acc)} .cm-role .ic{width:13px;height:13px}
+.cm-b,.rv-pv{font:14.5px/1.55 var(--ui)} .cm-b p{margin:.3em 0}
 .rev summary{font-size:12.5px;margin-top:6px} pre{white-space:pre-wrap;font:12px var(--mono)}
 .diff{font:12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;border:1px solid var(--line);border-radius:6px;padding:8px;margin:6px 0}
 .diff del{color:var(--bad);background:var(--bad-s)} .diff ins{color:var(--acc);text-decoration:none;background:var(--acc-s)}
@@ -133,6 +143,7 @@ details summary{cursor:pointer;color:var(--acc);font-weight:500;margin-top:14px;
 /* ---- phiếu phản biện ---- */
 .rv h3{margin-top:0} .rv .rec label{margin-right:14px;color:var(--fg)} .rv select{margin-left:6px}
 .rv-pv:not(:empty){border:1px dashed var(--line2);border-radius:6px;padding:6px 10px;margin-top:6px}
+.rv{border-left:4px solid var(--warn)}
 
 /* ---- hình ---- */
 .fig{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--line2);border-radius:6px;color:var(--mut);font:13px var(--ui);padding:8px 12px;margin:4px 0}

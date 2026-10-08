@@ -8,10 +8,10 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | Lớp | Chạy ở đâu | Cách chạy | Thời gian |
 |---|---|---|---|
 | 1. Trên máy | máy quản trị, không cần Google | `scripts/test-all.sh` (tự chạy trong `scripts/deploy.sh` và trên GitHub) | ~10 giây |
-| 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
+| 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | `runSmoke` sau mỗi lần triển khai; `runAllTests` mỗi đêm (tự động) | 3–4 phút / ~30 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 108 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 109 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (108 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (109 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -55,7 +55,35 @@ của Sheet kiểm thử. Nếu log báo **TẠM DỪNG** (Apps Script giới h�
 từ chỗ dừng. Chạy riêng một nhóm: `runTests('3')`; một kịch bản: `runTests('3.6')` (chọn hàm `runTests` không truyền được tham số
 từ nút Run — dùng `runAllTests`, hoặc tạm thêm một hàm gọi `runTests('3')`).
 
-Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy chủ, và trước mỗi kỳ chọn bài.
+### Chạy gì, khi nào
+
+Toàn bộ (~109 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
+Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trước mỗi lần đẩy mã; lớp 2 chỉ để bắt chỗ Google khác bản mô phỏng.
+
+| Khi nào | Chạy | Thời gian |
+|---|---|---|
+| Sau mỗi lần `scripts/deploy.sh` | `runSmoke` — mỗi phần chính một kịch bản (đăng nhập, quyền, ẩn danh, sửa, nhận xét, trạng thái, kỳ, lời giải, bảng, khoá kỳ, hình, thêm bài) | 3–4 phút |
+| Thay đổi chỉ ở một phần | thêm nhóm của phần đó (bảng dưới), ví dụ một hàm tạm `function t() { runTests('13,14'); }` | vài phút |
+| Mỗi đêm (tự động) | toàn bộ — `installNightlyTests` chạy một lần; có lỗi thì thư gửi tới tài khoản chủ | — |
+| Trước mỗi kỳ chọn bài, trước khi khoá kỳ | `runAllTests` (hoặc xem thư đêm qua) | ~30 phút |
+
+| Tệp sửa | Nhóm |
+|---|---|
+| `Auth.gs`, `Web.gs` (đăng nhập, phiên) | 1, 2, 7, 12 |
+| `Api.gs` (xem, sửa, nhận xét, trạng thái) | 3, 4, 5, 6, 9 |
+| `Rounds.gs` (kỳ phản biện, phiếu, thư) | 13 (và 3.4, 3.12) |
+| `Board.gs` | 14 |
+| `Close.gs` | 15, 16.7, 17.3 |
+| `Fig.gs` | 16 |
+| `Intake.gs` | 17 |
+| `Import.gs`, `Patch.gs` | 8 |
+| `resetPractice` (trong `Tests.gs`) | 11 |
+| `Db.gs`, `Schema.gs`, `Setup.gs` (dùng chung) | toàn bộ |
+| chỉ `ui/` (giao diện) | lớp 1 là đủ (10.1 nếu sửa bộ hiển thị) — rồi xem bằng mắt |
+
+Kiểm thử hằng đêm: trình soạn thảo → `installNightlyTests` → Run (một lần; giờ chạy: Script property `TEST_HOUR`, mặc định 2 giờ).
+Mỗi đoạn 6 phút xong thì tự hẹn đoạn tiếp sau 1 phút cho tới hết; không lỗi thì không có thư. Thôi: `removeNightlyTests`.
+Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau: `runTests('6,13.12')`.
 
 ### Danh sách kịch bản tự động
 <!-- bảng tự sinh: bắt đầu -->
@@ -207,6 +235,7 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 13.10 | Đổi hạn: chỉ PT, Quản trị; ngày sai bị từ chối; mốc nhắc tính theo hạn mới | QT |
 | 13.11 | Kỳ phản biện tên "10/2026" (dạng ngày) vẫn giữ nguyên chữ qua giao bài, thư mời, đóng kỳ | QT |
 | 13.12 | Lời giải: phản biện KHÔNG nhận lời giải (cả trong tải gộp) cho tới khi PT/TBT mở cho kỳ; mở rồi thì thấy; đóng lại thì ẩn; NCB, PB không mở được; ban biên tập luôn thấy | T1 |
+| 13.13 | Xoá kỳ: chỉ kỳ chưa có phiếu (xoá cả phân công); kỳ có phiếu chỉ đóng được; chỉ PT, Quản trị | T1 |
 
 **14. Bảng chọn bài**
 

@@ -193,6 +193,29 @@ function closeRound_(w, a) {
   return true;
 }
 
+/**
+ * Xoá một kỳ (PT, Quản trị) — chỉ khi kỳ CHƯA có phiếu phản biện nào (kỳ lập nhầm, kỳ thử). Xoá kỳ và mọi phân công của kỳ.
+ * Kỳ đã có phiếu: chỉ đóng được — phiếu là quyết định của ban biên tập, không mất.
+ */
+function deleteRound_(w, a) {
+  need_(w, ROUND_MANAGERS);
+  var ky = String(a.ky || '');
+  roundRow_(ky);
+  var n = rows_('Reviews').filter(function (v) { return String(v.ky) === ky; }).length;
+  if (n) throw new Error('Kỳ ' + ky + ' đã có ' + n + ' phiếu phản biện — chỉ đóng được, không xoá.');
+  var removed = 0;
+  withLock_(function () {
+    var sh = sheet_('Assignments');
+    assignmentsOf_(ky).map(function (x) { return x._row; }).sort(function (x, y) { return y - x; })
+      .forEach(function (row) { sh.deleteRow(row); removed++; });
+    READ_MEMO_ = READ_MEMO_ && {};
+    sheet_('Rounds').deleteRow(roundRow_(ky).row);
+  });
+  READ_MEMO_ = READ_MEMO_ && {};
+  audit_(w.email, 'xoá kỳ', ky + ' (' + removed + ' phân công)');
+  return { phan_cong: removed };
+}
+
 /** Gửi thư mời cho mọi phản biện của kỳ còn phân công chưa mời: mỗi người MỘT thư. Kiểm tra hạn mức trước khi gửi. */
 function sendInvites_(w, a) {
   need_(w, ROUND_MANAGERS);

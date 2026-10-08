@@ -3,7 +3,9 @@
  *   setupTests()   một lần: tạo Sheet "Pi ĐRKN — kiểm thử" (dữ liệu bịa, tách hẳn khỏi dữ liệu thật)
  *   runAllTests()  mỗi lần kiểm thử: chạy mọi kịch bản, ghi kết quả vào tab "Kết quả" và Execution log.
  *                  Nếu sắp hết 6 phút, dừng lại và báo — chạy lại runAllTests() để chạy tiếp phần còn lại.
- *   runTests('3')  chỉ chạy nhóm 3 (hoặc một kịch bản: runTests('3.6')).
+ *   runTests('3')  chỉ chạy nhóm 3 (hoặc một kịch bản: runTests('3.6'); nhiều nhóm: runTests('3,13,13.12')).
+ *   runSmoke()     bộ nhanh (~15 kịch bản, 3–4 phút): mỗi phần chính một kịch bản — sau mỗi lần sửa nhỏ.
+ *   installNightlyTests()  một lần: chạy toàn bộ mỗi đêm (tự chạy tiếp sau mỗi 6 phút), gửi thư cho chủ nếu có lỗi.
  *
  * Ba tài khoản (giống trang "Testing the pipeline" của MCC):
  *   QT  = tài khoản chạy bộ kiểm thử (Nghĩa, chủ hệ thống)
@@ -35,6 +37,49 @@ function setupTests() {
 
 function runAllTests() { return runTests(''); }
 
+/** Bộ nhanh: mỗi phần chính một kịch bản tiêu biểu (quyền, ẩn danh, sửa, nhận xét, trạng thái, kỳ, bảng, khoá kỳ, hình, thêm bài). */
+var SMOKE_TESTS = '1.1,1.7,2.1,3.4,3.6,4.1,5.1,6.3,10.1,13.4,13.12,14.4,15.6,16.3,17.1';
+function runSmoke() { return runTests(SMOKE_TESTS); }
+
+/** Chạy MỘT LẦN từ trình soạn thảo: chạy toàn bộ kiểm thử mỗi đêm lúc TEST_HOUR giờ (mặc định 2). removeNightlyTests() để thôi. */
+function installNightlyTests() {
+  adminOnly_();
+  removeNightlyTests();
+  var hour = Number(conf_('TEST_HOUR') || 2);
+  ScriptApp.newTrigger('nightlyTests').timeBased().everyDays(1).atHour(hour).inTimezone(tz_()).create();
+  Logger.log('Đã đặt kiểm thử hằng đêm lúc ' + hour + ' giờ; có lỗi thì gửi thư cho ' + Session.getEffectiveUser().getEmail() + '.');
+}
+
+function removeNightlyTests() {
+  adminOnly_();
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'nightlyTests' || t.getHandlerFunction() === 'nightlyTestsNext') ScriptApp.deleteTrigger(t);
+  });
+}
+
+/** Trigger hằng đêm: bắt đầu lại từ đầu. */
+function nightlyTests() {
+  adminOnly_();
+  PropertiesService.getScriptProperties().deleteProperty('TEST_CURSOR_all');
+  nightlyTestsNext();
+}
+
+/** Chạy một đoạn ≤ 6 phút; còn thì hẹn chạy tiếp sau 1 phút; xong thì gửi thư nếu có lỗi. */
+function nightlyTestsNext() {
+  adminOnly_();
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'nightlyTestsNext') ScriptApp.deleteTrigger(t); });
+  var msg = runTests('');
+  if (msg.indexOf('TẠM DỪNG') === 0) { ScriptApp.newTrigger('nightlyTestsNext').timeBased().after(60 * 1000).create(); return msg; }
+  var ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('TEST_SHEET_ID'));
+  var rows = ss.getSheetByName('Kết quả').getDataRange().getValues().slice(1);
+  var fails = rows.filter(function (r) { return r[3] !== 'ĐẠT'; });
+  if (fails.length) {
+    MailApp.sendEmail(Session.getEffectiveUser().getEmail(), '[Pi ĐRKN] Kiểm thử hằng đêm: ' + fails.length + ' lỗi',
+      fails.map(function (r) { return String(r[0]) + ' — ' + r[1] + '\n    ' + r[4]; }).join('\n\n') + '\n\nKết quả đầy đủ: ' + ss.getUrl());
+  }
+  return msg;
+}
+
 function runTests(filter) {
   adminOnly_();
   var props = PropertiesService.getScriptProperties();
@@ -48,7 +93,8 @@ function runTests(filter) {
   var cursorKey = 'TEST_CURSOR_' + (filter || 'all');
   var start = Number(props.getProperty(cursorKey) || 0);
   if (start === 0) ensureTabs_(SpreadsheetApp.openById(sheetId));   // tab, cột mới của lần triển khai mới — khỏi phải chạy lại setupTests
-  var list = TK.tests.filter(function (t) { return !filter || t.id === filter || t.id.indexOf(filter + '.') === 0; });
+  var want = String(filter || '').split(',').map(function (s) { return s.trim(); }).filter(String);
+  var list = TK.tests.filter(function (t) { return !want.length || want.some(function (f) { return t.id === f || t.id.indexOf(f + '.') === 0; }); });
   DB_OVERRIDE = sheetId;
   TEST_CONF = { SECRET: Utilities.getUuid() + Utilities.getUuid(), BLIND_REVIEW: 'true', SIGNIN_URL: 'https://example.com/dang-nhap' };
   var i = start, stopped = false;
@@ -769,7 +815,9 @@ function defineTests_() {
     var fns = { setUser: function () { setUser(A.T1, 'x', 'Quản trị'); }, setup: function () { setup(); },
                 importLatest: function () { importLatest(); }, importBatch: function () { importBatch('x'); },
                 applyPatchLatest: function () { applyPatchLatest(); }, setupTests: function () { setupTests(); },
-                runTests: function () { runTests('1'); }, resetPractice: function () { resetPractice(); } };
+                runTests: function () { runTests('1'); }, resetPractice: function () { resetPractice(); },
+                runSmoke: function () { runSmoke(); }, nightlyTests: function () { nightlyTests(); },
+                nightlyTestsNext: function () { nightlyTestsNext(); }, installNightlyTests: function () { installNightlyTests(); } };
     try {
       [A.T1, '', A.LA].forEach(function (who) {
         TEST_CONF.ACTIVE_USER = who;
@@ -968,6 +1016,20 @@ function defineTests_() {
     eq_(lg(tok), '', 'đóng lại');
     ok_(auditHas_('mở lời giải cho phản biện', 'K-MO')); ok_(auditHas_('đóng lời giải', 'K-MO'));
     throws_(function () { call_(login_(A.QT), 'releaseSolutions', { ky: 'K-DONG' }); });
+  });
+
+  test_('13.13', 'Xoá kỳ: chỉ kỳ chưa có phiếu (xoá cả phân công); kỳ có phiếu chỉ đóng được; chỉ PT, Quản trị', 'T1', function () {
+    var qt = login_(A.QT);
+    call_(qt, 'openRound', { ky: 'K-NHAM', han_phan_bien: '2099-01-01' });
+    call_(qt, 'assign', { ky: 'K-NHAM', ma_bai: 'TEST-02', email: A.T1 });
+    setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'deleteRound', { ky: 'K-NHAM' }); }, 'Không có quyền');
+    eq_(call_(qt, 'deleteRound', { ky: 'K-NHAM' }).phan_cong, 1);
+    eq_(findRow_('Rounds', 'ky', 'K-NHAM'), null); eq_(rows_('Assignments').filter(function (x) { return x.ky === 'K-NHAM'; }).length, 0);
+    eq_(rows_('Assignments').filter(function (x) { return x.ky === 'K-MO'; }).length, 3, 'kỳ khác giữ nguyên');
+    putRows_('Reviews', [{ id: 'r1', ky: 'K-MO', ma_bai: 'TEST-02', email: A.T2, diem: 'chọn' }]);
+    throws_(function () { call_(qt, 'deleteRound', { ky: 'K-MO' }); }, 'chỉ đóng được');
+    ok_(auditHas_('xoá kỳ', 'K-NHAM'));
   });
 
   // 14. Bảng chọn bài
