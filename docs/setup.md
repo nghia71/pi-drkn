@@ -124,5 +124,16 @@ Nút **Hình** ở đầu trang (NCB, PT, Quản trị):
 3. **Tải SVG lên** `hinh-svg.zip` — hình hiện ngay trên trang bài (cả với phản biện được giao).
 Không dựng hình của đề chưa đăng trên các trang LaTeX trực tuyến. Giai đoạn 2 (sau này): GitHub Actions trong một kho **riêng tư**.
 
-## 13. Kiểm thử
+## 13. Thêm bài trên trang web, ảnh của bài
+Sau lần triển khai có tính năng này: chạy `setup` (thêm cột `mo_loi_giai` vào tab Rounds).
+- Nút **Thêm bài** (VP, NCB, PT, TBT, Quản trị): một hồ sơ = các bài cùng tác giả gửi cùng lúc. Mã bài = tháng nhận + số thư mục kế tiếp
+  còn trống (hệ thống tự chọn) + a, b, … Tác giả: chọn người đã có hoặc thêm mới (liên hệ chỉ vào tab Authors). Mỗi bài: tải tệp `.tex`
+  (tự bỏ dòng tiêu đề "Bài toán …", tách tại "Lời giải"; đoán chủ đề, mức từ tên tệp kiểu `2026-10-sh-a.tex`), sửa lại nếu cần, xem trước.
+- **Ảnh** (SVG, PNG, JPG, PDF; tối đa 3 MB), khi thêm bài hoặc nút **Thêm ảnh…** ở mục Hình của bài: mỗi ảnh chọn **hình của đề**
+  (cột Hình — in kèm đề khi khoá kỳ) hoặc **minh hoạ lời giải** (chèn cuối lời giải — không bao giờ in vào cột Đề ra kỳ này).
+  Ảnh lưu trong thư mục hình tên `<mã bài>-<n>.<đuôi>`. Hình vẽ GeoGebra/Inkscape: xuất SVG (hoặc PNG); ảnh minh hoạ: JPG/PNG.
+  PDF không hiện trên trang (chỉ dùng khi in). Khi khoá kỳ, ảnh SVG của đề được `tools/khoaky/build.py` chuyển sang PDF —
+  cần `rsvg-convert` (Mac: `brew install librsvg`).
+
+## 14. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.

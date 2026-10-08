@@ -102,6 +102,7 @@ function texBody_(src) {
   };
   while ((m = MATH_RE_.exec(text))) { out += prose(text.slice(last, m.index)) + m[0]; last = m.index + m[0].length; }
   out += prose(text.slice(last));
+  out = out.replace(/(\\includegraphics(?:\[[^\]]*\])?\{)([^}]+)\.svg\}/gi, '$1$2}');
   var lines = out.split('\n').map(function (l) {
     var t = l.replace(/^\s+/, '').replace(/\s+$/, '');
     if (!t) return '';
@@ -142,7 +143,7 @@ function closePlan_(so) {
     var tb = texBody_(p.de_bai);
     it.tex = tb.tex;
     tb.warnings.forEach(function (x) { notes.push(x); });
-    hinhKind_(it.hinh).pics.forEach(function (n) { pics.push(n); });
+    hinhKind_(it.hinh).pics.concat(includedPics_(p.de_bai)).forEach(function (n) { if (pics.indexOf(n) < 0) pics.push(n); });
     it.notes = notes;
     notes.forEach(function (n) { warnings.push(p.ma_bai + ': ' + n); });
     return it;
@@ -152,6 +153,9 @@ function closePlan_(so) {
   if (!items.length) blockers.push('Bảng không có bài nào.');
   return { issue: hit, items: printOrder_(items), blockers: blockers, warnings: warnings, pics: pics };
 }
+
+/** Tên ảnh trong tệp .tex: SVG gọi không có đuôi — tools/khoaky/build.py chuyển SVG thành PDF cùng tên. */
+function texPic_(n) { return String(n).replace(/\.svg$/i, ''); }
 
 /** Tệp cột hoàn chỉnh (UTF-8, NFC). start = số in của bài đầu tiên. */
 function buildTex_(so, start, items) {
@@ -173,7 +177,7 @@ function buildTex_(so, start, items) {
       var hk = hinhKind_(it.hinh);
       parts.push('\\begin{center}');
       parts.push(hk.tikz ? figNorm_(it.hinh).trim()
-                         : hk.pics.map(function (n) { return '\\includegraphics[width=0.45\\textwidth]{' + n + '}'; }).join('\\quad\n'));
+                         : hk.pics.map(function (n) { return '\\includegraphics[width=0.45\\textwidth]{' + texPic_(n) + '}'; }).join('\\quad\n'));
       parts.push('\\end{center}');
     }
     parts.push('\\begin{flushright}');

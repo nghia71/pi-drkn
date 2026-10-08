@@ -10,6 +10,25 @@
  */
 var ROUND_MANAGERS = ['PT', 'Quản trị'];
 var REVIEW_READERS = ['TBT', 'PT', 'NCB', 'Quản trị'];      // xem phiếu của mọi phản biện (kèm email)
+/**
+ * Lời giải và phản biện (Nghĩa, 2026-10-08): phản biện tự giải trước — KHÔNG thấy lời giải cho tới khi PT (hoặc TBT) "mở lời giải"
+ * cho kỳ đó (Rounds.mo_loi_giai = lúc mở). Máy chủ không gửi lời giải (cả hình trong lời giải) cho phản biện khi chưa mở.
+ */
+var SOLUTION_OPENERS = ['PT', 'TBT', 'Quản trị'];
+/** Phản biện này được xem lời giải bài ma chưa: có một kỳ đang mở giao bài cho họ và kỳ đó đã mở lời giải. */
+function solutionOpen_(w, ma) {
+  var open = {};
+  rows_('Rounds').forEach(function (r) { if (r.trang_thai === 'mở' && String(r.mo_loi_giai || '').trim()) open[String(r.ky)] = true; });
+  return rows_('Assignments').some(function (a) { return a.ma_bai === ma && open[String(a.ky)] && sameEmail_(a.email, w.email); });
+}
+/** PT, TBT, Quản trị: mở (hoặc đóng lại) lời giải của một kỳ đang mở cho các phản biện của kỳ. a = {ky, mo: true|false}. */
+function releaseSolutions_(w, a) {
+  need_(w, SOLUTION_OPENERS);
+  var hit = openRound_(a.ky), mo = a.mo !== false;
+  update_('Rounds', hit.row, { mo_loi_giai: mo ? now_() : '' });
+  audit_(w.email, mo ? 'mở lời giải cho phản biện' : 'đóng lời giải', a.ky);
+  return true;
+}
 var TEST_OUTBOX = null;                                    // bộ kiểm thử: thư không gửi đi mà vào đây
 
 /* ---------------- tiện ích ---------------- */
@@ -86,7 +105,7 @@ function roundsView_(w) {
   if (has_(w, REVIEW_READERS)) {
     var reviews = rows_('Reviews');
     return {
-      manage: has_(w, ROUND_MANAGERS),
+      manage: has_(w, ROUND_MANAGERS), release: has_(w, SOLUTION_OPENERS),
       rounds: rows_('Rounds').map(function (r) {
         var as = assignmentsOf_(r.ky).map(function (a) {
           return { ma_bai: a.ma_bai, email: String(a.email).trim().toLowerCase(), han: dateOnly_(a.han) || dateOnly_(r.han_phan_bien),
@@ -95,7 +114,7 @@ function roundsView_(w) {
         });
         var han = dateOnly_(r.han_phan_bien);
         return { ky: String(r.ky), trang_thai: r.trang_thai, han_phan_bien: han, con_ngay: han ? daysUntil_(han) : null, khoa_luc: r.khoa_luc || '',
-                 ghi_chu: r.ghi_chu, assignments: as };
+                 ghi_chu: r.ghi_chu, mo_loi_giai: r.mo_loi_giai || '', assignments: as };
       }),
       reviewers: has_(w, ROUND_MANAGERS) ? reviewers_() : [],
       reminderDays: reminderDays_(), today: today_(), timezone: tz_()

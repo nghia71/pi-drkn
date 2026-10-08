@@ -82,6 +82,20 @@ if shutil.which('xelatex'):
     if os.path.exists(out):
         case('gói có .tex và .pdf', sorted(zipfile.ZipFile(out).namelist()) == ['de-thu.pdf', 'de-thu.tex'])
     shutil.rmtree(d)
+    # ảnh SVG của đề: chuyển sang PDF cùng tên (tệp .tex gọi không đuôi), cả hai vào gói
+    if shutil.which('rsvg-convert'):
+        d = tempfile.mkdtemp()
+        zp = os.path.join(d, 'de-svg.zip')
+        svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="#cde"/><text x="2" y="15">A</text></svg>'
+        with zipfile.ZipFile(zp, 'w') as z:
+            z.writestr('de-svg.tex', HEAD + BODY.replace('\\end{document}', '\\graphicspath{{pic/}}\\begin{center}\\includegraphics{bai-1}\\end{center}\n\\end{document}'))
+            z.writestr('pic/bai-1.svg', svg)
+        r = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'tools', 'khoaky', 'build.py'), zp], capture_output=True, text=True)
+        out = os.path.join(d, 'de-svg-btk.zip')
+        case('ảnh SVG được chuyển sang PDF: ' + r.stderr.strip()[:200], r.returncode == 0 and os.path.exists(out))
+        if os.path.exists(out):
+            case('gói có cả SVG và PDF của ảnh', sorted(zipfile.ZipFile(out).namelist()) == ['de-svg.pdf', 'de-svg.tex', 'pic/bai-1.pdf', 'pic/bai-1.svg'])
+        shutil.rmtree(d)
     extra = ' (có biên dịch thật)'
 else:
     extra = ' (máy không có xelatex — bỏ qua biên dịch)'

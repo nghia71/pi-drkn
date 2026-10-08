@@ -11,7 +11,7 @@ var STATUS_SETTERS = ['PT', 'TBT', 'Quản trị'];
 var CONTACT_VIEWERS = ['VP', 'PT', 'TBT', 'Quản trị'];
 var ALL_PROBLEMS_VIEWERS = ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'];
 
-var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1, rounds: 1, boards: 1, closePreview: 1, exportOf: 1, figures: 1, figureSources: 1 };
+var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1, rounds: 1, boards: 1, closePreview: 1, exportOf: 1, figures: 1, figureSources: 1, intakeForm: 1 };
 var MAX_TEXT_ = 45000;   // giới hạn một ô của Google Sheets là 50 000 ký tự; chừa chỗ cho dấu ' chặn công thức
 
 function api(token, method, args) {
@@ -54,6 +54,7 @@ function api_(token, method, args) {
     case 'unassign': return unassign_(w, args);
     case 'setDeadline': return setDeadline_(w, args);
     case 'closeRound': return closeRound_(w, args);
+    case 'releaseSolutions': return releaseSolutions_(w, args);
     case 'sendInvites': return sendInvites_(w, args);
     case 'submitReview': return submitReview_(w, args);
     case 'markDone': return markDone_(w, args);
@@ -68,6 +69,9 @@ function api_(token, method, args) {
     case 'reopenBoard': return reopenBoard_(w, args);
     case 'closePreview': return closePreview_(w, args);
     case 'figures': return figuresView_(w);
+    case 'intakeForm': return intakeForm_(w);
+    case 'addSubmission': return addSubmission_(w, args);
+    case 'uploadPictures': return uploadPictures_(w, args);
     case 'figureSources': return figureSources_(w, args);
     case 'uploadFigures': return uploadFigures_(w, args);
     case 'closeIssue': return closeIssue_(w, args);
@@ -162,8 +166,10 @@ function getProblem_(w, ma, noAudit) {
                      correctionStatuses: CORRECTION_STATUSES } };
   } else {
     // Phản biện chỉ nhận văn bản đã biên tập và thảo luận: nguồn, tên tệp, xung đột, sửa đổi có thể lộ tác giả.
+    // … và lời giải chỉ khi PT đã mở lời giải cho kỳ phản biện của họ (Rounds.mo_loi_giai)
+    var lgOpen = solutionOpen_(w, ma);
     out = { problem: { ma_bai: p.ma_bai, chu_de: p.chu_de, muc: p.muc, trang_thai: p.trang_thai, de_bai: p.de_bai,
-                       loi_giai: p.loi_giai, hinh: p.hinh, phien_ban: p.phien_ban },
+                       loi_giai: lgOpen ? p.loi_giai : '', hinh: p.hinh, phien_ban: p.phien_ban }, loi_giai_an: !lgOpen,
             provenance: null, corrections: [], checks: [], conflicts: [], log: [], comments: of('Comments'), canEdit: false, limited: true };
   }
   if (hideAuthor_(w)) { delete out.problem.tac_gia_id; out.author = null; }
@@ -185,7 +191,7 @@ function getProblem_(w, ma, noAudit) {
   out.lists.recommendations = REVIEW_RECOMMENDATIONS; out.lists.levels = LEVELS;
   if (!full) out.comments = anonComments_(w, ma, out.comments);
   if (!noAudit) {
-    out.hinh = figsFor_(p);          // SVG / ảnh của bài (không gửi trong bundle: nặng, và trang luôn tải lại bài khi mở)
+    out.hinh = figsFor_(out.problem);          // SVG / ảnh của bài (không gửi trong bundle: nặng, và trang luôn tải lại bài khi mở)
     audit_(w.email, 'xem', ma);
   }
   return out;

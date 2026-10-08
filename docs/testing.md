@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 102 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 107 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (102 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (107 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -205,6 +205,7 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 13.9 | Bỏ giao bài: phản biện mất quyền xem, phiếu đã nộp vẫn giữ; trang Kỳ phản biện của PB chỉ có bài của mình | T1 |
 | 13.10 | Đổi hạn: chỉ PT, Quản trị; ngày sai bị từ chối; mốc nhắc tính theo hạn mới | QT |
 | 13.11 | Kỳ phản biện tên "10/2026" (dạng ngày) vẫn giữ nguyên chữ qua giao bài, thư mời, đóng kỳ | QT |
+| 13.12 | Lời giải: phản biện KHÔNG nhận lời giải (cả trong tải gộp) cho tới khi PT/TBT mở cho kỳ; mở rồi thì thấy; đóng lại thì ẩn; NCB, PB không mở được; ban biên tập luôn thấy | T1 |
 
 **14. Bảng chọn bài**
 
@@ -241,6 +242,15 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 16.5 | Tải mã nguồn: zip gồm tikz-<mã>.tex (đúng khối) và danh sách; mặc định chỉ hình chưa dựng; không còn gì thì báo 0 | QT |
 | 16.6 | Tải SVG lên: chỉ nhận tikz-<mã>.svg của hình đang có; chặn SVG có mã chạy được hoặc liên kết ngoài; tải lại thì thay; PB, TBT không tải được | T1 |
 | 16.7 | Khoá kỳ: cột Hình nhiều tên ảnh → mỗi ảnh một \\includegraphics, cả hai vào pic/ | QT |
+
+**17. Thêm bài**
+
+| Mã | Kịch bản | Tài khoản |
+|---|---|---|
+| 17.1 | Thêm bài: mã = tháng + thư mục kế tiếp còn trống + a, b; tác giả mới (liên hệ chỉ ở Authors); Provenance, nhật ký; NCB, TBT, VP thêm được; PB, BTK thì không | T1 |
+| 17.2 | Thêm bài: thiếu chủ đề / đề trống / tháng sai / ảnh sai loại → từ chối, không thêm gì (cả hồ sơ) | QT |
+| 17.3 | Ảnh khi thêm bài: ảnh của đề vào cột Hình (in kèm đề), ảnh lời giải chèn cuối lời giải (không in); hiện trên trang; khoá kỳ chỉ đóng gói ảnh của đề, SVG gọi không đuôi | QT |
+| 17.4 | Thêm ảnh cho bài đã có: phải đúng phiên bản; ảnh đề vào cột Hình, ảnh lời giải vào lời giải; có lịch sử; cột Hình là TikZ thì không thêm ảnh đề; PB không thêm được | T1 |
 
 <!-- bảng tự sinh: hết -->
 
@@ -473,6 +483,24 @@ Khi thử mở lại hay khoá lần hai: bị từ chối. NCB, PB, VP không c
 8. *(QT)* `resetPractice`. (Tệp `tikz-….svg` luyện tập còn trong thư mục hình — vô hại, xoá được.)
 **Vì sao quan trọng.** Hình vẽ lại phải hiện đúng phiên bản TikZ đang lưu; dựng hình không đưa đề ra khỏi máy của ban biên tập.
 **Bạn sẽ thấy.** Bước 6: hình trắng nền, chữ A, B, C rõ; trên điện thoại hình thu vừa màn hình. Bước 7: hình cũ không còn hiện.
+
+### B17 — Thêm bài trên trang, ảnh của đề / lời giải, lời giải ẩn với phản biện
+**Tình huống.** NCB thêm trực tiếp hai bài (không qua VP) kèm ảnh; phản biện chỉ thấy lời giải sau khi PT mở. Dùng **bài bịa**, tác giả bịa.
+**Trước khi bắt đầu.** Sau lần triển khai có tính năng này: `setup()` (mục 13 của setup.md). `resetPractice`. Users → T1 = `NCB`.
+Chuẩn bị trên máy: một tệp `thu-sh-a.tex` gồm dòng `\textbf{Bài toán 1. Thử}`, một đề ngắn (vd. `Tính $1+1$.`), dòng `\textbf{Lời giải.}`, một lời giải;
+một ảnh PNG hoặc SVG bất kỳ.
+**Các bước.**
+1. *(T1)* Nút **Thêm bài** ← thấy "Thư mục sẽ cấp: NNNN-TT-NN". Tác giả mới: `Tác Giả Thử`, đơn vị `Trường Thử`, liên hệ `thu@example.com`.
+2. *(T1)* Bài 1: tải `thu-sh-a.tex` ← đề, lời giải tách sẵn, không còn dòng tiêu đề; chủ đề Số học, mức A tự điền. **+ Thêm một bài nữa**:
+   gõ tay đề, lời giải, chọn chủ đề; chọn ảnh → không chọn chỗ đặt rồi bấm Thêm ← bị nhắc; chọn "minh hoạ lời giải".
+3. *(T1)* **Thêm vào danh sách** → bấm lần nữa ← "Đã thêm: …a, …b". Mở bài b: ảnh hiện cuối lời giải, mục Hình trống.
+4. *(T1)* Bài a → **Thêm ảnh…** → chọn ảnh, "hình của đề" → Tải lên ← ảnh hiện ở mục Hình; Lịch sử sửa có dòng "hình".
+5. *(QT)* Sheet → tab Authors: có `Tác Giả Thử` với liên hệ; tab Problems: liên hệ không có trong bài.
+6. *(QT)* **Kỳ phản biện** → kỳ K-THU: "Lời giải cho phản biện: chưa mở". *(T2, PB)* mở THU-02 ← mục Lời giải: "(chưa mở — hãy tự giải trước…)".
+7. *(QT)* **Mở lời giải cho phản biện…** → bấm lần nữa. *(T2)* tải lại THU-02 ← thấy lời giải. *(QT)* **Đóng lời giải lại…** ← T2 lại không thấy.
+8. *(QT)* Danh sách: ô trạng thái mặc định "Đang xử lý (Mới, SL)"; chọn "Mọi trạng thái" ← thêm bài SL-OK/PL; thử các kiểu sắp xếp.
+9. *(QT)* Xoá hai bài thử khỏi tab Problems, Provenance, ConversionLog (dòng có mã của chúng) và tác giả thử; xoá ảnh `…-1.png` trong thư mục hình. `resetPractice`.
+**Vì sao quan trọng.** Bài đến thẳng ban biên tập vẫn có mã, nguồn, tác giả đúng quy ước; ảnh lộ đáp án không bao giờ vào bản in; phản biện tự giải trước.
 
 ---
 
