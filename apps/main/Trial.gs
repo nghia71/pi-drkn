@@ -97,3 +97,8 @@ function trialAction_(w, a) {
   }
   throw new Error('Việc lạ.');
 }
+
+/** Nhập, vá không chạy khi đang dùng thử: đưa về khôi phục dữ liệu nhưng không xoá dấu „đã nhập / đã vá" trong Script properties. */
+function noTrial_() {
+  if (trialState_()) throw new Error('Đang dùng thử — kết thúc dùng thử trước khi nhập hay vá dữ liệu.');
+}

@@ -180,7 +180,8 @@ góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mớ
 - **Bài luyện tập** (THU-01…10, bịa): người dùng thử thấy khi email của họ ở Script property `PRACTICE_USERS` (email cách nhau dấu phẩy; tài khoản trong `TEST_USERS` cũng là người dùng thử —
   xem `docs/testing.md`). Tên kỳ, số báo bắt đầu bằng `THU-` dành cho luyện tập: chỉ Quản trị và người dùng thử đặt được.
   Trang **Kỳ phản biện** → mục *Luyện tập* → **Đặt lại bài luyện tập** (Quản trị, PT, TBT đang dùng thử): xoá mọi việc đã làm trên
-  bài luyện (phiếu, thảo luận, sửa, trạng thái, kỳ và bảng chỉ gồm bài luyện), đưa mười bài về như mới; bài thật không bị đụng.
+  bài luyện (phiếu, thảo luận, sửa, trạng thái, kỳ và bảng tên THU-…), đưa mười bài về như mới; bài thật không bị đụng: hệ thống
+  không cho xếp, giao bài luyện vào kỳ / bảng thật, hay bài thật vào kỳ / bảng THU-…
 - **Dùng thử trên bài thật** (`Trial.gs`): trang Kỳ phản biện → mục *Dùng thử trên bài thật* (Quản trị) → **Bắt đầu dùng thử**:
   hệ thống chụp toàn bộ Sheet dữ liệu (bản sao trong thư mục sao lưu); mọi trang hiện dòng „Đang dùng thử". Mọi người làm việc như thật.
   **Đưa về như trước khi dùng thử** (Quản trị hoặc TBT, làm được nhiều lần): thay bài, kỳ, bảng, phiếu, thảo luận, lịch sử… bằng bản
@@ -189,7 +190,8 @@ góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mớ
   Không đưa về được: thư đã gửi (thư mời, nhắc hạn) và tệp trên Drive (ảnh, gói chế bản) — vô hại.
   Lưu ý: việc làm thật trong lúc dùng thử (ví dụ Văn phòng nhập bài mới thật) cũng bị đưa về — nhập bài thật sau khi kết thúc,
   hoặc kết thúc bằng „giữ mọi thay đổi".
-  Nhập và vá (`importLatest`, `applyPatchLatest`) không chạy trong lúc dùng thử: đưa về khôi phục dữ liệu nhưng không xoá dấu
+  Nhập và vá (`importLatest`, `applyPatchLatest`) bị chặn trong lúc dùng thử: đưa về khôi phục dữ liệu nhưng không xoá dấu
   „đã nhập / đã vá" trong Script properties, nên lần sau tệp đó bị coi là đã nhập.
   Bản chụp („trước dùng thử", „trước khi đưa về") nằm trong thư mục **Pi ĐRKN — sao lưu** nhưng **không** tự xoá như bản sao lưu
-  đêm — xoá tay khi không cần nữa. Sau khi kết thúc: xoá `PRACTICE_USERS` (`docs/moi-dung-thu/README.md`).
+  đêm — xoá tay khi không cần nữa. Đưa về cũng trả lại phân công phản biện như lúc bắt đầu: phản biện đã bị bỏ giao
+  trong lúc thử (ví dụ vì xung đột lợi ích) được giao lại — kiểm tra trang Kỳ phản biện sau khi đưa về. Sau khi kết thúc: xoá `PRACTICE_USERS` (`docs/moi-dung-thu/README.md`).

@@ -42,6 +42,8 @@ function toRows_(name, values) {
   return values.map(function (v, i) {
     var o = { _row: i + 2 };
     cols.forEach(function (c, j) { o[c] = v[j] === undefined ? '' : v[j]; });
+    // khoá của dòng lúc đọc — update_/deleteRows_ kiểm tra lại trước khi ghi; không đếm được (không gửi ra trình duyệt)
+    Object.defineProperty(o, '_key', { value: keyOf_(name, o), enumerable: false });
     return o;
   });
 }
@@ -91,7 +93,12 @@ var FOUND_KEY_ = {};
 var ROW_KEY_COLS_ = { Assignments: ['ky', 'ma_bai', 'email'], Shortlist: ['ky', 'ma_bai'] };
 function keyOf_(name, obj) {
   var cols = ROW_KEY_COLS_[name] || [SCHEMA[name][0]], out = [];
-  for (var i = 0; i < cols.length; i++) { var v = obj[cols[i]]; if (typeof v !== 'string' || v === '') return null; out.push(v); }
+  for (var i = 0; i < cols.length; i++) {
+    var v = obj[cols[i]];
+    if (typeof v === 'number') v = String(v);
+    if (typeof v !== 'string' || v === '') return null;               // ô kiểu ngày…: không so được
+    out.push(v);
+  }
   return out.join('\u0001');
 }
 
@@ -119,9 +126,10 @@ function append_(name, obj) {
  */
 function update_(name, row, patch) {
   READ_MEMO_ = READ_MEMO_ && {};
-  var cols = SCHEMA[name], sh = sheet_(name);
+  var cols = SCHEMA[name], sh = sheet_(name), want;
+  if (typeof row === 'object') { want = row._key; row = row._row; }     // truyền cả dòng (từ rows_): kiểm tra theo khoá của chính nó
   withLock_(function () {
-    row = recheckRow_(name, sh, row);
+    row = recheckRow_(name, sh, row, want);
     cols.forEach(function (c, j) { if (patch[c] !== undefined) sh.getRange(row, j + 1).setValue(cell_(patch[c])); });
   });
 }
@@ -131,16 +139,27 @@ function update_(name, row, patch) {
  * khi dùng thử) thì các dòng dưới dịch lên. Trong khoá ghi: so khoá (cột đầu) của dòng với khoá đã đọc; lệch thì tìm lại theo khoá,
  * không thấy thì dừng — không bao giờ ghi nhầm sang dòng khác.
  */
-function recheckRow_(name, sh, row) {
-  var want = FOUND_KEY_[name + '#' + row];
+function recheckRow_(name, sh, row, want) {
+  if (!want) want = FOUND_KEY_[name + '#' + row];
   if (!want) return row;                                                   // không rõ khoá (ô kiểu ngày…): như cũ
-  var cols = SCHEMA[name], width = cols.length;
+  var cols = SCHEMA[name], width = cols.length, n = sh.getLastRow();
   var asObj = function (vals) { var o = {}; cols.forEach(function (c, j) { o[c] = vals[j]; }); return o; };
-  var got = keyOf_(name, asObj(sh.getRange(row, 1, 1, width).getValues()[0]));
-  if (got === null || got === want) return row;
-  var n = sh.getLastRow(), all = n < 2 ? [] : sh.getRange(2, 1, n - 1, width).getValues();
+  // đọc chữ hiển thị: khoá đọc qua Sheets API là chữ; dòng đã ra ngoài bảng (bảng vừa ngắn lại) coi như lệch
+  var got = row <= n ? keyOf_(name, asObj(sh.getRange(row, 1, 1, width).getDisplayValues()[0])) : null;
+  if (got === want) return row;
+  var all = n < 2 ? [] : sh.getRange(2, 1, n - 1, width).getDisplayValues();
   for (var i = 0; i < all.length; i++) if (keyOf_(name, asObj(all[i])) === want) { FOUND_KEY_[name + '#' + (i + 2)] = want; return i + 2; }
   throw new Error('Dữ liệu vừa thay đổi (' + name + ': dòng cần sửa không còn) — tải lại trang rồi thử lại.');
+}
+
+/** Xoá các dòng (đối tượng từ rows_) — gọi TRONG withLock_. Mỗi dòng được tìm lại theo khoá, xoá từ dưới lên. */
+function deleteRows_(name, list) {
+  var sh = sheet_(name), seen = {};
+  list.map(function (r) { return recheckRow_(name, sh, r._row, r._key); })
+    .filter(function (row) { return seen[row] ? false : (seen[row] = true); })
+    .sort(function (x, y) { return y - x; })
+    .forEach(function (row) { sh.deleteRow(row); });
+  READ_MEMO_ = READ_MEMO_ && {};
 }
 
 function withLock_(fn) {

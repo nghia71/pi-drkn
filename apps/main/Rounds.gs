@@ -156,6 +156,7 @@ function assign_(w, a) {
   need_(w, ROUND_MANAGERS);
   openRound_(a.ky);
   needProblem_(w, a.ma_bai);
+  practiceMatch_(a.ma_bai, a.ky, 'kỳ phản biện');
   var st = findRow_('Problems', 'ma_bai', a.ma_bai).data.trang_thai;
   if (st === 'Không SL' || st === 'PL') throw new Error('Bài ' + a.ma_bai + ' đang ở trạng thái ' + st + ' — không giao phản biện.');
   var email = String(a.email || '').trim().toLowerCase();
@@ -171,7 +172,7 @@ function unassign_(w, a) {
   openRound_(a.ky);
   var hit = assignmentsOf_(a.ky).filter(function (x) { return x.ma_bai === a.ma_bai && sameEmail_(x.email, a.email); })[0];
   if (!hit) throw new Error('Không có phân công này.');
-  withLock_(function () { sheet_('Assignments').deleteRow(hit._row); });   // phiếu đã nộp (nếu có) vẫn giữ trong Reviews
+  withLock_(function () { deleteRows_('Assignments', [hit]); });   // phiếu đã nộp (nếu có) vẫn giữ trong Reviews
   READ_MEMO_ = READ_MEMO_ && {};
   audit_(w.email, 'bỏ giao bài', a.ky + ' ' + a.ma_bai + ' ← ' + a.email);
   return true;
@@ -206,10 +207,9 @@ function deleteRound_(w, a) {
   if (n) throw new Error('Kỳ ' + ky + ' đã có ' + n + ' phiếu phản biện — chỉ đóng được, không xoá.');
   var removed = 0;
   withLock_(function () {
-    var sh = sheet_('Assignments');
-    assignmentsOf_(ky).map(function (x) { return x._row; }).sort(function (x, y) { return y - x; })
-      .forEach(function (row) { sh.deleteRow(row); removed++; });
     READ_MEMO_ = READ_MEMO_ && {};
+    var list = assignmentsOf_(ky);
+    deleteRows_('Assignments', list); removed = list.length;
     sheet_('Rounds').deleteRow(roundRow_(ky).row);
   });
   READ_MEMO_ = READ_MEMO_ && {};
@@ -236,7 +236,7 @@ function sendInvites_(w, a) {
       '.\nHạn: ' + han + '.\n\n' + signinLine_(e) +
       '\nTrên trang mỗi bài có Phiếu phản biện (mức đề nghị, đề nghị, nhận xét) và nút "Đánh dấu đã xong".\n' +
       'Câu hỏi về một bài: ghi vào phần Thảo luận của bài đó.\n\nThư tự động từ hệ thống Đề ra kỳ này.\n');
-    by[e].forEach(function (x) { update_('Assignments', x._row, { moi_luc: t }); });
+    by[e].forEach(function (x) { update_('Assignments', x, { moi_luc: t }); });
   });
   audit_(w.email, 'gửi thư mời', a.ky + ': ' + people.length + ' người');
   return { sent: people.length };
@@ -264,7 +264,7 @@ function submitReview_(w, a) {
     if (cur) {
       var sh = sheet_('Reviews'), cols = SCHEMA.Reviews;
       o.id = cur.id;
-      sh.getRange(cur._row, 1, 1, cols.length).setValues([rowOf_('Reviews', o)]);
+      sh.getRange(recheckRow_('Reviews', sh, cur._row, cur._key), 1, 1, cols.length).setValues([rowOf_('Reviews', o)]);
     } else { o.id = newId_(); sheet_('Reviews').appendRow(rowOf_('Reviews', o)); }
   });
   READ_MEMO_ = READ_MEMO_ && {};
@@ -278,7 +278,7 @@ function markDone_(w, a) {
   if (done && !rows_('Reviews').some(function (v) { return String(v.ky) === String(a.ky) && v.ma_bai === a.ma_bai && sameEmail_(v.email, w.email); })) {
     throw new Error('Hãy lưu Phiếu phản biện trước khi đánh dấu xong.');
   }
-  update_('Assignments', as._row, { xong: done });
+  update_('Assignments', as, { xong: done });
   audit_(w.email, done ? 'xong phản biện' : 'bỏ đánh dấu xong', a.ky + ' ' + a.ma_bai);
   return true;
 }
@@ -305,7 +305,7 @@ function sendReminders() {
       if (days.indexOf(d) < 0) { skip.khongDungMoc++; return; }
       if (done.indexOf(String(d)) >= 0) { skip.daNhac++; return; }
       var e = String(a.email).trim().toLowerCase();
-      (by[e] = by[e] || { d: d, han: han, rows: [] }).rows.push({ row: a._row, nhac: done.filter(String).concat([String(d)]).join(',') });
+      (by[e] = by[e] || { d: d, han: han, rows: [] }).rows.push({ row: a, nhac: done.filter(String).concat([String(d)]).join(',') });
     });
     var people = Object.keys(by), rh = dateOnly_(r.han_phan_bien);
     note('Kỳ ' + r.ky + ': hạn ' + (rh || '(chưa có)') + (rh ? ', còn ' + daysUntil_(rh) + ' ngày' : '') + ' → nhắc ' + people.length + ' người' +

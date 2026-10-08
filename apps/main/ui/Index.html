@@ -716,8 +716,8 @@ function renderRounds() {
   var practice = (ALL || []).some(function (p) { return p.ma_bai.indexOf('THU-') === 0; }) &&
     ME && ME.eff.some(function (r) { return ['Quản trị', 'PT', 'TBT'].indexOf(r) >= 0; });
   if (practice) h += '<div class="card tap"><h3>Luyện tập</h3><p class="sm-t">Mười bài <b>THU-01…THU-10</b> là bài bịa để tập — làm gì cũng được. ' +
-    '<b>Đặt lại</b> xoá mọi việc đã làm trên chúng (phiếu, thảo luận, sửa đề, trạng thái, kỳ và bảng chọn bài chỉ gồm bài luyện) và đưa về như mới. ' +
-    'Bài thật không bị đụng tới.</p><p><button class="sm" data-r="practice">Đặt lại bài luyện tập…</button></p></div>';
+    '<b>Đặt lại</b> xoá mọi việc đã làm trên chúng (phiếu, thảo luận, sửa đề, trạng thái, kỳ và bảng chọn bài tên THU-…) và đưa về như mới. ' +
+    'Bài luyện chỉ dùng trong kỳ, bảng tên THU-…; bài thật không bị đụng tới.</p><p><button class="sm" data-r="practice">Đặt lại bài luyện tập…</button></p></div>';
   var isAdmin = ME && ME.eff.indexOf('Quản trị') >= 0, canRestore = ME && ME.eff.some(function (r) { return r === 'Quản trị' || r === 'TBT'; });
   if (isAdmin || (ME && ME.trial && canRestore)) {
     h += '<div class="card tap"><h3>Dùng thử trên bài thật</h3>' + (ME.trial
@@ -764,7 +764,9 @@ function renderRounds() {
             (man ? '<td><button class="sm" data-r="unassign" data-ma="' + escA(c) + '" data-email="' + escA(a.email) + '" title="Bỏ giao">×</button></td>' : '') + '</tr>';
         }).join('');
       }).join('') + '</table></div>' : '<p class="mut">Chưa giao bài nào.</p>';
-    if (man) h += '<div class="row"><label>Giao bài <select data-k="ma"><option value="">— chọn bài —</option>' + probs.map(function (p) {
+    if (man) h += '<div class="row"><label>Giao bài <select data-k="ma"><option value="">— chọn bài —</option>' + probs.filter(function (p) {
+        // bài luyện chỉ vào kỳ tên THU-… (hoặc K-THU), bài thật chỉ vào kỳ thật — máy chủ cũng chặn
+        return (p.ma_bai.indexOf('THU-') === 0) === (String(r.ky).indexOf('THU-') === 0 || r.ky === 'K-THU'); }).map(function (p) {
         return '<option value="' + escA(p.ma_bai) + '">' + esc(p.ma_bai + ' · ' + [p.chu_de, p.muc, p.trang_thai].filter(Boolean).join(' · ')) + '</option>'; }).join('') + '</select></label>' +
       '<label>cho <select data-k="pb"><option value="">— chọn phản biện —</option>' + v.reviewers.map(function (u) {
         return '<option value="' + escA(u.email) + '">' + esc(u.email + (u.ten ? ' (' + u.ten + ')' : '')) + '</option>'; }).join('') + '</select></label>' +

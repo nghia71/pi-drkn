@@ -76,11 +76,11 @@ function feedbackDigest_(force) {
     fb.forEach(function (r) { lines.push('- ' + r.email + ' [' + r.vai + '] ' + (r.diem ? r.diem + '/5 ' : '') + '· ' + r.trang + '\n  ' + r.noi_dung); });
   }
   if (er.length) {
-    var groups = {};
+    var groups = Object.create(null);
     er.forEach(function (r) { var k = r.loi; (groups[k] = groups[k] || []).push(r); });
     lines.push('', 'LỖI NGƯỜI DÙNG GẶP (' + er.length + ' lần, ' + Object.keys(groups).length + ' loại)');
     Object.keys(groups).slice(0, 40).forEach(function (k) {
-      var g = groups[k], who = {};
+      var g = groups[k], who = Object.create(null);
       g.forEach(function (r) { who[r.email] = 1; });
       lines.push('- ' + g.length + '× ' + k + '\n  ' + Object.keys(who).join(', ') + ' · ' + g[0].trang);
     });

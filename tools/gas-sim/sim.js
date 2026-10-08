@@ -57,6 +57,12 @@ class Range {
     for (let i = 0; i < this.nr; i++) { const row = []; for (let j = 0; j < this.nc; j++) { const x = (this.sh.cells[this.r - 1 + i] || [])[this.c - 1 + j]; row.push(x ? x.v : ''); } out.push(row); }
     return out;
   }
+  // chữ hiển thị (như Sheets): ngày theo kiểu M/D/YYYY giờ, TRUE/FALSE, số thành chữ
+  getDisplayValues() {
+    const fmt = v => v instanceof Date ? (v.getMonth() + 1) + '/' + v.getDate() + '/' + v.getFullYear() + ' ' + v.toTimeString().slice(0, 8)
+                   : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : String(v);
+    return this.getValues().map(r => r.map(fmt));
+  }
   setValue(v) { return this.setValues([[v]]); }
   setValues(vals) {
     if (vals.length !== this.nr || vals.some(r => r.length !== this.nc)) throw new Error('Kích thước dữ liệu không khớp vùng ô');

@@ -33,7 +33,9 @@ khi soạn thư (Gmail), không commit bản đã điền.
 
 ## Trong đợt thử
 
-- Không chạy `importLatest`, `applyPatchLatest` (nhập, vá): đưa về như trước không xoá dấu „đã nhập / đã vá" trong Script properties.
+- Nhập, vá (`importLatest`, `applyPatchLatest`) bị chặn cho tới khi kết thúc: đưa về như trước không xoá dấu „đã nhập / đã vá".
+- Bài luyện chỉ vào kỳ / bảng tên THU-…, bài thật chỉ vào kỳ / bảng thật (hệ thống chặn) — Đặt lại không chạm việc thật.
+- Sau mỗi lần Đưa về: xem lại trang Kỳ phản biện (phân công trở về như lúc bắt đầu).
 - Không khoá kỳ cho số thật. Khoá bảng luyện tập (THU-…) để Ban trình bày thử được; trước lần khoá kỳ thật đầu tiên, bấm Đặt lại bài
   luyện tập (số in của bảng luyện bị xoá, không đẩy số thật lên).
 

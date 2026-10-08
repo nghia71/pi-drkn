@@ -235,7 +235,7 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | 11.2 | Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy | T1+T2 |
 | 11.3 | Hai tài khoản thử (TEST_USERS) mang vai trò ban biên tập thấy mọi bài luyện (B14, B15); với vai trò PB chỉ thấy bài được giao; người khác không thấy | T1+T2 |
 | 11.4 | Người dùng thử (PRACTICE_USERS) mang vai trò ban biên tập thấy bài luyện; bỏ khỏi danh sách thì không thấy | T1 |
-| 11.5 | Nút Đặt lại bài luyện tập: xoá mọi việc trên bài THU (phiếu, thảo luận, sửa) và kỳ / bảng TÊN THU-…; kỳ, bảng tên khác giữ nguyên (chỉ mất dòng bài luyện), kể cả khi chỉ có bài luyện; người thường không đặt được tên THU-…; chỉ Quản trị, PT, TBT đang dùng thử | T1 |
+| 11.5 | Nút Đặt lại bài luyện tập: xoá mọi việc trên bài THU (phiếu, thảo luận, sửa) và kỳ / bảng TÊN THU-…; bài luyện không vào kỳ / bảng thật, bài thật không vào kỳ / bảng luyện tập; kỳ thật giữ nguyên; người thường không đặt được tên THU-…; chỉ Quản trị, PT, TBT đang dùng thử | T1 |
 
 **12. Hàm quản trị, sao lưu**
 
@@ -244,7 +244,7 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | 12.1 | Khách trên trang web không gọi được setUser, setup, nhập, vá, kiểm thử, resetPractice | T1 |
 | 12.2 | Cài đặt lại trên Sheet cũ: tab thiếu cột mới ở cuối (Checks.ket_qua) được thêm tiêu đề, dữ liệu giữ nguyên | QT |
 | 12.3 | Sao lưu: bản sao Sheet vào thư mục sao lưu, đủ các tab và dữ liệu; chạy lại cùng ngày thay bản cũ; giữ BACKUP_KEEP bản mới nhất; chỉ chủ chạy tay được | QT |
-| 12.4 | Ghi đúng dòng khi dòng phía trên vừa bị xoá (đặt lại bài luyện, xoá kỳ, đưa về): tìm lại theo khoá; dòng không còn thì báo, không ghi nhầm | QT |
+| 12.4 | Ghi, xoá đúng dòng khi dòng phía trên vừa bị xoá (đặt lại bài luyện, xoá kỳ, đưa về): tìm lại theo khoá; bảng ngắn lại thì không ghi vào dòng trống; dòng không còn thì báo, không ghi nhầm | QT |
 
 **13. Kỳ phản biện**
 
@@ -324,7 +324,7 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | Mã | Kịch bản | Tài khoản |
 |---|---|---|
 | 19.1 | Dùng thử: Quản trị bắt đầu (chụp dữ liệu, mọi trang biết đang dùng thử); đưa về: bài, kỳ, bảng, thảo luận như trước; GIỮ người dùng, nhật ký, góp ý, lỗi; số báo "10/2026" vẫn là chữ; chụp trạng thái trước khi đưa về | QT |
-| 19.2 | Kết thúc dùng thử: giữ mọi thay đổi, hoặc đưa về rồi kết thúc; sau đó không còn dòng báo, không đưa về được nữa; chỉ Quản trị bắt đầu / kết thúc; TBT đưa về được; người khác không | QT |
+| 19.2 | Kết thúc dùng thử: giữ mọi thay đổi, hoặc đưa về rồi kết thúc; trong lúc thử không nhập, vá được; sau đó không còn dòng báo, không đưa về được nữa; chỉ Quản trị bắt đầu / kết thúc; TBT đưa về được; người khác không | QT |
 
 <!-- bảng tự sinh: hết -->
 
