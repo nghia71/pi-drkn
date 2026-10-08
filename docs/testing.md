@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | **tự chạy** (`installAutoTests`, một lần): `runSmoke` sau mỗi lần triển khai, toàn bộ mỗi đêm; kết quả qua thư | 3–4 phút / ~30 phút |
 | 3. Bằng tay | trình duyệt, tài khoản Google thật | chỉ những gì máy không làm được — bảng ở đầu Lớp 3 | ~30 phút, một lần |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 109 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 110 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`), **giao diện** (`tests/ui/run.js`: trang thật trong Chromium, mỗi vai trò một cửa sổ, đi hết
 các quy trình — xem dưới) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
@@ -45,7 +45,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (109 kịch bản) · gói chế bản và hình (cần MacTeX) ·
+Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (110 kịch bản) · gói chế bản và hình (cần MacTeX) ·
 giao diện · từ bên ngoài (người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy chặn dữ liệu, bộ hiển thị, máy chủ mô phỏng, giao diện và **không đẩy mã** nếu có lỗi.
 
@@ -76,7 +76,7 @@ từ nút Run — dùng `runAllTests`, hoặc tạm thêm một hàm gọi `runT
 
 ### Chạy gì, khi nào
 
-Toàn bộ (~109 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
+Toàn bộ (~110 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
 Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trước mỗi lần đẩy mã; lớp 2 chỉ để bắt chỗ Google khác bản mô phỏng.
 
 | Khi nào | Chạy | Thời gian |
@@ -289,6 +289,7 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | 16.5 | Tải mã nguồn: zip gồm tikz-<mã>.tex (đúng khối) và danh sách; mặc định chỉ hình chưa dựng; không còn gì thì báo 0 | QT |
 | 16.6 | Tải SVG lên: chỉ nhận tikz-<mã>.svg của hình đang có; chặn SVG có mã chạy được hoặc liên kết ngoài; tải lại thì thay; PB, TBT không tải được | T1 |
 | 16.7 | Khoá kỳ: cột Hình nhiều tên ảnh → mỗi ảnh một \\includegraphics, cả hai vào pic/ | QT |
+| 16.8 | Dựng hình tự động (GitHub, kho giả): gửi đúng mã TikZ của hình chưa dựng, không gửi lại; lấy SVG về thư mục hình, ghi lỗi dựng, chặn SVG có mã chạy được; dọn kho; chưa cài thì không làm gì; PB không bấm được | T1 |
 
 **17. Thêm bài**
 

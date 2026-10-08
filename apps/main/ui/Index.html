@@ -97,7 +97,7 @@ document.getElementById('go-list').onclick = document.getElementById('go-home').
  * Nút không hoàn tác được: viền đỏ; nút đang chờ bấm lần hai ("Bấm lần nữa…"): màu cảnh báo. */
 var BTN_ICON = [[/^Sửa/, 'pencil'], [/^Thêm ảnh/, 'image-plus'], [/^Thêm vào danh sách/, 'file-plus'], [/^\+ ?Thêm|^Thêm|^Lập bảng|^Mở kỳ|^Giao$/, 'plus'],
   [/^Lưu/, 'check'], [/^Huỷ|^Đóng$/, 'x'], [/^Gửi/, 'send'], [/^Duyệt|duyệt$/, 'check'], [/^Trả lại/, 'rotate-ccw'], [/^Mở lại/, 'lock-open'],
-  [/^Khoá kỳ|^Đóng kỳ/, 'lock'], [/^Tải (SVG )?lên/, 'upload'], [/^Tải/, 'download'], [/^Mở lời giải/, 'eye'], [/^Đóng lời giải/, 'eye-off'],
+  [/^Khoá kỳ|^Đóng kỳ/, 'lock'], [/^Tải (SVG )?lên/, 'upload'], [/^Dựng ngay/, 'refresh-cw'], [/^Tải/, 'download'], [/^Mở lời giải/, 'eye'], [/^Đóng lời giải/, 'eye-off'],
   [/^Đánh dấu/, 'check-check'], [/^Bỏ đánh dấu|^Đánh lại số/, 'rotate-ccw'], [/^Xem thêm/, 'chevron-down'], [/^Thu gọn/, 'chevron-up'], [/^Xem lịch sử/, 'history'],
   [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
 var DANGER = /^(Đóng kỳ|Xoá|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải)/;
@@ -1030,7 +1030,11 @@ function renderFigs() {
   var shown = FIG_ONLY_TODO ? items.filter(function (x) { return !x.da_dung; }) : items;
   F.innerHTML = '<p><a href="#" id="f-back">← Danh sách</a></p><h2 class="pg">Hình</h2>' +
     '<p class="sm-t">' + tikz.length + ' hình TikZ (' + todo.length + ' chưa dựng) · ' + pics.length + ' ảnh (' + lost.length + ' không có trong thư mục hình).</p>' +
-    '<div class="card"><h3>Dựng hình TikZ</h3><ol class="sm-t">' +
+    (FV.cloud ? '<div class="card"><h3>Dựng tự động (GitHub)</h3><p class="sm-t">Hình TikZ mới hay vừa sửa được dựng tự động trong vài phút ' +
+      '(kho riêng tư; chỉ gửi mã TikZ của hình, không gửi đề). ' + (FV.cloud.cho ? '<b>Đang chờ ' + FV.cloud.cho + ' hình.</b> ' : '') +
+      (FV.cloud.luc ? '<span class="mut">Lần cuối: ' + esc(vnTime(FV.cloud.luc)) + '.</span>' : '') + '</p>' +
+      '<p><button class="pri sm" data-f="sync">Dựng ngay</button> <span class="st mut sm-t" id="f-sync"></span></p></div>' : '') +
+    '<div class="card"><h3>' + (FV.cloud ? 'Dựng tay (trên máy)' : 'Dựng hình TikZ') + '</h3><ol class="sm-t">' +
     '<li><button class="sm" data-f="src"' + (todo.length ? '' : ' disabled') + '>Tải các hình chưa dựng (.zip)</button> ' +
     '<button class="sm" data-f="all"' + (tikz.length ? '' : ' disabled') + '>Tải mã của mọi hình TikZ</button></li>' +
     '<li>Trên máy (cần MacTeX): <code>python3 tools/hinh/build.py ~/Downloads/hinh-chua-dung.zip</code> → tệp <code>hinh-svg.zip</code> cạnh tệp tải về.</li>' +
@@ -1042,7 +1046,9 @@ function renderFigs() {
       shown.map(function (x) {
         return '<tr><td><a href="#" class="code" data-open="' + escA(x.ma_bai) + '">' + esc(x.ma_bai) + '</a></td><td>' + esc(x.trang_thai) + '</td>' +
           '<td>' + esc(x.noi) + '</td><td class="code">' + esc(x.ma || x.ten) + '</td>' +
-          '<td>' + (x.da_dung ? '<span class="chip ok">' + (x.ma ? 'đã dựng' : 'có tệp') + '</span>' : '<span class="chip w">' + (x.ma ? 'chưa dựng' : 'thiếu tệp') + '</span>') + '</td></tr>';
+          '<td>' + (x.da_dung ? '<span class="chip ok">' + (x.ma ? 'đã dựng' : 'có tệp') + '</span>' : x.loi ? '<span class="chip st-fail">lỗi dựng</span>' :
+                   '<span class="chip w">' + (x.ma ? 'chưa dựng' : 'thiếu tệp') + '</span>') + '</td></tr>' +
+          (x.loi ? '<tr><td></td><td colspan="4" class="sm-t"><span class="bad">' + esc(x.loi) + '</span> — sửa TikZ rồi lưu, hình được dựng lại.</td></tr>' : '');
       }).join('') + '</table></div>' : '<p class="mut">Không có hình nào' + (FIG_ONLY_TODO ? ' cần dựng.' : '.') + '</p>');
   document.getElementById('f-back').onclick = function (e) { e.preventDefault(); nav({}); showList(); };
   document.getElementById('f-todo').onchange = function (e) { FIG_ONLY_TODO = e.target.checked; renderFigs(); };
@@ -1051,6 +1057,18 @@ function renderFigs() {
     if (o) { ev.preventDefault(); nav({ ma: o.getAttribute('data-open') }); openProblem(o.getAttribute('data-open')); return; }
     var b = ev.target.closest('[data-f]'); if (!b || b.disabled) return;
     var k = b.getAttribute('data-f');
+    if (k === 'sync') {
+      b.disabled = true; document.getElementById('f-sync').textContent = 'Đang gửi / lấy hình…';
+      call('figureSync', {}).then(function (r) {
+        PCACHE = {};
+        return call('figures', {}).then(function (v) {
+          FV = v; renderFigs();
+          document.getElementById('f-sync').textContent = 'Đã lấy ' + r.lay.length + ' hình, gửi ' + r.gui.length + ' hình' +
+            (r.cho.length ? '; ' + r.cho.length + ' hình đang dựng — trang tự cập nhật khi mở lại sau vài phút.' : '.');
+        });
+      }, function () { b.disabled = false; document.getElementById('f-sync').textContent = ''; });
+      return;
+    }
     if (k === 'src' || k === 'all') {
       b.disabled = true;
       call('figureSources', { tat_ca: k === 'all' }).then(function (r) {

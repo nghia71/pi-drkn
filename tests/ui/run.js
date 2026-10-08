@@ -401,6 +401,22 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   await openProb(ncbA, P4);
   check((await count(ncbA, '#sec-hinh img, #sec-hinh svg:not(.ic)')) >= 1, 'hình hiện trên trang bài');
   await shot(ncbA, 'hinh-tren-trang', 'Sau khi tải SVG lên: hình hiện ngay trên trang bài (cho cả phản biện được giao).', false);
+  step = 'dựng tự động (GitHub giả)';
+  const TIKZ2 = TIKZ.replace('(4,0)', '(5,0)');
+  await openProb(ncbA, P3);
+  await ncbA.click('#sec-hinh [data-edit]'); await ncbA.fill('#sec-hinh textarea', TIKZ2); await ncbA.click('#sec-hinh [data-a=save]'); await idle(ncbA, 300);
+  const gh = c.TEST_CONF.GH_FAKE = c.fakeGitHub_();
+  await tab(ncbA, 'go-figs');
+  check((await text(ncbA, '#figs')).includes('Dựng tự động'), 'có mục Dựng tự động khi đã cài GitHub');
+  await ncbA.click('[data-f=sync]'); await idle(ncbA, 300);
+  check((await text(ncbA, '#f-sync')).includes('gửi 1 hình'), 'Dựng ngay: gửi một hình: ' + (await text(ncbA, '#f-sync')));
+  const k2 = c.figKey_(TIKZ2);
+  check(gh.files()['hang-doi/tikz-' + k2 + '.tex'] === TIKZ2, 'kho chỉ nhận mã TikZ của hình');
+  gh.workflow({ a: FIGSVG }, { a: k2 });          // như GitHub Actions dựng xong
+  await ncbA.click('[data-f=sync]'); await idle(ncbA, 300);
+  check((await text(ncbA, '#f-sync')).includes('Đã lấy 1 hình'), 'lấy SVG về');
+  await shot(ncbA, 'dung-tu-dong', 'Dựng tự động (GitHub, kho riêng tư): hình mới hay vừa sửa được dựng sau vài phút, không cần làm gì; nút "Dựng ngay" để khỏi chờ. Hình lỗi hiện kèm thông báo của LaTeX.', false);
+  delete c.TEST_CONF.GH_FAKE;
 
   /* ---------- 7. Bảng chọn bài ---------- */
   section('7. Bảng chọn bài', 'PT xếp 10 bài (4 mức B, 6 mức A) cho một số báo và gửi TBT; TBT trả lại (có lý do) hoặc duyệt — bài được chọn thành SL-OK.');

@@ -75,6 +75,7 @@ function api_(token, method, args) {
     case 'uploadPictures': return uploadPictures_(w, args);
     case 'figureSources': return figureSources_(w, args);
     case 'uploadFigures': return uploadFigures_(w, args);
+    case 'figureSync': return figureSync_(w);
     case 'closeIssue': return closeIssue_(w, args);
     case 'exportOf': return exportOf_(w, args);
     default: throw new Error('Không có thao tác ' + method);
@@ -232,7 +233,7 @@ function saveText_(w, a) {
     }
     return r;
   });
-  if (!res.khong_doi) audit_(w.email, 'sửa', a.ma_bai + ' ' + a.truong + ' → phiên bản ' + res.phien_ban + (res.sua_doi ? ' (nội dung toán)' : ''));
+  if (!res.khong_doi) { audit_(w.email, 'sửa', a.ma_bai + ' ' + a.truong + ' → phiên bản ' + res.phien_ban + (res.sua_doi ? ' (nội dung toán)' : '')); figTouched_(text); }
   return res;
 }
 

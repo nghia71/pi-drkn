@@ -122,7 +122,21 @@ Nút **Hình** ở đầu trang (NCB, PT, Quản trị):
    và lệnh tắt như `dinhdang.tex` của Pi; chữ chuyển thành đường nét nên SVG không cần phông), ghi `hinh-svg.zip` cạnh tệp vào.
    Hình lỗi được báo (dòng `LỖI …`), hình khác vẫn được dựng; mỗi hình tối đa 60 giây.
 3. **Tải SVG lên** `hinh-svg.zip` — hình hiện ngay trên trang bài (cả với phản biện được giao).
-Không dựng hình của đề chưa đăng trên các trang LaTeX trực tuyến. Giai đoạn 2 (sau này): GitHub Actions trong một kho **riêng tư**.
+Không dựng hình của đề chưa đăng trên các trang LaTeX trực tuyến.
+
+**Dựng tự động (giai đoạn 2, `FigCloud.gs`)** — GitHub Actions trong một kho **riêng tư** dựng thay cho bước 2 ở trên:
+1. GitHub → New repository → tên `pi-drkn-hinh`, **Private** → chép vào kho hai tệp `.github/workflows/dung-hinh.yml` và `README.md`
+   (bản mẫu: kho `pi-drkn-hinh` hiện có; việc dựng dùng `tools/hinh/build.py` và `templates/hinh-mau.tex` của kho mã công khai).
+2. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained** → chỉ kho `pi-drkn-hinh`, quyền
+   **Contents: Read and write**, hạn tối đa 1 năm (ghi lịch đổi).
+3. Dự án chính → Project Settings → Script properties: `GITHUB_REPO` = `<chủ>/pi-drkn-hinh`, `GITHUB_TOKEN` = mã vừa tạo.
+4. Sau `scripts/deploy.sh`: trình soạn thảo → chạy một hàm bất kỳ (ví dụ `installAutoTests`) để cho phép quyền mới
+   "Connect to an external service" (gọi GitHub).
+Từ đó: lưu bài có TikZ → sau ~1 phút hệ thống gửi mã TikZ của hình chưa dựng lên `hang-doi/`; GitHub Actions dựng (~2 phút) →
+`svg/` hoặc `loi/`; hệ thống tự kiểm tra lại mỗi 3 phút, lấy SVG về thư mục hình, xoá tệp khỏi kho. Trang Hình: mục "Dựng tự động"
+(số hình đang chờ, nút **Dựng ngay**), hình lỗi hiện kèm thông báo của LaTeX. Trigger kiểm thử tự động (mục 14) đồng bộ thêm mỗi giờ
+(hình đến từ nhập / bản vá). Chỉ mã TikZ rời khỏi Google — quy định dữ liệu mục 6.
+Dựng tay (bước 1–3 ở trên) vẫn dùng được bất cứ lúc nào. Thôi: xoá hai Script properties.
 
 ## 13. Thêm bài trên trang web, ảnh của bài
 Sau lần triển khai có tính năng này: chạy `setup` (thêm cột `mo_loi_giai` vào tab Rounds).
@@ -137,3 +151,5 @@ Sau lần triển khai có tính năng này: chạy `setup` (thêm cột `mo_loi
 
 ## 14. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.
+Rồi chạy `installAutoTests` (một lần): kiểm thử tự chạy sau mỗi lần triển khai và mỗi đêm, kết quả qua thư.
+Trên máy, cho kiểm thử giao diện: `npm install && npx playwright install chromium` (một lần).

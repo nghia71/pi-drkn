@@ -69,9 +69,10 @@ function removeAutoTests() {
 function build_() { return typeof BUILD === 'string' ? BUILD : ''; }
 
 /** Trigger mỗi giờ: có việc dở thì để autoTestsNext làm; bản mới → bộ nhanh; tới giờ đêm → toàn bộ. */
-function autoTests() {
-  adminOnly_();
+function autoTests(e) {
+  if (!fromTrigger_(e)) adminOnly_();
   var props = PropertiesService.getScriptProperties();
+  try { syncFigures_(); } catch (err) { Logger.log('dựng hình (GitHub): ' + err.message); }   // lưới an toàn: hình từ nhập / vá
   if (props.getProperty(AUTO_JOB)) return 'đang có lượt kiểm thử chạy dở';
   var b = build_(), today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   var hour = Number(Utilities.formatDate(new Date(), tz_(), 'H'));
@@ -87,8 +88,8 @@ function autoTests() {
 }
 
 /** Chạy một đoạn ≤ 6 phút của việc đang dở; còn thì hẹn tiếp sau 1 phút; xong thì gửi thư. */
-function autoTestsNext() {
-  adminOnly_();
+function autoTestsNext(e) {
+  if (!fromTrigger_(e)) adminOnly_();
   var props = PropertiesService.getScriptProperties();
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'autoTestsNext') ScriptApp.deleteTrigger(t); });
   var job = JSON.parse(props.getProperty(AUTO_JOB) || 'null');
@@ -155,6 +156,7 @@ function runOne_(t) {
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
     delete TEST_CONF.EXPORT_FOLDER_ID; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
     TEST_CONF.TEST_USERS = '';   // mặc định: T1, T2 là người thường; 11.3 bật lại
+    delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE;   // không gọi GitHub thật; 16.8 dùng kho giả
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
   TK.results.push([t.id, t.title, t.who, ok ? 'ĐẠT' : 'LỖI', msg, Date.now() - t1]);
@@ -1417,6 +1419,39 @@ function defineTests_() {
     });
   });
 
+  test_('16.8', 'Dựng hình tự động (GitHub, kho giả): gửi đúng mã TikZ của hình chưa dựng, không gửi lại; lấy SVG về thư mục hình, ghi lỗi dựng, chặn SVG có mã chạy được; dọn kho; chưa cài thì không làm gì; PB không bấm được', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    throws_(function () { call_(login_(A.T1), 'figureSync'); }, 'Chưa bật');
+    withFolders(function (ex, fig) {
+      var gh = TEST_CONF.GH_FAKE = fakeGitHub_();
+      var TA = TZ, TB = TZ.replace('1,1', '2,2'), TC = TZ.replace('1,1', '3,3'), ka = figKey_(TA), kb = figKey_(TB), kc = figKey_(TC);
+      setP('TEST-01', { hinh: TA, loi_giai: 'Lời giải ' + TB }); setP('TEST-02', { de_bai: 'Đề ' + TC });
+      var r = call_(login_(A.T1), 'figureSync');
+      eq_(r.gui.sort(), [ka, kb, kc].sort(), 'gửi ba hình chưa dựng');
+      eq_(r.cho.length, 3, 'ba hình đang chờ GitHub (để tự hẹn lần sau)');
+      eq_(gh.files()['hang-doi/tikz-' + ka + '.tex'], TA, 'đúng mã TikZ, không kèm đề');
+      ok_(!JSON.stringify(gh.files()).match(/Lời giải|Đề /), 'chỉ có khối tikzpicture');
+      eq_(call_(login_(A.T1), 'figureSync').gui, [], 'chạy lại: không gửi lại hình đang chờ');
+      // GitHub Actions dựng xong: A ra SVG, B lỗi, C ra SVG có mã chạy được; thêm một SVG lạ
+      gh.workflow({ a: SVG_OK, c: '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', b: null }, { a: ka, b: kb, c: kc });
+      gh.put('svg/tikz-0000000000000000.svg', SVG_OK);
+      r = call_(login_(A.T1), 'figureSync');
+      eq_(r.lay, [ka], 'lấy về đúng một SVG hợp lệ');
+      ok_(fig.getFilesByName('tikz-' + ka + '.svg').hasNext(), 'SVG nằm trong thư mục hình');
+      ok_(!fig.getFilesByName('tikz-' + kc + '.svg').hasNext(), 'SVG có mã chạy được không được lưu');
+      has_s_(r.loi[kb], 'Undefined control sequence'); has_s_(r.loi[kc], 'mã chạy được');
+      eq_(Object.keys(gh.files()).filter(function (p) { return /^(svg|loi|hang-doi)\//.test(p); }), [], 'kho được dọn');
+      var v = call_(login_(A.T1), 'figures');
+      ok_(v.items.some(function (x) { return x.ma === kb && /Undefined/.test(x.loi); }), 'trang Hình hiện lỗi dựng');
+      ok_(v.items.some(function (x) { return x.ma === ka && x.da_dung; }), 'A đã dựng');
+      eq_(call_(login_(A.T1), 'figureSync').gui, [], 'hình lỗi không gửi lại cho tới khi sửa TikZ');
+      setP('TEST-01', { loi_giai: 'Lời giải ' + TB.replace('2,2', '2,5') });
+      eq_(call_(login_(A.T1), 'figureSync').gui, [figKey_(TB.replace('2,2', '2,5'))], 'sửa TikZ → gửi hình mới');
+      ok_(!(figKey_(TB) in (TEST_CONF.FIG_CLOUD_STATE ? JSON.parse(TEST_CONF.FIG_CLOUD_STATE).loi : {})), 'quên lỗi của hình cũ');
+      throws_(function () { call_(login_(A.T2), 'figureSync'); }, 'Không có quyền');
+    });
+  });
+
   // 17. Thêm bài trên trang web (VP, NCB, PT, TBT, Quản trị) và thêm ảnh
   var SVG_A = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10"/><text x="1" y="8">A</text></svg>';
   var PNG_1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -1589,4 +1624,45 @@ function resetPractice() {
   audit_(Session.getEffectiveUser().getEmail(), 'resetPractice', msg);
   Logger.log(msg);
   return msg;
+}
+
+/** Kho GitHub giả cho 16.8: đủ các lời gọi của FigCloud.gs (contents, git/ref, git/commits, git/trees). */
+function fakeGitHub_() {
+  var trees = { t0: {} }, commits = { c0: { tree: 't0', parent: null } }, head = 'c0', n = 0;
+  var cur = function () { return trees[commits[head].tree]; };
+  var commit = function (t, msg) { var tid = 't' + (++n), cid = 'c' + n; trees[tid] = t; commits[cid] = { tree: tid, parent: head, msg: msg }; head = cid; };
+  var api = function (method, path, body) {
+    var m;
+    if (method === 'get' && (m = path.match(/^\/contents\/([^?]+)\?ref=main$/))) {
+      var p = m[1], t = cur();
+      if (t[p] != null) return { type: 'file', path: p, name: p.split('/').pop(), content: Utilities.base64Encode(Utilities.newBlob(t[p]).getBytes()) };
+      var list = Object.keys(t).filter(function (k) { return k.indexOf(p + '/') === 0; }).map(function (k) { return { type: 'file', path: k, name: k.slice(p.length + 1) }; });
+      return list.length ? list : null;
+    }
+    if (method === 'get' && path === '/git/ref/heads/main') return { object: { sha: head } };
+    if (method === 'get' && (m = path.match(/^\/git\/commits\/(\w+)$/))) return { tree: { sha: commits[m[1]].tree } };
+    if (method === 'post' && path === '/git/trees') {
+      var t2 = {}, base = trees[body.base_tree]; for (var k in base) t2[k] = base[k];
+      body.tree.forEach(function (e) { if (e.sha === null) { if (!(e.path in t2)) throw new Error('GitHub 422: không có ' + e.path); delete t2[e.path]; } else t2[e.path] = e.content; });
+      trees['t' + (++n)] = t2; return { sha: 't' + n };
+    }
+    if (method === 'post' && path === '/git/commits') { commits['c' + (++n)] = { tree: body.tree, parent: body.parents[0], msg: body.message }; return { sha: 'c' + n }; }
+    if (method === 'patch' && path === '/git/refs/heads/main') {
+      if (commits[body.sha].parent !== head) throw new Error('GitHub 422: không phải fast-forward');
+      head = body.sha; return {};
+    }
+    throw new Error('kho giả không biết ' + method + ' ' + path);
+  };
+  api.files = function () { return cur(); };
+  api.put = function (p, text) { var t = {}, c = cur(); for (var k in c) t[k] = c[k]; t[p] = text; commit(t, 'put'); };
+  /** như GitHub Actions: out = {nhãn: SVG | null (lỗi)}, keys = {nhãn: mã}; xoá hàng đợi. */
+  api.workflow = function (out, keys) {
+    var t = {}, c = cur(); for (var k in c) if (k.indexOf('hang-doi/') !== 0) t[k] = c[k];
+    Object.keys(out).forEach(function (l) {
+      if (out[l] == null) t['loi/tikz-' + keys[l] + '.txt'] = 'XeLaTeX: ! Undefined control sequence.';
+      else t['svg/tikz-' + keys[l] + '.svg'] = out[l];
+    });
+    commit(t, 'Dựng hình');
+  };
+  return api;
 }
