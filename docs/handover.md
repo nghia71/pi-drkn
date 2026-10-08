@@ -82,6 +82,8 @@ Chủ hiện tại làm, tài khoản Pi chấp nhận. Mã (ID) của Sheet, th
 - [ ] *Triggers* của dự án chính chỉ có trigger của tài khoản Pi (`sendReminders`, `autoTests`).
 - [ ] Kỳ luyện tập (`resetPractice`): gửi thư mời → thư đến, người gửi là tài khoản Pi.
 - [ ] Trang Hình → *Dựng ngay* với một hình thử → hình hiện sau vài phút; kho `pi-drkn-hinh` → Actions xanh.
+- [ ] Không còn dùng thử: trang Kỳ phản biện không có dòng „Đang dùng thử" (Script property `TRIAL` không có); `PRACTICE_USERS`
+      đã xoá; các bản chụp „trước dùng thử", „trước khi đưa về" trong thư mục sao lưu đã xoá hoặc Pi quyết định giữ.
 - [ ] Sáng hôm sau: thư mục **Pi ĐRKN — sao lưu** có bản của ngày; không có thư báo lỗi kiểm thử hay sao lưu.
 
 ## 8. Chúng tôi làm giúp

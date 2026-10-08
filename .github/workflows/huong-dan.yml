@@ -6,9 +6,9 @@ name: huong-dan
 on:
   push:
     branches: [main]
-    paths: ['docs/huong-dan/**', 'tests/ui/**', 'tests/fixtures/**', 'apps/main/ui/**', 'apps/main/*.gs', 'shared/**', '.github/workflows/huong-dan.yml']
+    paths: ['docs/huong-dan/**', 'docs/guide/**', 'tests/ui/**', 'tests/fixtures/**', 'apps/main/ui/**', 'apps/main/*.gs', 'shared/**', '.github/workflows/huong-dan.yml']
   pull_request:
-    paths: ['docs/huong-dan/**', 'tests/ui/**', '.github/workflows/huong-dan.yml']
+    paths: ['docs/huong-dan/**', 'docs/guide/**', 'tests/ui/**', '.github/workflows/huong-dan.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,13 +33,22 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends texlive-latex-recommended texlive-latex-extra texlive-pictures \
-            texlive-lang-other texlive-fonts-recommended lmodern poppler-utils > /dev/null
+            texlive-lang-other texlive-fonts-recommended lmodern poppler-utils texlive-xetex tex-gyre fonts-dejavu-core > /dev/null
       - name: Dựng slide
-        run: docs/huong-dan/build.sh
+        run: |
+          docs/huong-dan/build.sh
+          # slide chung (XeLaTeX): hướng dẫn tổng quát, kiến trúc / triển khai / bàn giao
+          cd docs/guide
+          for f in main kientruc; do
+            xelatex -interaction=nonstopmode -halt-on-error $f.tex > /dev/null && xelatex -interaction=nonstopmode -halt-on-error $f.tex > /dev/null \
+              || { tail -30 $f.log; exit 1; }
+          done
       - name: Gom tệp
         run: |
           mkdir -p dist
           for d in pb ncb pt tbt vp btk quantri; do cp "docs/huong-dan/$d/slides.pdf" "dist/huong-dan-$d.pdf"; done
+          cp docs/guide/main.pdf dist/huong-dan-chung.pdf
+          cp docs/guide/kientruc.pdf dist/kien-truc.pdf
           (cd out && zip -q -r ../dist/huong-dan-anh.zip ui)
           ls -la dist
       - uses: actions/upload-artifact@v4

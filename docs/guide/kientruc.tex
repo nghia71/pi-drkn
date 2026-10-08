@@ -47,9 +47,9 @@
 \node[box=GG,text width=24mm] (a) at (40,-10) {\textbf{Ứng dụng đăng nhập}\\ Apps Script \texttt{apps/signin}\\ \textcolor{ink!60}{chỉ hỏi email, ký liên kết}};
 \node[box=GG,text width=30mm,minimum height=20mm] (b) at (78,-12) {\textbf{Ứng dụng chính}\\ Apps Script \texttt{apps/main}\\ trang web (\texttt{ui/}) + API\\ \textcolor{ink!60}{quyền theo vai trò ở mỗi lời gọi}};
 % dữ liệu
-\node[cyl=GG] (s) at (40,-40) {Google Sheet\\ \textbf{dữ liệu}\\ \textcolor{ink!60}{17 tab}};
+\node[cyl=GG] (s) at (40,-40) {Google Sheet\\ \textbf{dữ liệu}\\ \textcolor{ink!60}{19 tab}};
 \node[box=GG,text width=22mm] (d) at (64,-42) {Google Drive\\ thư mục \textbf{hình}, \textbf{chế bản},\\ tệp nhập / vá};
-\node[box=GG,text width=20mm] (m) at (98,-36) {Gmail (MailApp)\\ thư mời, nhắc hạn,\\ kết quả kiểm thử};
+\node[box=GG,text width=20mm] (m) at (98,-36) {Gmail (MailApp)\\ thư mời, nhắc hạn, lỗi kiểm thử,\\ tóm tắt góp ý 7 giờ};
 \node[box=GG,text width=20mm] (t) at (98,-51) {Trigger hẹn giờ\\ \textcolor{ink!60}{nhắc hạn · kiểm thử · đồng bộ hình}};
 % github
 \node[box=GH,text width=26mm] (r1) at (131,-12) {\textbf{nghia71/pi-drkn}\\ \textcolor{ink!60}{công khai}\\ mã, tài liệu, công cụ,\\ kiểm thử tự động (CI)};
@@ -71,7 +71,7 @@
 \end{tikzpicture}
 
 \vspace{-1mm}\sm{Không có máy chủ, cơ sở dữ liệu riêng: hai dự án Apps Script chạy bằng quyền của tài khoản chủ; dữ liệu là một Google Sheet
-và hai thư mục Drive. Nét đứt: mã đi từ GitHub qua máy quản trị (\texttt{git pull}, \texttt{scripts/deploy.sh}) vào Apps Script.}
+và ba thư mục Drive (hình, chế bản, sao lưu). Nét đứt: mã đi từ GitHub qua máy quản trị (\texttt{git pull}, \texttt{scripts/deploy.sh}) vào Apps Script.}
 \end{frame}
 
 %======================================================== 2. Đăng nhập, quyền
@@ -100,9 +100,9 @@ phản biện chỉ nhận dữ liệu bài được giao, ẩn tên tác giả.
 \begin{tikzpicture}[x=1mm,y=1mm]
 \grp{0}{0}{NCB}{44}{\textbf{Bài} (Sheet)\\ \texttt{Problems} — đề, lời giải (bản biên tập và bản gốc), hình, trạng thái, phiên bản\\ \texttt{Authors} — tên in, đơn vị, \textbf{liên hệ} (hạn chế)\\ \texttt{Provenance}, \texttt{ConversionLog} — nguồn, chuyển đổi\\ \texttt{Revisions} — mọi lần sửa\\ \texttt{Corrections}, \texttt{Checks}, \texttt{Conflicts}}
 \grp{48}{0}{PB}{42}{\textbf{Phản biện} (Sheet)\\ \texttt{Rounds} — kỳ, hạn, mở lời giải\\ \texttt{Assignments} — giao bài, mời, nhắc\\ \texttt{Reviews} — phiếu phản biện\\ \texttt{Comments} — thảo luận}
-\grp{94}{0}{PT}{46}{\textbf{Chọn và in} (Sheet)\\ \texttt{Issues}, \texttt{Shortlist} — bảng chọn bài\\ \texttt{Published} — số in đã dùng\\[1mm] \textbf{Hệ thống} (Sheet)\\ \texttt{Users} — người dùng, vai trò\\ \texttt{Audit} — nhật ký}
-\grp{0}{-33}{GG}{66}{\textbf{Drive} (tài khoản chủ, không chia sẻ)\\ \textbf{Pi ĐRKN — hình}: ảnh của bài, \texttt{tikz-<mã>.svg}\\ \textbf{Pi ĐRKN — chế bản}: gói \texttt{.tex + pic/} của mỗi số đã khoá\\ tệp nhập / vá \texttt{pi-drkn-import…}, \texttt{pi-drkn-patch…}}
-\grp{70}{-33}{HT}{70}{\textbf{Script properties} (cấu hình, bí mật — không ở trong mã)\\ \texttt{SHEET\_ID} \texttt{SECRET} \texttt{SIGNIN\_URL} \texttt{FIG\_FOLDER\_ID} \texttt{EXPORT\_FOLDER\_ID}\\ \texttt{GITHUB\_REPO} \texttt{GITHUB\_TOKEN} \texttt{TEST\_SHEET\_ID} \texttt{TEST\_USERS}\\ tuỳ chọn: \texttt{BLIND\_REVIEW} \texttt{REMINDER\_DAYS/HOUR} \texttt{BOARD\_LAYOUT} \texttt{TEST\_HOUR}\\ dự án đăng nhập: \texttt{SECRET}, \texttt{B\_URL}}
+\grp{94}{0}{PT}{46}{\textbf{Chọn và in} (Sheet)\\ \texttt{Issues}, \texttt{Shortlist} — bảng chọn bài\\ \texttt{Published} — số in đã dùng\\[1mm] \textbf{Hệ thống} (Sheet)\\ \texttt{Users} — người dùng, vai trò\\ \texttt{Audit} — nhật ký\\ \texttt{Feedback}, \texttt{Errors} — góp ý, lỗi người dùng gặp}
+\grp{0}{-33}{GG}{66}{\textbf{Drive} (tài khoản chủ, không chia sẻ)\\ \textbf{Pi ĐRKN — hình}: ảnh của bài, \texttt{tikz-<mã>.svg}\\ \textbf{Pi ĐRKN — chế bản}: gói \texttt{.tex + pic/} của mỗi số đã khoá\\ \textbf{Pi ĐRKN — sao lưu}: bản sao Sheet mỗi đêm (30 bản), bản chụp dùng thử\\ tệp nhập / vá \texttt{pi-drkn-import…}, \texttt{pi-drkn-patch…}}
+\grp{70}{-33}{HT}{70}{\textbf{Script properties} (cấu hình, bí mật — không ở trong mã)\\ \texttt{SHEET\_ID} \texttt{SECRET} \texttt{SIGNIN\_URL} \texttt{FIG\_FOLDER\_ID} \texttt{EXPORT\_FOLDER\_ID}\\ \texttt{BACKUP\_FOLDER\_ID} \texttt{GITHUB\_REPO} \texttt{GITHUB\_TOKEN} \texttt{TEST\_SHEET\_ID} \texttt{TEST\_USERS} \texttt{PRACTICE\_USERS}\\ tuỳ chọn: \texttt{BLIND\_REVIEW} \texttt{REMINDER\_DAYS/HOUR} \texttt{BOARD\_LAYOUT} \texttt{TEST/BACKUP/DIGEST\_HOUR} \texttt{BACKUP\_KEEP}\\ hệ thống tự ghi: \texttt{TRIAL} (đang dùng thử), mốc sao lưu, tóm tắt\\ dự án đăng nhập: \texttt{SECRET}, \texttt{B\_URL}}
 \end{tikzpicture}
 
 \sm{\textbf{Ra khỏi Google chỉ có}: mã TikZ của hình (kho GitHub riêng tư, để dựng SVG) và thư gửi người dùng (không có đề, tên tác giả).
@@ -116,7 +116,7 @@ Kiểm thử dùng Sheet riêng „Pi ĐRKN — kiểm thử" với dữ liệu 
 \crow{0}{apps/signin/}{ứng dụng đăng nhập (một tệp \texttt{Code.gs})}
 \crow{-6.5}{apps/main/*.gs}{máy chủ: \texttt{Web} (vào hệ thống) · \texttt{Auth} (phiên, vai trò) · \texttt{Api} (mọi thao tác của trang) · \texttt{Db}, \texttt{Schema} (Sheet) ·
  \texttt{Rounds} (kỳ phản biện, thư) · \texttt{Board} (bảng chọn bài) · \texttt{Close} (khoá kỳ, tệp .tex) · \texttt{Fig}, \texttt{FigCloud} (hình) ·
- \texttt{Intake} (thêm bài) · \texttt{Import}, \texttt{Patch} (nhập, vá) · \texttt{Setup}, \texttt{Backup} (sao lưu) · \texttt{Tests} (111 kịch bản)}
+ \texttt{Intake} (thêm bài) · \texttt{Import}, \texttt{Patch} (nhập, vá) · \texttt{Setup}, \texttt{Backup} (sao lưu) · \texttt{Trial} (dùng thử), \texttt{Feedback} (góp ý, lỗi) · \texttt{Tests} (120 kịch bản)}
 \crow{-14}{apps/main/ui/}{trang web: \texttt{Index.html} (một trang), \texttt{Styles.html}, \texttt{Icons.html} (Lucide)}
 \crow{-19}{shared/pi-render.js}{hiển thị LaTeX của Pi trên trang (macro, công thức qua MathJax, chặn HTML)}
 \crow{-24}{templates/}{\texttt{dinhdang.tex} (mẫu in của Pi), \texttt{hinh-mau.tex} (mẫu dựng hình)}
@@ -124,7 +124,7 @@ Kiểm thử dùng Sheet riêng „Pi ĐRKN — kiểm thử" với dữ liệu 
 \crow{-36}{tests/}{bộ hiển thị · gói chế bản · hình · \textbf{giao diện trong Chromium} (\texttt{ui/run.js}) · từ bên ngoài; \texttt{fixtures/}: bài bịa}
 \crow{-41.5}{scripts/}{\texttt{deploy.sh} (kiểm thử rồi đẩy) · \texttt{test-all.sh} · \texttt{guard.py} (chặn dữ liệu)}
 \crow{-46.5}{docs/}{cài đặt, dữ liệu, quy định, kiểm thử; \texttt{guide/} — các bộ slide này (Beamer)}
-\crow{-51.5}{.github/workflows/}{trên GitHub mỗi lần đẩy: chặn dữ liệu, 110 kịch bản máy chủ, kiểm thử giao diện}
+\crow{-51.5}{.github/workflows/}{trên GitHub mỗi lần đẩy: chặn dữ liệu, 120 kịch bản máy chủ, kiểm thử giao diện; dựng PDF hướng dẫn}
 \end{tikzpicture}
 
 \sm{Không có thư viện ngoài phía máy chủ; trang web chỉ tải MathJax. Chú thích, giao diện, tài liệu bằng tiếng Việt.
@@ -141,13 +141,13 @@ Kho riêng tư \texttt{pi-drkn-hinh} chỉ có một workflow và README.}
 \node[box=GH,text width=18mm,right=of p] (mg) {\textbf{Gộp} vào\\ \texttt{main}};
 \node[box=MAC,text width=26mm,right=of mg] (d) {\texttt{scripts/deploy.sh}\\ kiểm thử lại → \texttt{clasp push}\\ → cùng bản triển khai};
 \node[box=GG,text width=30mm,below=12mm of d] (g) {\textbf{Trên Google, tự động}\\ trong 1 giờ: \texttt{runSmoke}\\ (15 kịch bản) → thư nếu lỗi};
-\node[box=GG,text width=30mm,left=8mm of g] (n) {\textbf{Mỗi đêm}: toàn bộ 110 kịch bản\\ trên Google → thư nếu lỗi};
+\node[box=GG,text width=30mm,left=8mm of g] (n) {\textbf{Mỗi đêm}: toàn bộ 120 kịch bản\\ trên Google → thư nếu lỗi};
 \node[box=HT,text width=30mm,left=8mm of n] (u) {\textbf{Người dùng}\\ tải lại trang: bản mới\\ (địa chỉ không đổi)};
 \draw[ar] (e)--(t); \draw[ar] (t)--(p); \draw[ar] (p)--(mg); \draw[ar] (mg)--(d); \draw[ar] (d)--(g); \draw[ar] (d.south west) to[out=-150,in=60] (u.north east);
 \end{tikzpicture}
 
 \vspace{3mm}\raggedright
-\sm{\textbf{Ba lớp kiểm thử}: (1) trên máy và GitHub — chặn dữ liệu, 110 kịch bản trên Apps Script mô phỏng, trang thật trong Chromium với
+\sm{\textbf{Ba lớp kiểm thử}: (1) trên máy và GitHub — chặn dữ liệu, 120 kịch bản trên Apps Script mô phỏng, trang thật trong Chromium với
 mọi vai trò (kèm ảnh chụp thành hướng dẫn bằng hình \texttt{out/ui/index.html}); (2) trên Google — tự động như trên;
 (3) bằng tay — chỉ những gì cần Google, hộp thư, máy Mac thật (\texttt{docs/testing.md}).
 \texttt{deploy.sh} không đẩy mã nếu một kiểm thử hỏng.}
@@ -213,7 +213,7 @@ toàn bộ việc chuyển làm trong một buổi gọi chia sẻ màn hình �
 \begin{column}{0.5\textwidth}\sm{%
 \textbf{Tự chạy (trigger của tài khoản chủ)}\\
 • \texttt{sendReminders} — mỗi ngày 8 giờ: thư nhắc 3 và 1 ngày trước hạn.\\
-• \texttt{autoTests} — mỗi giờ: bản mới → \texttt{runSmoke}; 2 giờ sáng → toàn bộ; kèm đồng bộ hình; 1 giờ sáng → sao lưu Sheet.\\
+• \texttt{autoTests} — mỗi giờ: bản mới → \texttt{runSmoke}; 2 giờ sáng → toàn bộ; kèm đồng bộ hình; 1 giờ sáng → sao lưu Sheet (lỗi → thư); 7 giờ → thư tóm tắt góp ý, lỗi.\\
 • \texttt{dongBoHinh} — sau khi lưu bài có TikZ, lặp mỗi 3 phút khi còn hình chờ GitHub.\\[2mm]
 \textbf{Giới hạn của Google (tài khoản thường)}\\
 • Một lần chạy tối đa 6 phút (kiểm thử, nhập tự chạy tiếp).\\
@@ -223,7 +223,7 @@ toàn bộ việc chuyển làm trong một buổi gọi chia sẻ màn hình �
 \begin{column}{0.48\textwidth}\sm{%
 \textbf{Khi có sự cố}\\
 • Người dùng không vào được → tab \texttt{Users} (vai trò, \texttt{hoat\_dong}), tab \texttt{Audit} (dòng „từ chối").\\
-• Lỗi trên trang → trình soạn thảo Apps Script → \emph{Executions}.\\
+• Lỗi người dùng gặp → hộp Góp ý (Quản trị: \emph{Xem góp ý và lỗi đã nhận}), tab \texttt{Errors}; lỗi máy chủ → trình soạn thảo Apps Script → \emph{Executions}.\\
 • Thư kiểm thử báo lỗi → tab „Kết quả" của Sheet kiểm thử; chạy lại \texttt{runTests('<nhóm>')}.\\
 • Hình không dựng → trang Hình (lỗi của LaTeX), kho \texttt{pi-drkn-hinh} → \emph{Actions}.\\
 • Cần quay lại bản trước → \texttt{git checkout <commit>} rồi \texttt{deploy.sh}.\\[2mm]

@@ -1,4 +1,5 @@
-<!-- Thư riêng cho từng người, sau khi người quyết định đồng ý. cc: người quyết định. Điền {{…}}. Không commit bản đã điền. -->
+<!-- Thư riêng cho từng người, sau khi người quyết định đồng ý và Quản trị đã làm bước 4–7 trong README.md.
+     cc: người quyết định. Điền {{…}}. Không commit bản đã điền. -->
 
 **Tiêu đề:** Mời {{XUNG_HO}} dùng thử „Đề ra kỳ này" — vai trò {{VAI_TRO}}
 
@@ -8,23 +9,22 @@ Theo đề xuất của thầy {{TEN_TBT}} (cc thư này), Pi mời {{XUNG_HO}} 
 **{{VAI_TRO}}** trong ba tuần, từ {{NGAY_1}} đến {{NGAY_KET_THUC}}. {{VI_SAO: một câu — vì sao mời người này}}
 
 **Việc của {{XUNG_HO}} trong đợt thử** (khoảng {{THOI_GIAN}}):
-1. Vào hệ thống lần đầu trong {{HAN_VAO}} (5 phút).
-2. Đọc hướng dẫn của vai trò (20–30 phút): {{DUONG_DAN_HUONG_DAN}} {{VIDEO}}
+1. Vào hệ thống lần đầu trước {{HAN_VAO}} (5 phút).
+2. Đọc hướng dẫn của vai trò (20–30 phút): {{DUONG_DAN_HUONG_DAN}} {{VIDEO: bỏ nếu chưa có}}
 3. Tuần đầu: làm các bước trong hướng dẫn với **bài luyện tập** (THU-…, bài bịa) — {{VIEC_TUAN_1}}
 4. Tuần 2–3: {{VIEC_TUAN_2_3}}
 5. Góp ý bất cứ lúc nào bằng nút **Góp ý** ở đầu trang; cuối tuần 3 họp tổng kết 30–45 phút.
 
-**Không sợ làm sai**: tuần đầu là mười bài luyện tập bịa (THU-…), đặt lại được bất cứ lúc nào. Từ tuần 2, khi đầu trang có dòng
-„Đang dùng thử", {{XUNG_HO}} làm việc trên bài thật như thật — dữ liệu đã được chụp lại và đưa về như trước được. Lỗi gặp trên trang
-được ghi lại tự động; góp ý của {{XUNG_HO}} được giữ lại.
+**Không sợ làm sai**: dữ liệu đã được chụp lại trước đợt thử; đầu mọi trang có dòng „Đang dùng thử" — {{XUNG_HO}} cứ làm như thật,
+mọi việc đưa về như trước được. Lỗi xảy ra trên trang được ghi lại tự động; góp ý của {{XUNG_HO}} được giữ lại.
 
 **Vào hệ thống**
 - Trình duyệt cập nhật (Chrome, Edge, Safari, Firefox); mở trong cửa sổ chỉ đăng nhập **một** tài khoản Google.
 - Đường dẫn: {{DANG_NHAP}} → kiểm tra dòng „Xin chào …" là {{EMAIL}} → **Vào hệ thống**. Lần đầu Google hỏi cho ứng dụng biết email —
-  bấm Cho phép.
-- {{EMAIL}} {{GHI_CHU_EMAIL: „là Gmail — dùng được ngay" / „chạy trên Google — dùng được ngay" / „chưa là tài khoản Google — tạo tài khoản Google
-  bằng chính email này: accounts.google.com → Tạo tài khoản → Dùng địa chỉ email hiện tại của tôi, nhập mã gửi về email (2 phút)"}}.
-- Gặp **„Truy cập bị chặn"**: tạo tài khoản Google bằng chính email như trên, hoặc báo em.
+  bấm Cho phép. Luôn vào lại bằng đường dẫn này; không chuyển cho người khác.
+- {{GHI_CHU_EMAIL: „là Gmail — dùng được ngay" / „email cơ quan chạy trên Google — đã thử vào được" / „chưa là tài khoản Google: xin
+  {{XUNG_HO}} cho em một địa chỉ Gmail để đăng ký"}}.
+- Gặp **„Truy cập bị chặn"**, trang trắng, hay không vào được: chụp màn hình gửi em; em đổi sang Gmail của {{XUNG_HO}} nếu cần.
 
 Mọi thắc mắc: trả lời thư này hoặc {{LIEN_HE_QT}}.
 

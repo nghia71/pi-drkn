@@ -1518,7 +1518,7 @@ function defineTests_() {
     throws_(function () { call_(tok, 'feedback', { noi_dung: 'quá nhiều' }); }, 'trong một giờ');
     eq_(rows_('Feedback').length, FEEDBACK_PER_HOUR, 'mỗi người tối đa ' + FEEDBACK_PER_HOUR + ' góp ý mỗi giờ');
   });
-  test_('18.2', 'Lỗi trên trang: ghi tab Errors (ai, vai trò, trang, lỗi, trình duyệt), cắt chữ quá dài; mỗi người tối đa ' + ERR_PER_HOUR + ' dòng mỗi giờ', 'T1', function () {
+  test_('18.2', 'Lỗi trên trang: ghi tab Errors (ai, vai trò, trang, lỗi, trình duyệt), cắt chữ quá dài; mỗi người tối đa 20 dòng mỗi giờ', 'T1', function () {
     var tok = login_(A.T1);
     eq_(call_(tok, 'logError', { trang: 'danh sách', loi: 'saveText: Bài vừa được người khác sửa', chi_tiet: new Array(3000).join('x'), trinh_duyet: 'Safari 18' }).ok, true);
     var r = rows_('Errors')[0];

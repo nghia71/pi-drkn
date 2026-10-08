@@ -11,20 +11,21 @@
 
 \chu{Người dùng và vai trò}{%
 \begin{buoc}
-\item Mở Sheet dữ liệu → tab \texttt{Users}: mỗi người một dòng — email, tên, vai trò, hoạt động.
-\item Vai trò: Tổng biên tập, Phụ trách chuyên mục, Người chuẩn bị bài, Phản biện, Văn phòng, Ban trình bày, Quản trị;
-  nhiều vai trò cách nhau dấu phẩy. Có hiệu lực ngay, không cần đăng nhập lại.
+\item Mở Sheet dữ liệu $\to$ tab \texttt{Users}: mỗi người một dòng — cột \texttt{email}, \texttt{ten}, \texttt{vai\_tro}, \texttt{hoat\_dong} (TRUE).
+\item \texttt{vai\_tro} ghi bằng \textbf{mã}: \texttt{TBT}, \texttt{PT}, \texttt{NCB}, \texttt{PB}, \texttt{VP}, \texttt{BTK}, \texttt{Quản trị}
+  (nhiều vai trò cách nhau dấu phẩy; tên đầy đủ không được nhận). Quyền có hiệu lực ngay; người đó vào lại từ đường dẫn đăng nhập
+  để thấy các nút mới.
 \item Tạm ngưng một người: cột \texttt{hoat\_dong} = FALSE.
 \item Gửi mọi người \textbf{địa chỉ đăng nhập} (địa chỉ /exec của ứng dụng đăng nhập) — cần tài khoản Google.
 \end{buoc}}
 
 \manhinh[Kiểm tra quyền của một vai trò mà không cần tài khoản khác.]{danh-sach}{Xem như một vai trò khác}
 \manhinh[Mỗi sáng có thư tóm tắt góp ý và lỗi mới (nếu có).]{gop-y-quan-tri}{Góp ý và lỗi người dùng gặp}
-\manhinh[Trước khi bắt đầu: thêm email người dùng thử vào PRACTICE\_USERS (bài luyện tập).]{dung-thu-bat-dau}{Bắt đầu dùng thử trên bài thật}
+\manhinh[Bấm trước khi gửi thư mời. Bài luyện tập: PRACTICE\_USERS và nút Đặt lại (docs/moi-dung-thu).]{dung-thu-bat-dau}{Bắt đầu dùng thử trên bài thật}
 \manhinh[Kết thúc: giữ mọi thay đổi, hoặc đưa về rồi kết thúc. Thư đã gửi và tệp trên Drive không đưa về.]{dung-thu-dua-ve}{Đưa về, kết thúc dùng thử}
 \manhinh{luyen-tap}{Đặt lại bài luyện tập}
 
-\chu{Tự chạy — không cần làm gì}{%
+\chu{Tự chạy (sau khi cài một lần: installReminderTrigger, installAutoTests)}{%
 \begin{itemize}\setlength\itemsep{2mm}
 \item \textbf{Nhắc hạn} phản biện: mỗi sáng, 3 và 1 ngày trước hạn.
 \item \textbf{Kiểm thử} trên Google: sau mỗi lần triển khai và mỗi đêm — chỉ có thư khi có lỗi.
