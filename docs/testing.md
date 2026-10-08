@@ -8,7 +8,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | Lớp | Chạy ở đâu | Cách chạy | Thời gian |
 |---|---|---|---|
 | 1. Trên máy | máy quản trị, không cần Google | `scripts/test-all.sh` — **tự chạy** trong `scripts/deploy.sh` (lỗi thì không đẩy mã) và trên GitHub mỗi lần đẩy | ~2 phút |
-| 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | **tự chạy** (`installAutoTests`, một lần): `runSmoke` sau mỗi lần triển khai, toàn bộ mỗi đêm; kết quả qua thư | 3–4 phút / ~30 phút |
+| 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | **tự chạy** (`installAutoTests`, một lần): `runSmoke` sau mỗi lần triển khai, toàn bộ mỗi đêm; thư chỉ khi có lỗi | 3–4 phút / ~30 phút |
 | 3. Bằng tay | trình duyệt, tài khoản Google thật | chỉ những gì máy không làm được — bảng ở đầu Lớp 3 | ~30 phút, một lần |
 
 Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 110 kịch bản): lớp 1 trên bản mô phỏng Apps Script
@@ -65,8 +65,9 @@ Mỗi lần chạy (không có `--no-shots`) còn chụp màn hình từng bư�
 ## Lớp 2 — trên Google
 
 **Tự động** (cài một lần): trình soạn thảo dự án chính → chọn `installAutoTests` → Run. Một trigger mỗi giờ:
-- thấy bản triển khai mới (`scripts/deploy.sh` ghi mã bản vào `Build.gs`) → chạy `runSmoke`, gửi thư "Kiểm thử sau triển khai: đạt 15/15" hoặc danh sách lỗi;
-- lúc `TEST_HOUR` giờ mỗi đêm (Script property, mặc định 2) → chạy toàn bộ, **chỉ gửi thư khi có lỗi**.
+- thấy bản triển khai mới (`scripts/deploy.sh` ghi mã bản vào `Build.gs`) → chạy `runSmoke`;
+- lúc `TEST_HOUR` giờ mỗi đêm (Script property, mặc định 2) → chạy toàn bộ.
+**Chỉ gửi thư khi có lỗi** (danh sách kịch bản hỏng) — không có thư nghĩa là đạt; muốn xem: tab "Kết quả" của Sheet kiểm thử.
 Mỗi đoạn 6 phút xong thì tự hẹn đoạn tiếp sau 1 phút cho tới hết. Thôi: `removeAutoTests`. Không cần chạy tay sau mỗi lần triển khai.
 
 **Bằng tay** (khi muốn xem ngay): trình soạn thảo dự án chính → chọn `runAllTests` → Run. Kết quả: Execution log (mỗi dòng ĐẠT/LỖI) và tab "Kết quả"
@@ -81,7 +82,7 @@ Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trướ
 
 | Khi nào | Chạy | Thời gian |
 |---|---|---|
-| Sau mỗi lần `scripts/deploy.sh` | tự động: `runSmoke` — mỗi phần chính một kịch bản; thư báo kết quả trong vòng một giờ | 3–4 phút |
+| Sau mỗi lần `scripts/deploy.sh` | tự động: `runSmoke` — mỗi phần chính một kịch bản, trong vòng một giờ; thư chỉ khi có lỗi | 3–4 phút |
 | Mỗi đêm | tự động: toàn bộ; thư chỉ khi có lỗi | ~30 phút |
 | Muốn biết ngay một phần (bảng dưới) | bằng tay, ví dụ một hàm tạm `function t() { runTests('13,14'); }` | vài phút |
 | Trước khi khoá kỳ | xem thư đêm qua (không có thư = đạt) | — |
