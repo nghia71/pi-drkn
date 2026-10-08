@@ -23,6 +23,12 @@
   var MATH_ENVS = 'align\\*?|aligned|equation\\*?|gather\\*?|multline\\*?|eqnarray\\*?|cases|array|matrix|pmatrix|bmatrix|split';
 
   function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  // only data URIs of images (built by the server) — never a URL, never markup
+  var DATA_URI = /^data:image\/(svg\+xml|png|jpeg);base64,[A-Za-z0-9+\/]+=*$/;
+  function figHtml(f) {
+    if (f && typeof f.uri === 'string' && DATA_URI.test(f.uri)) return '<img class="fig-img" alt="' + esc(f.label).replace(/"/g, '&quot;') + '" src="' + f.uri + '">';
+    return '<span class="fig">[' + esc(f ? f.missing : 'hình') + ']</span>';
+  }
 
   // read a balanced {...} group starting at i (s[i] === '{'); returns [content, endIndex]
   function group(s, i) {
@@ -65,12 +71,15 @@
     var warnings = [], math = [];
     var s = (src || '').normalize ? (src || '').normalize('NFC') : (src || '');
     s = s.replace(/\r\n?/g, '\n');
-    // 0. figures: keep the source, show a placeholder (SVG comes from the figure pipeline)
-    s = s.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, function () {
-      return '\u0000FIG' + '[hình TikZ — hiển thị bằng SVG khi biên dịch]' + '\u0000';
+    // 0. figures: TikZ blocks become the SVG built by the figure pipeline (opts.figs: block → data URI), else a placeholder;
+    //    \includegraphics{name} becomes the picture (opts.pics: name → data URI) when the server sent it
+    var figs = [];
+    function figOut(uri, label, missing) { figs.push({ uri: uri, label: label, missing: missing || label }); return '\u0000FIG' + (figs.length - 1) + '\u0000'; }
+    s = s.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, function (b) {
+      return figOut(opts.figs && opts.figs[b], 'hình', 'hình TikZ — chưa dựng');
     });
     s = s.replace(/\\includegraphics(\[[^\]]*\])?\{([^}]*)\}/g, function (_, o, f) {
-      return '\u0000FIG' + '[hình: ' + f + ']' + '\u0000';
+      return figOut(opts.pics && opts.pics[f], 'hình: ' + f);
     });
     // 1. protect math
     function keep(tex, display) {
@@ -122,7 +131,7 @@
     s = s.replace(/[{}]/g, '');
     // 4. paragraphs, figures, restore math
     s = s.split(/\n\s*\n/).map(function (p) { p = p.trim(); return p ? (/^<(ul|ol|div|blockquote)/.test(p) ? p : '<p>' + p.replace(/\n/g, ' ') + '</p>') : ''; }).join('\n');
-    s = s.replace(/\u0000FIG([^\u0000]*)\u0000/g, function (_, t) { return '<span class="fig">' + esc(t) + '</span>'; });
+    s = s.replace(/\u0000FIG(\d+)\u0000/g, function (_, i) { return figHtml(figs[+i]); });
     s = s.replace(/\u0001(\d+)\u0001/g, function (_, k) {
       var m = math[+k], t = m.tex, guard = 0;
       while (/\u0001\d+\u0001/.test(t) && guard++ < 10) t = t.replace(/\u0001(\d+)\u0001/g, function (_, j) { return math[+j].tex; });

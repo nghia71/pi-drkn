@@ -108,5 +108,19 @@ Sau lần triển khai có tính năng này: chạy `setup` (thêm cột `khoa_l
   `templates/dinhdang.tex` (tệp định dạng cột của Pi; dùng tệp khác: `--dinhdang đường/dẫn`) rồi ghi `de-ra-ky-nay-10-2026-btk.zip`
   (.tex, pic/, .pdf) cạnh tệp vào. Gửi gói này cho BTK. Không biên dịch đề chưa đăng trên các trang LaTeX trực tuyến.
 
-## 12. Kiểm thử
+## 12. Hình (dựng TikZ thành SVG)
+Thư mục hình **Pi ĐRKN — hình** (Script property `FIG_FOLDER_ID`, do `setup` tạo) giữ ảnh của bài và SVG đã dựng (`tikz-<mã>.svg`).
+Nút **Hình** ở đầu trang (NCB, PT, Quản trị):
+1. **Tải các hình chưa dựng (.zip)** — mỗi hình một tệp `tikz-<mã>.tex` và `danh-sach.txt` (hình nào của bài nào).
+2. Trên máy Mac (MacTeX có sẵn `xelatex` và `dvisvgm`):
+   ```
+   python3 tools/hinh/build.py ~/Downloads/hinh-chua-dung.zip
+   ```
+   Công cụ kiểm tra từng tệp (mã khớp nội dung, không có lệnh đọc/ghi tệp), dựng bằng `templates/hinh-mau.tex` (gói, thư viện TikZ
+   và lệnh tắt như `dinhdang.tex` của Pi; chữ chuyển thành đường nét nên SVG không cần phông), ghi `hinh-svg.zip` cạnh tệp vào.
+   Hình lỗi được báo (dòng `LỖI …`), hình khác vẫn được dựng; mỗi hình tối đa 60 giây.
+3. **Tải SVG lên** `hinh-svg.zip` — hình hiện ngay trên trang bài (cả với phản biện được giao).
+Không dựng hình của đề chưa đăng trên các trang LaTeX trực tuyến. Giai đoạn 2 (sau này): GitHub Actions trong một kho **riêng tư**.
+
+## 13. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.

@@ -1,0 +1,21 @@
+% Mẫu dựng một hình TikZ thành SVG (tools/hinh/build.py). Gói và thư viện TikZ theo structure/dinhdang.tex của Pi,
+% cùng các lệnh tắt của cột Đề ra kỳ này — để hình trên trang web giống hình khi in. dòng chỉ có dấu HINH (cuối tệp) được thay bằng khối tikzpicture.
+% TikZ phải vẽ bằng lệnh mà dvisvgm hiểu (mặc định với XeLaTeX là lệnh PDF — SVG sẽ chỉ còn chữ, mất nét vẽ)
+\def\pgfsysdriver{pgfsys-dvisvgm.def}
+\documentclass[border=2pt,12pt]{standalone}
+\usepackage{fontspec}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{tkz-euclide}
+\usetikzlibrary{arrows,arrows.meta,calc,intersections,through,backgrounds,patterns,angles,quotes,positioning}
+\usetikzlibrary{shapes,shapes.geometric,decorations.pathreplacing,decorations.markings,decorations.fractals,shadings,lindenmayersystems}
+\definecolor{ocre}{RGB}{52,177,201}
+\definecolor{thachthuctoanhoc}{cmyk}{0.87, 0.46, 0.69, 0.31}
+\newcommand{\vto}[1]{\ensuremath{\overrightarrow{#1}}}
+\newcommand{\lhop}[1]{\ensuremath{\overline{#1}}}
+\newcommand{\goc}[1]{\ensuremath{\widehat{#1}}}
+\def\cung#1{\stackrel{\textstyle\frown}{#1}}
+\begin{document}
+%%HINH%%
+\end{document}

@@ -66,10 +66,18 @@ Thứ tự in: mức B rồi mức A; trong mỗi mức Số học, Đại số,
 `\textit{Tên in (Đơn vị)}` canh phải) — không lời giải, ghi chú biên tập, mục kiểm tra, xung đột, nguồn gốc hay liên hệ. Chặn khoá khi thiếu
 tên in của tác giả hoặc đề trống; mục cần kiểm tra, xung đột còn mở, cảnh báo hiển thị, ít bài hơn bố cục thì phải đánh dấu đã xem.
 
-**Hình vẽ** (quy ước của Nghĩa, 2026-10-07; dựng hình ở mục "Hình" sau này):
+**Hình vẽ** (quy ước của Nghĩa, 2026-10-07):
 1. Bài cũ, đã qua vài vòng mà mất hình: vẽ lại và hiển thị.
 2. Bài mới, hình dựng được từ văn bản mà không mâu thuẫn với đề hay lời giải: vẽ.
 3. Bài mới, hình không dựng được từ văn bản hoặc mâu thuẫn: ghi một mục **Cần kiểm tra** (Checks) cho bài.
+
+Cột `Problems.hinh` (Fig.gs): hoặc mã TikZ (một hay nhiều khối `tikzpicture`, không gì khác), hoặc tên tệp ảnh `.png/.jpg/.pdf`
+trong thư mục hình (`FIG_FOLDER_ID`), mỗi dòng một tên. Sửa như đề bài (NCB, PT, Quản trị; phiên bản, lịch sử; không nhận lệnh đọc/ghi tệp).
+Khối `tikzpicture` trong đề bài, lời giải cũng là hình. Mỗi khối có **mã** = 16 ký tự đầu của SHA-256 (UTF-8, NFC, xuống dòng `\n`)
+của chính khối; SVG đã dựng lưu trong thư mục hình tên `tikz-<mã>.svg`. Sửa TikZ thì mã đổi — trang hiện "chưa dựng" cho tới khi có SVG
+mới, không bao giờ hiện hình cũ cho mã mới. Trang web hiện SVG/ảnh bằng `<img src="data:…">` (trình duyệt không chạy mã trong ảnh);
+SVG tải lên phải đúng tên của một hình đang có và không chứa mã chạy được, nội dung nhúng hay liên kết ra ngoài.
+Khi khoá kỳ: TikZ đặt ngay trong tệp `.tex`, ảnh vào `pic/`.
 
 Thêm cột vào mô hình: chỉ thêm ở **cuối** tab; chạy lại `setup()` để ghi tiêu đề cột mới (dữ liệu cũ giữ nguyên).
 

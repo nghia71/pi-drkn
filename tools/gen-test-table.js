@@ -5,7 +5,7 @@ const root = path.join(__dirname, '..');
 const src = fs.readFileSync(path.join(root, 'apps/main/Tests.gs'), 'utf8');
 const groups = { 1: 'Vào hệ thống', 2: 'Phiên làm việc', 3: 'Ai thấy gì', 4: 'Sửa đề / lời giải', 5: 'Thảo luận',
   6: 'Mục cần kiểm tra, xung đột, trạng thái', 7: 'Xem như vai trò', 8: 'Nhập hàng loạt và bản vá', 9: 'Nhật ký truy cập',
-  10: 'Bộ hiển thị trong Apps Script', 11: 'Bài luyện tập', 12: 'Hàm quản trị', 13: 'Kỳ phản biện', 14: 'Bảng chọn bài', 15: 'Khoá kỳ' };
+  10: 'Bộ hiển thị trong Apps Script', 11: 'Bài luyện tập', 12: 'Hàm quản trị', 13: 'Kỳ phản biện', 14: 'Bảng chọn bài', 15: 'Khoá kỳ', 16: 'Hình' };
 const re = /test_\('([\d.]+)', '((?:[^'\\]|\\.)*)', '([^']*)'/g;
 const rows = []; let m;
 while ((m = re.exec(src))) rows.push([m[1], m[2].replace(/\\'/g, "'"), m[3]]);

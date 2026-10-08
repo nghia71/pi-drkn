@@ -75,7 +75,7 @@ function runOne_(t) {
     if (t.fresh) seed_();
     TEST_CONF.BLIND_REVIEW = 'true';
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
-    delete TEST_CONF.EXPORT_FOLDER_ID; delete TEST_CONF.FIG_FOLDER_ID;
+    delete TEST_CONF.EXPORT_FOLDER_ID; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
     TEST_CONF.TEST_USERS = '';   // mặc định: T1, T2 là người thường; 11.3 bật lại
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
@@ -1145,6 +1145,123 @@ function defineTests_() {
       eq_(e.url, r.url); eq_(e.tex, t, 'tệp tải lại giống tệp đã lưu');
       setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'PB' });
       throws_(function () { call_(login_(A.T1), 'exportOf', { so: '10/2026' }); }, 'Không có quyền');
+    });
+  });
+
+  // 16. Hình: cột Hình, SVG theo mã của khối TikZ, trang Hình (tải mã nguồn, tải SVG lên)
+  var TZ = '\\begin{tikzpicture}\\draw (0,0)--(1,1);\\end{tikzpicture}';
+  var SVG_OK = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10">' +
+               '<defs><path id="g1" d="M0 0L5 5"/></defs><use xlink:href="#g1"/></svg>';
+  var setP = function (ma, o) { var h = findRow_('Problems', 'ma_bai', ma); update_('Problems', h.row, o); };
+  var b64zip = function (name, files) {
+    return { name: name, b64: Utilities.base64Encode(Utilities.zip(files.map(function (f) { return Utilities.newBlob(f[1], 'text/plain', f[0]); }), name).getBytes()) };
+  };
+  test_('16.1', 'Mã hình (SHA-256 của khối TikZ) khớp tools/hinh/build.py; không phụ thuộc NFC/NFD, \\r\\n', 'QT', function () {
+    eq_(figKey_(TZ), '1435a39e5123382b', 'cùng giá trị với tests/hinh.test.py');
+    eq_(figKey_('\\begin{tikzpicture}\r\n\\node{Điểm};\r\n\\end{tikzpicture}'), figKey_('\\begin{tikzpicture}\n\\node{Đie\u0302\u0309m};\n\\end{tikzpicture}'));
+    eq_(tikzBlocks_('a ' + TZ + ' b ' + TZ.replace('1,1', '2,2')).length, 2);
+  }, { keep: true });
+  test_('16.2', 'Sửa cột Hình: TikZ hoặc tên tệp ảnh; nội dung lạ, lệnh đọc tệp, khối lệch, tên lạ bị từ chối, bài không đổi; PB không sửa được', 'T1', function () {
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    var tok = login_(A.T1), v = function () { return Number(findRow_('Problems', 'ma_bai', 'TEST-02').data.phien_ban); }, v0 = v();
+    eq_(call_(tok, 'saveText', { ma_bai: 'TEST-02', truong: 'hinh', noi_dung: TZ, phien_ban: v0 }).phien_ban, v0 + 1);
+    ok_(rows_('Revisions').some(function (r) { return r.truong === 'hinh' && r.moi === TZ; }), 'có lịch sử');
+    eq_(call_(tok, 'saveText', { ma_bai: 'TEST-02', truong: 'hinh', noi_dung: 'hinh-a.png\nhinh b.jpg', phien_ban: v0 + 1 }).phien_ban, v0 + 2);
+    [['ghi chú ' + TZ, 'Ngoài các khối'], ['\\begin{tikzpicture}\\input{/etc/hostname}\\end{tikzpicture}', 'không được dùng lệnh \\input'],
+     ['\\begin{tikzpicture}\\draw (0,0)--(1,1);', 'không bằng nhau'], ['../bi-mat.png', 'không hiểu'], ['=HYPERLINK("x")', 'không hiểu']]
+      .forEach(function (c) { throws_(function () { call_(tok, 'saveText', { ma_bai: 'TEST-02', truong: 'hinh', noi_dung: c[0], phien_ban: v0 + 2 }); }, c[1]); });
+    eq_(v(), v0 + 2, 'bài không đổi'); eq_(findRow_('Problems', 'ma_bai', 'TEST-02').data.hinh, 'hinh-a.png\nhinh b.jpg');
+    throws_(function () { call_(login_(A.T2), 'saveText', { ma_bai: 'TEST-02', truong: 'hinh', noi_dung: '', phien_ban: v0 + 2 }); }, 'Không có quyền');
+  });
+  test_('16.3', 'Trang bài: hình TikZ hiện SVG khi đã dựng (cả khối trong đề bài), "chưa dựng" khi sửa TikZ; ảnh theo tên; tên thiếu được báo; phản biện được giao cũng thấy', 'T1', function () {
+    withFolders(function (ex, fig) {
+      var tz2 = TZ.replace('1,1', '3,1');
+      setP('TEST-02', { hinh: TZ, de_bai: 'Cho hình ' + tz2 + ' sau.' });
+      var tok = login_(A.T1), h = call_(tok, 'getProblem', { ma_bai: 'TEST-02' }).hinh;
+      eq_(Object.keys(h.figs).length, 0, 'chưa dựng');
+      fig.createFile(Utilities.newBlob(SVG_OK, 'image/svg+xml', 'tikz-' + figKey_(TZ) + '.svg'));
+      fig.createFile(Utilities.newBlob(SVG_OK, 'image/svg+xml', 'tikz-' + figKey_(tz2) + '.svg'));
+      h = call_(tok, 'getProblem', { ma_bai: 'TEST-02' }).hinh;
+      eq_(Object.keys(h.figs).sort(), [TZ, tz2].sort());
+      ok_(/^data:image\/svg\+xml;base64,/.test(h.figs[TZ]), 'data URI SVG');
+      setP('TEST-02', { hinh: TZ.replace('1,1', '1,2') });
+      h = call_(tok, 'getProblem', { ma_bai: 'TEST-02' }).hinh;
+      eq_(Object.keys(h.figs), [tz2], 'TikZ đã sửa: hình cũ không hiện cho mã mới');
+      fig.createFile(Utilities.newBlob('ảnh thử', 'image/png', 'hinh-a.png'));
+      setP('TEST-02', { hinh: 'hinh-a.png\nkhong-co.png' });
+      h = call_(login_(A.QT), 'getProblem', { ma_bai: 'TEST-02' }).hinh;
+      eq_(Object.keys(h.pics), ['hinh-a.png']); eq_(h.thieu, ['khong-co.png']);
+      eq_(call_(login_(A.QT), 'bundle').details['TEST-02'].hinh, undefined, 'tải gộp không mang hình');
+    });
+  });
+  test_('16.4', 'Trang Hình: liệt kê hình TikZ (đề, lời giải, cột Hình) và ảnh, đã dựng chưa; chỉ NCB, PT, Quản trị', 'T1', function () {
+    withFolders(function (ex, fig) {
+      setP('TEST-02', { hinh: TZ, loi_giai: 'Xem ' + TZ.replace('1,1', '0,1') });
+      setP('TEST-04', { hinh: 'mat.png' });
+      fig.createFile(Utilities.newBlob(SVG_OK, 'image/svg+xml', 'tikz-' + figKey_(TZ) + '.svg'));
+      setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+      var it = call_(login_(A.T1), 'figures').items;
+      eq_(it.map(function (x) { return [x.ma_bai, x.noi, x.da_dung]; }),
+          [['TEST-02', 'lời giải', false], ['TEST-02', 'hình', true], ['TEST-04', 'ảnh', false]]);
+      ok_(it.every(function (x) { return x.src === undefined; }), 'danh sách không mang mã nguồn');
+      ['PB', 'TBT', 'VP', 'BTK'].forEach(function (r) {
+        setUsers_({ QT: 'Quản trị', T1: r, T2: 'PB' });
+        throws_(function () { call_(login_(A.T1), 'figures'); }, 'Không có quyền');
+      });
+    });
+  });
+  test_('16.5', 'Tải mã nguồn: zip gồm tikz-<mã>.tex (đúng khối) và danh sách; mặc định chỉ hình chưa dựng; không còn gì thì báo 0', 'QT', function () {
+    withFolders(function (ex, fig) {
+      var tz2 = TZ.replace('1,1', '0,1');
+      setP('TEST-02', { hinh: TZ, loi_giai: 'Xem ' + tz2 });
+      setP('TEST-03', { de_bai: 'Cùng hình: ' + TZ });
+      fig.createFile(Utilities.newBlob(SVG_OK, 'image/svg+xml', 'tikz-' + figKey_(tz2) + '.svg'));
+      var tok = login_(A.QT), r = call_(tok, 'figureSources', {});
+      eq_(r.n, 1, 'một hình chưa dựng (dùng ở hai bài)');
+      var z = {}; Utilities.unzip(Utilities.newBlob(Utilities.base64Decode(r.b64), 'application/zip', 'x.zip')).forEach(function (b) { z[b.getName()] = b.getDataAsString(); });
+      eq_(Object.keys(z).sort(), ['danh-sach.txt', 'tikz-' + figKey_(TZ) + '.tex']);
+      eq_(z['tikz-' + figKey_(TZ) + '.tex'], TZ);
+      has_s_(z['danh-sach.txt'], 'TEST-02'); has_s_(z['danh-sach.txt'], 'TEST-03');
+      eq_(call_(tok, 'figureSources', { tat_ca: true }).n, 2);
+      fig.createFile(Utilities.newBlob(SVG_OK, 'image/svg+xml', 'tikz-' + figKey_(TZ) + '.svg'));
+      eq_(call_(tok, 'figureSources', {}).n, 0);
+    });
+  });
+  test_('16.6', 'Tải SVG lên: chỉ nhận tikz-<mã>.svg của hình đang có; chặn SVG có mã chạy được hoặc liên kết ngoài; tải lại thì thay; PB, TBT không tải được', 'T1', function () {
+    withFolders(function (ex, fig) {
+      setP('TEST-02', { hinh: TZ });
+      setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'TBT' });
+      var k = figKey_(TZ), name = 'tikz-' + k + '.svg', tok = login_(A.T1);
+      var r = call_(tok, 'uploadFigures', { files: [b64zip('hinh-svg.zip', [[name, SVG_OK], ['tikz-0000000000000000.svg', SVG_OK], ['ghi-chu.txt', 'x']])] });
+      eq_(r.saved.map(function (x) { return [x.ten, x.ma_bai]; }), [[name, 'TEST-02']]);
+      eq_(r.skipped.map(function (x) { return x.ten; }), ['tikz-0000000000000000.svg', 'ghi-chu.txt']);
+      [['<svg><script>alert(1)</script></svg>', 'mã chạy được'], ['<svg onload="x()"></svg>', 'mã chạy được'],
+       ['<svg><image href="https://example.com/a.png"/></svg>', 'liên kết ra ngoài'], ['xin chào', 'không phải SVG']].forEach(function (c) {
+        var rr = call_(tok, 'uploadFigures', { files: [{ name: name, b64: Utilities.base64Encode(c[0]) }] });
+        eq_(rr.saved.length, 0); has_s_(rr.skipped[0].ly_do, c[1]);
+      });
+      var n = function () { var c = 0, it = fig.getFiles(); while (it.hasNext()) { if (it.next().getName() === name) c++; } return c; };
+      eq_(n(), 1);
+      call_(tok, 'uploadFigures', { files: [{ name: name, b64: Utilities.base64Encode(SVG_OK.replace('10', '12')) }] });
+      eq_(n(), 1, 'tải lại thì thay, không nhân đôi');
+      ok_(Utilities.newBlob(Utilities.base64Decode(call_(tok, 'getProblem', { ma_bai: 'TEST-02' }).hinh.figs[TZ].split(',')[1])).getDataAsString().indexOf('width="12"') >= 0, 'trang hiện bản mới');
+      ok_(auditHas_('tải hình lên', 'TEST-02'));
+      ['PB', 'TBT'].forEach(function (rl) {
+        setUsers_({ QT: 'Quản trị', T1: rl, T2: 'PB' });
+        throws_(function () { call_(login_(A.T1), 'uploadFigures', { files: [{ name: name, b64: Utilities.base64Encode(SVG_OK) }] }); }, 'Không có quyền');
+      });
+    });
+  });
+  test_('16.7', 'Khoá kỳ: cột Hình nhiều tên ảnh → mỗi ảnh một \\includegraphics, cả hai vào pic/', 'QT', function () {
+    approved4();
+    withFolders(function (ex, fig) {
+      setP('TEST-03', { hinh: 'a.png\nb.png' });
+      fig.createFile(Utilities.newBlob('A', 'image/png', 'a.png')); fig.createFile(Utilities.newBlob('B', 'image/png', 'b.png'));
+      var r = call_(login_(A.QT), 'closeIssue', { so: '10/2026', bat_dau: '1', xac_nhan: true });
+      eq_(r.missing_pics, []);
+      var z = zipNames(r.url), t = z['de-ra-ky-nay-10-2026.tex'].getDataAsString();
+      has_s_(t, '\\includegraphics[width=0.45\\textwidth]{a.png}\\quad\n\\includegraphics[width=0.45\\textwidth]{b.png}');
+      ok_(z['pic/a.png'] && z['pic/b.png'], 'cả hai ảnh trong pic/');
     });
   });
 

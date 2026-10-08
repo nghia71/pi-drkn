@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | trình soạn thảo dự án chính → `runAllTests` → Run | 3–6 phút |
 | 3. Bằng tay | trình duyệt, ba tài khoản Google thật | làm theo các bài B1–B10 dưới đây | ~30 phút |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 94 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 101 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
 Lớp 3 là những gì máy không làm thay được: màn hình xin quyền của Google, đăng nhập thật bằng từng tài khoản,
@@ -44,7 +44,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (94 kịch bản) ·
+Bốn phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị (11 trường hợp) · máy chủ mô phỏng (101 kịch bản) ·
 từ bên ngoài (3 trường hợp: người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy ba phần đầu và **không đẩy mã** nếu có lỗi.
 
@@ -228,6 +228,18 @@ Khi nào chạy: sau mỗi lần `scripts/deploy.sh` có thay đổi phía máy 
 | 15.5 | Thiếu tên tác giả để in hoặc đề trống thì chặn khoá (dù đã xác nhận) | QT |
 | 15.6 | Tệp .tex: chỉ đề bài, theo mẫu cột (setcounter, thụt dòng, dòng tác giả); không lời giải, ghi chú, liên hệ; **đậm**/*nghiêng* ngoài công thức; NFC | QT |
 | 15.7 | Hình: TikZ đặt ngay trong tệp; hình ảnh vào pic/ của zip; hình thiếu được báo; BTK tải lại được tệp của số đã khoá | QT |
+
+**16. Hình**
+
+| Mã | Kịch bản | Tài khoản |
+|---|---|---|
+| 16.1 | Mã hình (SHA-256 của khối TikZ) khớp tools/hinh/build.py; không phụ thuộc NFC/NFD, \\r\\n | QT |
+| 16.2 | Sửa cột Hình: TikZ hoặc tên tệp ảnh; nội dung lạ, lệnh đọc tệp, khối lệch, tên lạ bị từ chối, bài không đổi; PB không sửa được | T1 |
+| 16.3 | Trang bài: hình TikZ hiện SVG khi đã dựng (cả khối trong đề bài), "chưa dựng" khi sửa TikZ; ảnh theo tên; tên thiếu được báo; phản biện được giao cũng thấy | T1 |
+| 16.4 | Trang Hình: liệt kê hình TikZ (đề, lời giải, cột Hình) và ảnh, đã dựng chưa; chỉ NCB, PT, Quản trị | T1 |
+| 16.5 | Tải mã nguồn: zip gồm tikz-<mã>.tex (đúng khối) và danh sách; mặc định chỉ hình chưa dựng; không còn gì thì báo 0 | QT |
+| 16.6 | Tải SVG lên: chỉ nhận tikz-<mã>.svg của hình đang có; chặn SVG có mã chạy được hoặc liên kết ngoài; tải lại thì thay; PB, TBT không tải được | T1 |
+| 16.7 | Khoá kỳ: cột Hình nhiều tên ảnh → mỗi ảnh một \\includegraphics, cả hai vào pic/ | QT |
 
 <!-- bảng tự sinh: hết -->
 
@@ -443,6 +455,23 @@ Làm B14 bước 1–3 và 6 (lập bảng THU-99/2026, xếp đủ THU-01 … T
 **Bạn sẽ thấy.** Bước 1: nút Khoá kỳ chỉ bấm được khi có số in. Bước 4: nút đổi thành "Bấm lần nữa: ghi số in P9001–P9010, chuyển 10 bài sang PL…".
 Bước 6: công cụ in "Số bài: 10 — P9001 đến P9010" và "Đã ghi …-btk.zip"; PDF theo mẫu cột Đề ra kỳ này, mức B trước, mức A sau.
 Khi thử mở lại hay khoá lần hai: bị từ chối. NCB, PB, VP không có nút Khoá kỳ.
+
+### B16 — Hình: sửa TikZ, dựng SVG ở máy, tải lên, hình hiện trên trang
+**Tình huống.** NCB vẽ lại hình cho một bài (quy ước 1, 2); hình được dựng ở máy và hiện cho cả phản biện. Chỉ dùng **bài luyện**.
+**Trước khi bắt đầu.** Sau lần triển khai có tính năng này. `resetPractice`. Sheet → tab Users → T1 = `NCB` (T2 giữ `PB` — được giao THU-02). Tải lại trang.
+**Các bước.**
+1. *(T1)* Mở **THU-02** → mục **Hình** → **Sửa**. Dán:
+   `\begin{tikzpicture}\draw (0,0) node[below]{$A$} -- (4,0) node[below]{$B$} -- (0,3) node[above]{$C$} -- cycle;\end{tikzpicture}`
+   ← Ô xem trước: "[hình TikZ — chưa dựng]". Bấm **Lưu** (Sửa nhỏ).
+2. *(T1)* Thử lưu lại với `\input{x}` chèn vào trong khối ← bị từ chối ("không được dùng lệnh \input"); bấm Huỷ hai lần.
+3. *(T1)* Nút **Hình** (đầu trang): THU-02 · hình · chưa dựng. Bấm **Tải các hình chưa dựng (.zip)**.
+4. *(QT, trên Mac)* `python3 tools/hinh/build.py ~/Downloads/hinh-chua-dung.zip` ← "Đã dựng 1 hình → …/hinh-svg.zip".
+5. *(T1)* Trang Hình → chọn `hinh-svg.zip` → **Tải SVG lên** ← "Đã lưu 1 hình"; danh sách trống (bỏ đánh dấu "Chỉ hiện…" để thấy "đã dựng").
+6. *(T1)* Mở THU-02: thấy tam giác ABC. *(T2)* Mở THU-02: cũng thấy hình, không có nút Sửa, không có nút Hình.
+7. *(T1)* Sửa hình: đổi `(4,0)` thành `(5,0)` → Lưu ← mục Hình lại "chưa dựng"; trang Hình liệt kê hình mới.
+8. *(QT)* `resetPractice`. (Tệp `tikz-….svg` luyện tập còn trong thư mục hình — vô hại, xoá được.)
+**Vì sao quan trọng.** Hình vẽ lại phải hiện đúng phiên bản TikZ đang lưu; dựng hình không đưa đề ra khỏi máy của ban biên tập.
+**Bạn sẽ thấy.** Bước 6: hình trắng nền, chữ A, B, C rõ; trên điện thoại hình thu vừa màn hình. Bước 7: hình cũ không còn hiện.
 
 ---
 

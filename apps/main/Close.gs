@@ -142,7 +142,7 @@ function closePlan_(so) {
     var tb = texBody_(p.de_bai);
     it.tex = tb.tex;
     tb.warnings.forEach(function (x) { notes.push(x); });
-    if (it.hinh && it.hinh.indexOf('\\begin{tikzpicture}') < 0) pics.push(it.hinh);
+    hinhKind_(it.hinh).pics.forEach(function (n) { pics.push(n); });
     it.notes = notes;
     notes.forEach(function (n) { warnings.push(p.ma_bai + ': ' + n); });
     return it;
@@ -170,9 +170,10 @@ function buildTex_(so, start, items) {
     parts.push('\\thachthuc (Mức $' + it.muc + '$)');
     parts.push(it.tex);
     if (it.hinh) {
+      var hk = hinhKind_(it.hinh);
       parts.push('\\begin{center}');
-      parts.push(it.hinh.indexOf('\\begin{tikzpicture}') >= 0 ? it.hinh.replace(/^\s+|\s+$/g, '')
-                                                             : '\\includegraphics[width=0.45\\textwidth]{' + it.hinh + '}');
+      parts.push(hk.tikz ? figNorm_(it.hinh).trim()
+                         : hk.pics.map(function (n) { return '\\includegraphics[width=0.45\\textwidth]{' + n + '}'; }).join('\\quad\n'));
       parts.push('\\end{center}');
     }
     parts.push('\\begin{flushright}');

@@ -11,11 +11,12 @@ var STATUS_SETTERS = ['PT', 'TBT', 'Quản trị'];
 var CONTACT_VIEWERS = ['VP', 'PT', 'TBT', 'Quản trị'];
 var ALL_PROBLEMS_VIEWERS = ['TBT', 'PT', 'NCB', 'VP', 'BTK', 'Quản trị'];
 
-var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1, rounds: 1, boards: 1, closePreview: 1, exportOf: 1 };
+var READ_ONLY_ = { me: 1, listProblems: 1, getProblem: 1, bundle: 1, revisions: 1, rounds: 1, boards: 1, closePreview: 1, exportOf: 1, figures: 1, figureSources: 1 };
 var MAX_TEXT_ = 45000;   // giới hạn một ô của Google Sheets là 50 000 ký tự; chừa chỗ cho dấu ' chặn công thức
 
 function api(token, method, args) {
   READ_MEMO_ = READ_ONLY_[method] ? {} : null;
+  FIG_INDEX_ = null;
   try {
     if (method === 'bundle') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
                                         'Checks', 'Conflicts', 'ConversionLog', 'Comments', 'Reviews']);
@@ -66,6 +67,9 @@ function api_(token, method, args) {
     case 'returnBoard': return returnBoard_(w, args);
     case 'reopenBoard': return reopenBoard_(w, args);
     case 'closePreview': return closePreview_(w, args);
+    case 'figures': return figuresView_(w);
+    case 'figureSources': return figureSources_(w, args);
+    case 'uploadFigures': return uploadFigures_(w, args);
     case 'closeIssue': return closeIssue_(w, args);
     case 'exportOf': return exportOf_(w, args);
     default: throw new Error('Không có thao tác ' + method);
@@ -180,7 +184,10 @@ function getProblem_(w, ma, noAudit) {
   out.lists = out.lists || {};
   out.lists.recommendations = REVIEW_RECOMMENDATIONS; out.lists.levels = LEVELS;
   if (!full) out.comments = anonComments_(w, ma, out.comments);
-  if (!noAudit) audit_(w.email, 'xem', ma);
+  if (!noAudit) {
+    out.hinh = figsFor_(p);          // SVG / ảnh của bài (không gửi trong bundle: nặng, và trang luôn tải lại bài khi mở)
+    audit_(w.email, 'xem', ma);
+  }
   return out;
 }
 
@@ -193,10 +200,11 @@ function getProblem_(w, ma, noAudit) {
  */
 function saveText_(w, a) {
   need_(w, EDITORS);
-  if (['de_bai', 'loi_giai'].indexOf(a.truong) < 0) throw new Error('Chỉ sửa được de_bai hoặc loi_giai.');
+  if (['de_bai', 'loi_giai', 'hinh'].indexOf(a.truong) < 0) throw new Error('Chỉ sửa được de_bai, loi_giai hoặc hinh.');
   if (!canSee_(w, a.ma_bai, assignedSet_(w))) throw new Error('Không có quyền sửa bài này.');
   var text = String(a.noi_dung == null ? '' : a.noi_dung);
   if (text.length > MAX_TEXT_) throw new Error('Văn bản quá dài (tối đa ' + MAX_TEXT_ + ' ký tự).');
+  if (a.truong === 'hinh') { var he = hinhError_(text); if (he) throw new Error(he); }
   var loai = a.loai || 'nho';
   if (['nho', 'noi_dung'].indexOf(loai) < 0) throw new Error('Loại sửa không hợp lệ.');
   var viTri = shortText_(a.vi_tri, 'Vị trí', 300, loai === 'noi_dung'), lyDo = shortText_(a.ly_do, 'Lý do', 2000, loai === 'noi_dung');
@@ -211,7 +219,7 @@ function saveText_(w, a) {
     if (loai === 'noi_dung') {
       var d = changedSpan_(String(hit.data[a.truong] || ''), text);
       sheet_('Corrections').appendRow(rowOf_('Corrections', { id: newId_(), ma_bai: a.ma_bai,
-        vi_tri: (a.truong === 'de_bai' ? 'đề' : 'lời giải') + ', ' + viTri, truoc: d.truoc, sau: d.sau, ly_do: lyDo,
+        vi_tri: ({ de_bai: 'đề', loi_giai: 'lời giải', hinh: 'hình' })[a.truong] + ', ' + viTri, truoc: d.truoc, sau: d.sau, ly_do: lyDo,
         trang_thai: CORRECTION_STATUSES[0], nguoi: w.email, ngay: now_() }));
       r.sua_doi = true;
     }
