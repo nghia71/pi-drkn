@@ -25,6 +25,8 @@ catch (e) {
 }
 const MJ = path.join(REPO, 'node_modules', 'mathjax', 'es5');
 const { loadApp } = require(path.join(REPO, 'tools', 'gas-sim', 'sim'));
+// trang chính gọi include_('ui/RenderJs') khi đăng nhập: tệp sinh từ shared/pi-render.js (deploy.sh cũng làm vậy; không vào kho)
+fs.writeFileSync(path.join(APP, 'ui', 'RenderJs.html'), '<script>\n' + fs.readFileSync(path.join(REPO, 'shared', 'pi-render.js'), 'utf8') + '</script>\n');
 
 /* ---------------- máy chủ mô phỏng + dữ liệu bịa ---------------- */
 const QT = 'quantri@example.com', PT = 'pt@example.com', TBT = 'tbt@example.com', NCB = 'ncb@example.com',
