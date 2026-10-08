@@ -44,3 +44,11 @@ docs/guide/*.snm
 docs/guide/*.toc
 docs/guide/*.vrb
 out/
+# tệp phụ khi dựng slide hướng dẫn (docs/huong-dan)
+docs/huong-dan/*/*.aux
+docs/huong-dan/*/*.log
+docs/huong-dan/*/*.nav
+docs/huong-dan/*/*.out
+docs/huong-dan/*/*.snm
+docs/huong-dan/*/*.toc
+docs/huong-dan/*/*.vrb

@@ -1,0 +1,26 @@
+% Hướng dẫn cho Ban trình bày (BTK). Dịch: pdflatex slides.tex (hai lần), sau scripts/test-all.sh
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage{../pi-hd}
+\newcommand\vaitro{Hướng dẫn cho Ban trình bày}
+\begin{document}
+
+\bia{Ban trình bày}{Nhận tệp đề bài của số báo đã khoá để dàn trang.}
+
+\chu{Việc của Ban trình bày}{%
+\begin{buoc}
+\item Khi Tổng biên tập khoá kỳ, số báo có \textbf{tệp .tex chỉ có đề bài}, đã đánh số in, mức B trước, mức A sau, kèm dòng tác giả.
+\item Thầy cô tải tệp ở trang \textbf{Bảng chọn bài}.
+\item Hình của đề nằm trong \textbf{gói chế bản} (tệp .tex và thư mục pic/) trên Drive — Quản trị gửi đường dẫn,
+  hoặc gửi gói đã dựng sẵn bản PDF xem trước.
+\item Tệp dùng mẫu định dạng của Pi (\texttt{dinhdang.tex}); không có lời giải, ghi chú hay liên hệ.
+\end{buoc}}
+
+\manhinh{btk}{Tải tệp .tex}
+
+\chu{Khi có sự cố}{%
+\begin{itemize}\setlength\itemsep{2mm}
+\item \textbf{Không thấy nút Tải tệp .tex}: số báo chưa khoá — hỏi Tổng biên tập.
+\item \textbf{Thiếu hình}: báo Quản trị (hình chưa có trong thư mục hình khi khoá).
+\item \textbf{Chữ tiếng Việt lỗi}: tệp là UTF-8 dạng NFC; mở bằng trình soạn thảo hỗ trợ UTF-8.
+\end{itemize}}
+\end{document}

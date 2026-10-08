@@ -1,0 +1,40 @@
+% Hướng dẫn cho Phụ trách chuyên mục (PT). Dịch: pdflatex slides.tex (hai lần), sau scripts/test-all.sh
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage{../pi-hd}
+\newcommand\vaitro{Hướng dẫn cho Phụ trách chuyên mục}
+\begin{document}
+
+\bia{Phụ trách chuyên mục}{Chọn bài vào danh sách sơ bộ, tổ chức kỳ phản biện, xếp bảng chọn bài cho từng số báo.}
+
+\chu{Một vòng làm việc}{%
+\begin{buoc}
+\item Bài mới đến (Văn phòng, Người chuẩn bị bài thêm): trạng thái \textbf{Mới}.
+\item Thầy cô chọn bài đủ tốt vào danh sách sơ bộ: \textbf{SL}; bài không đủ: \textbf{Không SL} (ghi lý do).
+\item Mở \textbf{kỳ phản biện}, giao bài, gửi thư mời; phản biện tự giải, điền phiếu.
+\item Khi phản biện đã tự giải: \textbf{mở lời giải} cho cả kỳ. Hết hạn: \textbf{đóng kỳ}.
+\item Lập \textbf{bảng chọn bài} cho số báo, xếp 10 bài, gửi Tổng biên tập duyệt.
+\end{buoc}}
+
+\manhinh{danh-sach}{Danh sách bài}
+\manhinh{khong-sl}{Đổi trạng thái — Không SL phải có lý do}
+\manhinh[Kỳ mở nhầm, chưa có phiếu nào: bấm Xoá kỳ (hai lần).]{ky-phan-bien}{Kỳ phản biện}
+\manhinh{pt-xem-phieu}{Xem phiếu và thảo luận}
+\manhinh{bang-chon-bai}{Bảng chọn bài}
+
+\chu{Khi có sự cố}{%
+\begin{itemize}\setlength\itemsep{2mm}
+\item \textbf{Phản biện không nhận được thư mời}: kiểm tra cột Mời ($\checkmark$); thư đi từ tài khoản của hệ thống — nhờ họ xem thư mục Spam.
+\item \textbf{Giao nhầm bài}: bấm × ở dòng đó (phiếu đã nộp vẫn được giữ).
+\item \textbf{Mở nhầm kỳ}: Xoá kỳ khi chưa có phiếu; đã có phiếu thì chỉ đóng được.
+\item \textbf{Nút Gửi TBT duyệt mờ}: bảng còn vị trí trống — dòng bên cạnh nút ghi vị trí nào.
+\item \textbf{TBT trả lại bảng}: lý do hiện ở đầu bảng; sửa rồi gửi lại.
+\end{itemize}}
+
+\chu{Tóm tắt}{%
+\begin{buoc}
+\item Duyệt bài Mới: SL hoặc Không SL (có lý do).
+\item Kỳ phản biện: mở, giao, mời; mở lời giải đúng lúc; đóng kỳ.
+\item Đọc phiếu và thảo luận của từng bài.
+\item Bảng chọn bài: xếp đủ, gửi Tổng biên tập.
+\end{buoc}}
+\end{document}

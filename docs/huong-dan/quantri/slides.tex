@@ -1,0 +1,45 @@
+% Hướng dẫn cho Quản trị. Dịch: pdflatex slides.tex (hai lần), sau scripts/test-all.sh
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage{../pi-hd}
+\newcommand\vaitro{Hướng dẫn cho Quản trị}
+\begin{document}
+
+\bia{Quản trị}{Người dùng và vai trò, kiểm thử, sao lưu, triển khai, bàn giao.}
+
+\chu{Người dùng và vai trò}{%
+\begin{buoc}
+\item Mở Sheet dữ liệu → tab \texttt{Users}: mỗi người một dòng — email, tên, vai trò, hoạt động.
+\item Vai trò: Tổng biên tập, Phụ trách chuyên mục, Người chuẩn bị bài, Phản biện, Văn phòng, Ban trình bày, Quản trị;
+  nhiều vai trò cách nhau dấu phẩy. Có hiệu lực ngay, không cần đăng nhập lại.
+\item Tạm ngưng một người: cột \texttt{hoat\_dong} = FALSE.
+\item Gửi mọi người \textbf{địa chỉ đăng nhập} (địa chỉ /exec của ứng dụng đăng nhập) — cần tài khoản Google.
+\end{buoc}}
+
+\manhinh[Kiểm tra quyền của một vai trò mà không cần tài khoản khác.]{danh-sach}{Xem như một vai trò khác}
+
+\chu{Tự chạy — không cần làm gì}{%
+\begin{itemize}\setlength\itemsep{2mm}
+\item \textbf{Nhắc hạn} phản biện: mỗi sáng, 3 và 1 ngày trước hạn.
+\item \textbf{Kiểm thử} trên Google: sau mỗi lần triển khai và mỗi đêm — chỉ có thư khi có lỗi.
+\item \textbf{Sao lưu} Sheet dữ liệu mỗi đêm, giữ 30 bản (thư mục Pi ĐRKN — sao lưu); khôi phục: \texttt{docs/setup.md} mục 15.
+\item \textbf{Dựng hình} TikZ tự động (GitHub, kho riêng tư).
+\end{itemize}}
+
+\chu{Triển khai một thay đổi}{%
+\begin{buoc}
+\item Gộp Pull request trên GitHub, rồi trên máy: \texttt{git pull}.
+\item \texttt{scripts/test-all.sh} — mọi phần phải đạt.
+\item \texttt{scripts/deploy.sh} — kiểm thử lại rồi đẩy mã; địa chỉ web không đổi.
+\end{buoc}
+\medskip Không bao giờ bấm „New deployment" trong trình soạn thảo Apps Script.\\[2mm]
+Tài liệu: \texttt{docs/setup.md} (cài đặt), \texttt{docs/testing.md} (kiểm thử), \texttt{docs/handover.md} (bàn giao),
+slide \texttt{docs/guide/kientruc.tex} (kiến trúc).}
+
+\chu{Khi có sự cố}{%
+\begin{itemize}\setlength\itemsep{2mm}
+\item \textbf{Người dùng không vào được}: tab \texttt{Users} (vai trò, hoạt động); tab \texttt{Audit} (dòng „từ chối").
+\item \textbf{Thư báo kiểm thử lỗi}: tab „Kết quả" của Sheet kiểm thử; chạy lại \texttt{runTests('<nhóm>')}.
+\item \textbf{Thư báo sao lưu không được}: chạy \texttt{backupNow}.
+\item \textbf{Lỗi trên trang}: trình soạn thảo Apps Script → Executions.
+\end{itemize}}
+\end{document}

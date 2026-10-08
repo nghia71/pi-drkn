@@ -112,10 +112,10 @@ async function open(email, opt) {
 }
 /** Chờ mọi lời gọi máy chủ xong, trang vẽ lại, công thức dựng xong. */
 async function idle(pg, ms) {
-  await pg.waitForFunction(() => window.__pending === 0, null, { timeout: 15000 });
+  await pg.waitForFunction(() => !window.__pending, null, { timeout: 15000 });
   await pg.waitForTimeout(ms || 120);
   await pg.evaluate(() => (window.MathJax && MathJax.typesetPromise ? MathJax.typesetPromise().catch(() => {}) : null)).catch(() => {});
-  await pg.waitForFunction(() => window.__pending === 0, null, { timeout: 15000 });
+  await pg.waitForFunction(() => !window.__pending, null, { timeout: 15000 });
 }
 /**
  * Chụp màn hình cho trang hướng dẫn. marks = các bước đánh số: [{sel, t, has?, next?}] — khung cam + số trên phần tử,
@@ -124,21 +124,41 @@ async function idle(pg, ms) {
 async function shot(pg, name, caption, full, marks) {
   if (!SHOTS) return;
   await idle(pg); await clearToasts(pg);
-  const file = String(tour.filter(x => x.img).length + 1).padStart(2, '0') + '-' + name + '.png';
+  const file = name + '.png';                                      // tên cố định: slide video (docs/video) gọi theo tên
   const ann = marks && marks.length ? await annotate(pg, marks) : { miss: [], out: false };
   ann.miss.forEach(m => check(false, 'chú thích ảnh ' + name + ': không thấy ' + m));
   const fullPage = full !== false || ann.out;
   if (fullPage) await pg.evaluate(() => window.scrollTo(0, 0));     // thanh đầu trang (sticky) nằm ở đầu ảnh, không ở giữa
   await pg.screenshot({ path: path.join(OUT, file), fullPage });
+  // bản cho slide (16:10): cắt sát quanh các bước để chữ đủ lớn; trang dài không bị thu nhỏ thành dải hẹp
+  const W = pg.viewportSize().width, R = 1.6;
+  let clip = { x: 0, y: 0, width: W, height: Math.round(W / R) };
+  if (ann.rgt > 0) {
+    let w = Math.max(ann.rgt - ann.lft + 120, 760), h = Math.max(ann.bot - ann.top + 100, w / R);
+    w = Math.min(W, Math.max(w, h * R));
+    const cx = (ann.lft + ann.rgt) / 2, cy = (ann.top + ann.bot) / 2;
+    const x = Math.max(0, Math.min(cx - w / 2, W - w)), y = Math.max(0, Math.min(cy - h / 2, ann.docH - h));
+    clip = { x: Math.round(x), y: Math.round(y), width: Math.round(w), height: Math.round(Math.min(h, ann.docH)) };
+  }
+  await pg.screenshot({ path: path.join(OUT, name + '.slide.png'), fullPage: true, clip });
   await pg.evaluate(() => { const a = document.getElementById('__ann'); if (a) a.remove(); });
   tour.push({ img: file, caption, who: pg.who, view: pg.viewportSize().width < 600 ? 'điện thoại' : '', steps: (marks || []).map(m => m.t) });
+  // cùng chú thích cho slide hướng dẫn (docs/huong-dan): <tên>.cap.tex, <tên>.steps.tex — một nguồn cho ảnh và chữ
+  fs.writeFileSync(path.join(OUT, name + '.cap.tex'), texEsc(caption) + '\n');
+  fs.writeFileSync(path.join(OUT, name + '.steps.tex'), (marks || []).map(m => '\\item ' + texEsc(m.t)).join('\n') + '\n');
+}
+/** Chữ thường → LaTeX (pdflatex, T5): ký tự đặc biệt và mũi tên. */
+function texEsc(t) {
+  const map = { '\\': '\\textbackslash{}', '$': '\\$', '&': '\\&', '%': '\\%', '#': '\\#', '_': '\\_', '{': '\\{', '}': '\\}',
+                '→': '$\\to$', '↑': '$\\uparrow$', '↓': '$\\downarrow$', '×': '$\\times$', '…': '\\ldots{}', '≠': '$\\neq$' };
+  return String(t).replace(/[\\$&%#_{}→↑↓×…≠]/g, c => map[c]).replace(/"([^"]*)"/g, "``$1''");
 }
 async function annotate(pg, marks) {
   return pg.evaluate(ms => {
     const lay = document.createElement('div'); lay.id = '__ann';
     lay.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;z-index:99999;pointer-events:none';
     document.body.appendChild(lay);
-    const miss = []; let top = 1e9, bot = 0;
+    const miss = []; let top = 1e9, bot = 0, lft = 1e9, rgt = 0;
     ms.forEach((m, i) => {
       let els = Array.from(document.querySelectorAll(m.sel)).filter(e => e.getClientRects().length);
       if (m.has) els = els.filter(e => e.textContent.includes(m.has));
@@ -152,9 +172,9 @@ async function annotate(pg, marks) {
       const n = document.createElement('div'); n.textContent = i + 1;
       n.style.cssText = `position:absolute;left:${Math.max(2, x - 13)}px;top:${Math.max(2, y - 13)}px;width:26px;height:26px;border-radius:50%;background:#e8590c;color:#fff;` +
                         'font:700 14px/26px system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.45)';
-      lay.append(box, n); top = Math.min(top, Math.max(0, y - 13)); bot = Math.max(bot, y + h);
+      lay.append(box, n); top = Math.min(top, Math.max(0, y - 13)); bot = Math.max(bot, y + h); lft = Math.min(lft, Math.max(0, x - 13)); rgt = Math.max(rgt, x + w);
     });
-    return { miss, out: top < scrollY || bot > scrollY + innerHeight };
+    return { miss, out: top < scrollY || bot > scrollY + innerHeight, top, bot, lft, rgt, docH: document.documentElement.scrollHeight };
   }, marks);
 }
 const text = (pg, sel) => pg.$eval(sel, el => el.innerText).catch(() => '');
@@ -170,6 +190,17 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   br = await launchBrowser();
   const pages = [];
   const O = async (email, opt) => { const p = await open(email, opt); pages.push(p); return p; };
+
+  /* ---------- 0. Đăng nhập (ứng dụng đăng nhập, như người dùng thấy sau khi Google xác nhận email) ---------- */
+  if (SHOTS) {
+    const sg = loadApp(path.join(REPO, 'apps', 'signin'), { owner: PB1 });
+    Object.assign(sg.props, { SECRET: 'x', B_URL: 'https://script.google.com/macros/s/THU/exec' });
+    const sp = await (await br.newContext({ viewport: { width: 1180, height: 420 } })).newPage(); sp.who = PB1;
+    await sp.setContent('<!doctype html><meta charset="utf-8">' + sg.ctx.doGet().getContent());
+    section('0. Vào hệ thống', 'Mở đường dẫn đăng nhập (gửi qua email), Google xác nhận địa chỉ email, rồi bấm Vào hệ thống.');
+    await shot(sp, 'dang-nhap', 'Trang đăng nhập: kiểm tra đúng tài khoản ở dòng "Xin chào", rồi bấm Vào hệ thống. Liên kết có hiệu lực 10 phút.', false,
+      [{ sel: 'b', t: 'Đúng tài khoản của bạn chưa?' }, { sel: 'a', t: 'Vào hệ thống' }]);
+  }
 
   /* ---------- 1. Danh sách ---------- */
   section('1. Danh sách bài', 'Mở hệ thống: danh sách mặc định chỉ có bài đang xử lý (Mới, SL), mỗi lần 30 bài; lọc theo chủ đề, mức, trạng thái; sắp xếp.');
@@ -237,7 +268,8 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   await ncb.selectOption('.nb[data-i="1"] [data-noi="0"]', 'lg'); await clearToasts(ncb);
   await ncb.click('[data-a=save]'); await idle(ncb);
   check((await text(ncb, '[data-a=save]')).startsWith('Bấm lần nữa'), 'nút Thêm cần bấm hai lần');
-  await shot(ncb, 'them-bai', 'Thêm bài: tệp .tex của tác giả tự tách thành đề và lời giải; chủ đề, mức lấy từ tên tệp; mỗi ảnh chọn chỗ đặt. Nút "Thêm vào danh sách" bấm hai lần.', true, [{"sel": "#add [data-k=thang]", "t": "Tháng nhận — thư mục sẽ cấp được tính tự động"}, {"sel": "#add [data-k=tg]", "t": "Chọn tác giả đã có, hoặc để trống và ghi tác giả mới bên dưới"}, {"sel": ".nb[data-i=\"0\"] [data-k=tex]", "t": "Tải tệp .tex của tác giả: tự tách đề và lời giải"}, {"sel": ".nb[data-i=\"0\"] [data-noi=\"0\"]", "t": "Mỗi ảnh: đặt ở đề (in kèm đề) hay minh hoạ lời giải (không in)"}, {"sel": "[data-a=more]", "t": "Thêm một bài nữa của cùng tác giả"}, {"sel": "[data-a=save]", "t": "Thêm vào danh sách — bấm hai lần"}]);
+  await shot(ncb, 'them-bai', 'Thêm bài: tệp .tex của tác giả tự tách thành đề và lời giải; chủ đề, mức lấy từ tên tệp; mỗi ảnh chọn chỗ đặt. Nút "Thêm vào danh sách" bấm hai lần.', true, [{"sel": "#add [data-k=thang]", "t": "Tháng nhận — thư mục sẽ cấp được tính tự động"}, {"sel": "#add [data-k=tg]", "t": "Chọn tác giả đã có, hoặc để trống và ghi tác giả mới bên dưới"}, {"sel": ".nb[data-i=\"0\"] [data-k=tex]", "t": "Tải tệp .tex của tác giả: tự tách đề và lời giải"}]);
+  await shot(ncb, 'them-bai-2', 'Thêm bài (tiếp): ảnh của từng bài, thêm bài nữa của cùng tác giả, rồi Thêm vào danh sách.', true, [{"sel": ".nb[data-i=\"0\"] [data-noi=\"0\"]", "t": "Mỗi ảnh: đặt ở đề (in kèm đề) hay minh hoạ lời giải (không in)"}, {"sel": "[data-a=more]", "t": "Thêm một bài nữa của cùng tác giả"}, {"sel": "[data-a=save]", "t": "Thêm vào danh sách — bấm hai lần"}]);
   await ncb.click('[data-a=save]'); await idle(ncb, 300);
   const added = await ncb.$$eval('#a-res .code', x => x.map(a => a.textContent));
   check(added.length === 2 && added[0] === next + 'a' && added[1] === next + 'b', 'đã thêm hai bài ' + next + 'a, b: ' + added);
@@ -476,6 +508,17 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   await tab(tbt, 'go-list'); await tab(tbt, 'go-boards');
   await shot(tbt, 'tbt-duyet', 'TBT mở bảng đang chờ duyệt: Duyệt (bấm hai lần) hoặc Trả lại (phải ghi lý do, PT sẽ thấy).', false, [{"sel": "[data-b=approve]", "t": "Duyệt — bấm hai lần; bài thành SL-OK"}, {"sel": "[data-b=return]", "t": "Hoặc Trả lại, ghi lý do cho PT"}]);
   await twice(tbt, '[data-b=approve]');
+  step = 'TBT quyết định xung đột mức';
+  await openProb(tbt, P1); await tbt.click('#props summary'); await idle(tbt);
+  await tbt.click('[data-act=confl-edit]'); await idle(tbt);
+  check((await tbt.$$eval('.inl select[data-k=trang_thai] option', x => x.map(o => o.textContent))).includes('đã giải quyết'), 'TBT đặt được "đã giải quyết"');
+  await tbt.fill('.inl textarea[data-k=cach_giai_quyet]', 'Giữ mức B theo phiếu phản biện');
+  await shot(tbt, 'tbt-xung-dot', 'TBT quyết định xung đột mức: chọn "đã giải quyết", ghi cách giải quyết, Lưu.', true,
+    [{ sel: '#props h4', has: 'Xung đột', next: 1, t: 'Xung đột đang chờ TBT' }, { sel: '.inl select[data-k=trang_thai]', t: 'Chọn "đã giải quyết"' },
+     { sel: '.inl textarea[data-k=cach_giai_quyet]', t: 'Ghi cách giải quyết' }, { sel: '.inl [data-k=ok]', t: 'Lưu' }]);
+  await tbt.click('.inl [data-k=ok]'); await idle(tbt, 300);
+  check((await text(tbt, '#props')).includes('Giữ mức B'), 'quyết định của TBT được ghi');
+  await tab(tbt, 'go-boards');
   check((await text(tbt, '.bd .head')).includes('đã duyệt'), 'bảng đã duyệt');
   await tab(tbt, 'go-list'); await tbt.selectOption('#f-status', 'SL-OK'); await idle(tbt);
   check((await count(tbt, '#list .card')) >= 10, 'mười bài thành SL-OK');

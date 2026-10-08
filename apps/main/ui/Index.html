@@ -376,7 +376,7 @@ function props(d) {
       (can.props ? ' <button class="sm" data-act="confl-edit" data-id="' + escA(c.id) + '" data-tbt="' + (tbtOnly ? 1 : 0) + '">Ghi quyết định…</button>' : '') +
       '<div class="inl" data-for="' + escA(c.id) + '"></div>';
   };
-  return '<div class="props"><h4>Nguồn</h4><p>' + esc([v.thu_muc, v.tep_goc, v.ngay_nhan, v.kenh].filter(Boolean).join(' · ')) + '</p>' +
+  return '<div class="props"><h4>Nguồn</h4><p>' + esc([v.thu_muc, v.tep_goc, vnDate(v.ngay_nhan), v.kenh].filter(Boolean).join(' · ')) + '</p>' +
     '<h4>Đối chiếu nguyên bản</h4><p>' + esc(v.doi_chieu || 'chưa') + '</p>' +
     '<h4>Sửa đổi</h4>' + list(d.corrections, corr) +
     '<h4>Cần kiểm tra</h4>' + list(d.checks, check) +

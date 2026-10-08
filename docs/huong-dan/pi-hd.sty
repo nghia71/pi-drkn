@@ -1,0 +1,72 @@
+% Kiểu chung cho slide hướng dẫn theo vai trò (docs/huong-dan/<vai>/slides.tex).
+% Dịch bằng pdflatex (giống quy trình làm video ở kho lps67): T5 + Latin Modern cho tiếng Việt.
+% Ảnh và các bước lấy từ out/ui/ — tạo bằng scripts/test-all.sh (kiểm thử giao diện), không chụp tay.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{pi-hd}
+\RequirePackage[T5]{fontenc}
+\RequirePackage[utf8]{inputenc}
+% (không dùng babel: nó làm „;" „:" thành ký tự hoạt động, xung đột với TikZ; slide không cần ngắt âm tiếng Việt)
+\RequirePackage{lmodern}
+\RequirePackage{graphicx,tikz,enumitem}
+\def\pihdout{../../../out/ui/}   % ảnh và chú thích do tests/ui/run.js tạo
+\graphicspath{{\pihdout}}
+\renewcommand{\familydefault}{\sfdefault}
+
+\definecolor{pigreen}{HTML}{175F37}
+\definecolor{piorange}{HTML}{E8590C}
+\definecolor{piink}{HTML}{1E2A38}
+\definecolor{pisoft}{HTML}{F4F6F2}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{normal text}{fg=piink}
+\setbeamercolor{frametitle}{bg=pigreen,fg=white}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamertemplate{frametitle}{\nointerlineskip
+  \begin{beamercolorbox}[wd=\paperwidth,ht=8mm,dp=2.5mm,leftskip=6mm]{frametitle}\insertframetitle\end{beamercolorbox}\vskip2mm}
+\setbeamertemplate{footline}{\hskip6mm{\tiny\color{piink!55}Đề ra kỳ này · \vaitro}\hfill
+  {\tiny\color{piink!55}\insertframenumber\,/\,\inserttotalframenumber}\hskip6mm\vskip3mm}
+\setbeamersize{text margin left=6mm,text margin right=6mm}
+
+% số bước: vòng cam giống trên ảnh
+\newcommand\so[1]{\tikz[baseline=-0.6ex]\node[circle,fill=piorange,text=white,inner sep=0pt,minimum size=4.4mm,font=\scriptsize\bfseries]{#1};}
+\newlist{buoc}{enumerate}{1}
+\setlist[buoc]{label=\protect\so{\arabic*},leftmargin=6mm,itemsep=0.2mm,topsep=0.3mm}
+
+% Trang bìa của một vai trò. #1 tên vai trò, #2 một câu: vai trò này làm gì
+\newcommand\bia[2]{%
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay]
+\fill[pigreen] (current page.north west) rectangle ([yshift=-28mm]current page.north east);
+\node[anchor=west,text=white,font=\huge\bfseries] at ([xshift=10mm,yshift=-14mm]current page.north west) {$\pi$\quad Đề ra kỳ này};
+\node[anchor=north west,text width=135mm,align=left] at ([xshift=10mm,yshift=-40mm]current page.north west)
+  {{\LARGE\bfseries Hướng dẫn cho #1}\\[5mm]{\large\color{piink!75} #2}\\[12mm]
+   {\small\color{piink!60} Ảnh trong hướng dẫn chụp tự động từ trang thật, dữ liệu bịa (bài năm 2030, địa chỉ @example.com).}};
+\end{tikzpicture}
+\end{frame}}
+
+% Một màn hình: ảnh có các bước đánh số + chú thích và danh sách bước (cùng nguồn với ảnh).
+% #1 tên ảnh trong out/ui (không đuôi), #2 tiêu đề slide, #3 (tuỳ chọn) một câu thêm cho thầy cô
+\newcommand\manhinh[3][]{%
+\begin{frame}{#3}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.71\textwidth}\vspace{0pt}\centering
+\includegraphics[width=\linewidth,height=0.79\textheight,keepaspectratio]{#2.slide}\end{column}
+\begin{column}{0.27\textwidth}\vspace{0pt}\scriptsize
+{\tiny\color{piink!75}\input{\pihdout #2.cap.tex}\par}\smallskip
+\begin{buoc}\input{\pihdout #2.steps.tex}\end{buoc}
+\ifx\relax#1\relax\else\par\smallskip{\color{pigreen}\textbf{#1}}\fi
+\end{column}
+\end{columns}
+\end{frame}}
+
+% Ảnh không có bước (điện thoại, chế độ tối…): #1 tên ảnh, #2 tiêu đề, #3 chữ bên cạnh
+\newcommand\anh[3]{%
+\begin{frame}{#2}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.5\textwidth}\centering\includegraphics[height=0.76\textheight,width=\linewidth,keepaspectratio]{#1}\end{column}
+\begin{column}{0.48\textwidth}\small #3\end{column}
+\end{columns}
+\end{frame}}
+
+% Trang chữ: #1 tiêu đề, #2 nội dung
+\newcommand\chu[2]{\begin{frame}{#1}\small #2\end{frame}}

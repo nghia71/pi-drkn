@@ -1,0 +1,28 @@
+% Hướng dẫn cho Văn phòng (VP). Dịch: pdflatex slides.tex (hai lần), sau scripts/test-all.sh
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage{../pi-hd}
+\newcommand\vaitro{Hướng dẫn cho Văn phòng}
+\begin{document}
+
+\bia{Văn phòng}{Nhận bài của tác giả, đưa vào hệ thống, giữ liên hệ của tác giả.}
+
+\chu{Việc của Văn phòng}{%
+\begin{buoc}
+\item Nhận bài qua email, bưu điện hay trực tiếp.
+\item \textbf{Thêm bài} trên trang: tác giả (mới hoặc đã có), mỗi bài một khối, ảnh kèm chỗ đặt.
+\item Hệ thống cấp mã: tháng nhận, số thư mục kế tiếp, a, b, …
+\item Liên hệ của tác giả chỉ Văn phòng, Phụ trách chuyên mục, Tổng biên tập, Quản trị xem — \textbf{không ghi vào đề hay lời giải}.
+\item Khi cần hỏi tác giả (theo mục cần kiểm tra), Văn phòng liên lạc.
+\end{buoc}}
+
+\manhinh{them-bai}{Thêm bài: tác giả và tệp}
+\manhinh[Ảnh lộ đáp án phải đặt ở lời giải — ảnh của đề được in kèm đề.]{them-bai-2}{Thêm bài: ảnh và lưu}
+\manhinh{da-them}{Bài vừa thêm}
+
+\chu{Khi có sự cố}{%
+\begin{itemize}\setlength\itemsep{2mm}
+\item \textbf{Bị nhắc „Chọn chỗ đặt cho ảnh"}: mỗi ảnh chọn hình của đề (in) hay minh hoạ lời giải (không in).
+\item \textbf{Tệp .tex không tự tách}: dòng „Lời giải" phải đứng riêng; tách tay bằng cách chép vào hai ô.
+\item \textbf{Tác giả đã có}: chọn trong danh sách Tác giả, đừng tạo trùng.
+\end{itemize}}
+\end{document}
