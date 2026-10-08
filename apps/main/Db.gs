@@ -54,6 +54,9 @@ function prefetch_(names) {
   if (!READ_MEMO_ || typeof Sheets === 'undefined') return;
   var need = names.filter(function (n) { return !READ_MEMO_[n]; });
   if (!need.length) return;
+  // Ghi bằng SpreadsheetApp có thể còn nằm trong bộ đệm của lần chạy; Sheets API đọc thẳng bản trên máy chủ → ghi hết trước khi đọc
+  // (trang web: mỗi thao tác là một lần chạy riêng nên không gặp; bộ kiểm thử chạy mọi thứ trong một lần chạy — kịch bản 2.3).
+  SpreadsheetApp.flush();
   try {
     var res = Sheets.Spreadsheets.Values.batchGet(dbId_(), {
       ranges: need.map(function (n) { return "'" + n + "'!A2:" + colLetter_(SCHEMA[n].length); }),

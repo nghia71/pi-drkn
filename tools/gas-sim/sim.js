@@ -93,7 +93,8 @@ function makeEnv(opts) {
     Logger: { log: m => { if (opts.verbose) console.log('[log]', m); } },
     SpreadsheetApp: {
       create: n => { const s = new Spreadsheet(n); spreadsheets[s.id] = s; return s; },
-      openById: id => { if (!spreadsheets[id]) throw new Error('Không mở được Sheet ' + id); return spreadsheets[id]; }
+      openById: id => { if (!spreadsheets[id]) throw new Error('Không mở được Sheet ' + id); return spreadsheets[id]; },
+      flush: () => {}
     },
     PropertiesService: { getScriptProperties: () => ({
       getProperty: k => (Object.prototype.hasOwnProperty.call(props, k) ? props[k] : null),
