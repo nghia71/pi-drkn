@@ -932,6 +932,27 @@ function defineTests_() {
     eq_(findRow_('Rounds', 'ky', '10/2026').data.trang_thai, 'đóng');
   });
 
+  test_('13.12', 'Lời giải: phản biện KHÔNG nhận lời giải (cả trong tải gộp) cho tới khi PT/TBT mở cho kỳ; mở rồi thì thấy; đóng lại thì ẩn; NCB, PB không mở được; ban biên tập luôn thấy', 'T1', function () {
+    var tok = login_(A.T1), lg = function (t) { return call_(t, 'getProblem', { ma_bai: 'TEST-02' }).problem.loi_giai; };
+    eq_(lg(tok), '', 'chưa mở'); ok_(call_(tok, 'getProblem', { ma_bai: 'TEST-02' }).loi_giai_an);
+    eq_(call_(tok, 'bundle').details['TEST-02'].problem.loi_giai, '', 'tải gộp cũng không có');
+    lacks_(JSON.stringify(call_(tok, 'bundle')), 'Lời giải thử TEST-02');
+    eq_(lg(login_(A.QT)), 'Lời giải thử TEST-02.', 'Quản trị luôn thấy');
+    ['NCB', 'PB'].forEach(function (r) {
+      setUsers_({ QT: 'Quản trị', T1: 'PB', T2: r });
+      throws_(function () { call_(login_(A.T2), 'releaseSolutions', { ky: 'K-MO' }); }, 'Không có quyền');
+    });
+    setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'TBT' });
+    call_(login_(A.T2), 'releaseSolutions', { ky: 'K-MO' });
+    ok_(String(findRow_('Rounds', 'ky', 'K-MO').data.mo_loi_giai), 'ghi lúc mở');
+    eq_(lg(tok), 'Lời giải thử TEST-02.', 'đã mở');
+    eq_(call_(login_(A.QT), 'rounds').rounds.filter(function (r) { return r.ky === 'K-MO'; })[0].mo_loi_giai !== '', true);
+    call_(login_(A.QT), 'releaseSolutions', { ky: 'K-MO', mo: false });
+    eq_(lg(tok), '', 'đóng lại');
+    ok_(auditHas_('mở lời giải cho phản biện', 'K-MO')); ok_(auditHas_('đóng lời giải', 'K-MO'));
+    throws_(function () { call_(login_(A.QT), 'releaseSolutions', { ky: 'K-DONG' }); });
+  });
+
   // 14. Bảng chọn bài
   var B3 = function () { TEST_CONF.BOARD_LAYOUT = 'B,A,A'; };
   var placeAll = function (tok, so, list) { list.forEach(function (m, i) { call_(tok, 'place', { so: so, vi_tri: i + 1, ma_bai: m }); }); };
@@ -1222,7 +1243,7 @@ function defineTests_() {
       setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
       var it = call_(login_(A.T1), 'figures').items;
       eq_(it.map(function (x) { return [x.ma_bai, x.noi, x.da_dung]; }),
-          [['TEST-02', 'lời giải', false], ['TEST-02', 'hình', true], ['TEST-04', 'ảnh', false]]);
+          [['TEST-02', 'lời giải', false], ['TEST-02', 'hình', true], ['TEST-04', 'ảnh (đề)', false]]);
       ok_(it.every(function (x) { return x.src === undefined; }), 'danh sách không mang mã nguồn');
       ['PB', 'TBT', 'VP', 'BTK'].forEach(function (r) {
         setUsers_({ QT: 'Quản trị', T1: r, T2: 'PB' });
@@ -1282,6 +1303,99 @@ function defineTests_() {
       var z = zipNames(r.url), t = z['de-ra-ky-nay-10-2026.tex'].getDataAsString();
       has_s_(t, '\\includegraphics[width=0.45\\textwidth]{a.png}\\quad\n\\includegraphics[width=0.45\\textwidth]{b.png}');
       ok_(z['pic/a.png'] && z['pic/b.png'], 'cả hai ảnh trong pic/');
+    });
+  });
+
+  // 17. Thêm bài trên trang web (VP, NCB, PT, TBT, Quản trị) và thêm ảnh
+  var SVG_A = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10"/><text x="1" y="8">A</text></svg>';
+  var PNG_1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  var b64s = function (t) { return Utilities.base64Encode(t); };
+  var sub = function (o) {
+    var base = { thang: '2026-10', kenh: 'email', tac_gia: { ten_in: 'Tác Giả Mới Thử', don_vi: 'Trường Mới', lien_he: 'lien-he-moi@example.com' },
+                 bai: [{ chu_de: 'SH', muc_de_xuat: 'A', de_bai: 'Đề mới 1: $n^2$.', loi_giai: 'Lời giải mới 1.', tep_goc: 'bai1.tex' },
+                       { chu_de: 'HH', de_bai: 'Đề mới 2.', loi_giai: 'Lời giải mới 2.' }] };
+    for (var k in o) base[k] = o[k];
+    return base;
+  };
+  test_('17.1', 'Thêm bài: mã = tháng + thư mục kế tiếp còn trống + a, b; tác giả mới (liên hệ chỉ ở Authors); Provenance, nhật ký; NCB, TBT, VP thêm được; PB, BTK thì không', 'T1', function () {
+    putRows_('Problems', rows_('Problems').concat([{ ma_bai: '2026-10-03b', chu_de: 'ĐS', trang_thai: 'Mới', de_bai: 'y' }, { ma_bai: '2026-10-01a', chu_de: 'ĐS', trang_thai: 'Mới', de_bai: 'x' }]));
+    TEST_CONF.TODAY = '2026-10-08';
+    ['NCB', 'TBT', 'VP'].forEach(function (r) {
+      setUsers_({ QT: 'Quản trị', T1: r, T2: 'PB' });
+      eq_(call_(login_(A.T1), 'intakeForm').ma_tiep, '2026-10-04', 'thư mục kế tiếp sau 01, 03');
+    });
+    setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+    var r = call_(login_(A.T1), 'addSubmission', sub({}));
+    eq_(r.bai.map(function (x) { return x.ma_bai; }), ['2026-10-04a', '2026-10-04b']);
+    var p = findRow_('Problems', 'ma_bai', '2026-10-04a').data;
+    eq_([p.chu_de, p.trang_thai, p.de_bai, p.de_bai_goc, Number(p.phien_ban), p.muc], ['SH', 'Mới', 'Đề mới 1: $n^2$.', 'Đề mới 1: $n^2$.', 1, '']);
+    var au = findRow_('Authors', 'tac_gia_id', p.tac_gia_id).data;
+    eq_([au.ten_in, au.don_vi, au.lien_he], ['Tác Giả Mới Thử', 'Trường Mới', 'lien-he-moi@example.com']);
+    eq_(findRow_('Problems', 'ma_bai', '2026-10-04b').data.tac_gia_id, p.tac_gia_id, 'cùng tác giả');
+    lacks_(JSON.stringify(findRow_('Problems', 'ma_bai', '2026-10-04a').data), 'lien-he-moi', 'liên hệ không vào bài');
+    eq_(findRow_('Provenance', 'ma_bai', '2026-10-04a').data.kenh, 'email');
+    has_s_(rows_('ConversionLog').filter(function (c) { return c.ma_bai === '2026-10-04a'; })[0].noi_dung, 'Tác giả đề nghị mức A');
+    ok_(auditHas_('thêm bài', '2026-10-04a, 2026-10-04b'));
+    eq_(call_(login_(A.T1), 'addSubmission', sub({ tac_gia: { id: p.tac_gia_id }, bai: [sub({}).bai[1]] })).bai[0].ma_bai, '2026-10-05a');
+    eq_(call_(login_(A.T1), 'addSubmission', sub({ bai: [sub({}).bai[1]] })).bai[0].ma_bai, '2026-10-06a');
+    eq_(rows_('Authors').filter(function (a) { return a.ten_in === 'Tác Giả Mới Thử'; }).length, 1, 'không nhân đôi tác giả (cùng tên, đơn vị)');
+    eq_(findRow_('Problems', 'ma_bai', '2026-10-06a').data.tac_gia_id, p.tac_gia_id);
+    ['PB', 'BTK'].forEach(function (rl) {
+      setUsers_({ QT: 'Quản trị', T1: rl, T2: 'PB' });
+      throws_(function () { call_(login_(A.T1), 'addSubmission', sub({})); }, 'Không có quyền');
+    });
+  });
+  test_('17.2', 'Thêm bài: thiếu chủ đề / đề trống / tháng sai / ảnh sai loại → từ chối, không thêm gì (cả hồ sơ)', 'QT', function () {
+    var tok = login_(A.QT), n = rows_('Problems').length;
+    throws_(function () { call_(tok, 'addSubmission', sub({ bai: [sub({}).bai[0], { chu_de: '', de_bai: 'x' }] })); }, 'Bài 2: chọn chủ đề');
+    throws_(function () { call_(tok, 'addSubmission', sub({ bai: [{ chu_de: 'SH', de_bai: '  ' }] })); }, 'đề bài trống');
+    throws_(function () { call_(tok, 'addSubmission', sub({ thang: '2026-13' })); }, 'NNNN-TT');
+    throws_(function () { call_(tok, 'addSubmission', sub({ bai: [{ chu_de: 'SH', de_bai: 'x', anh: [{ name: 'a.exe', b64: b64s('MZ'), noi: 'de' }] }] })); }, 'chỉ nhận ảnh');
+    throws_(function () { call_(tok, 'addSubmission', sub({ bai: [{ chu_de: 'SH', de_bai: 'x', anh: [{ name: 'gia.png', b64: b64s('<svg/>'), noi: 'de' }] }] })); }, 'không phải ảnh PNG');
+    throws_(function () { call_(tok, 'addSubmission', sub({ bai: [{ chu_de: 'SH', de_bai: 'x', anh: [{ name: 'gia.jpg', b64: PNG_1, noi: 'de' }] }] })); }, 'không phải ảnh JPG');
+    throws_(function () { call_(tok, 'addSubmission', sub({ bai: [{ chu_de: 'SH', de_bai: 'x', anh: [{ name: 'x.svg', b64: b64s('<svg onload="x()"></svg>'), noi: 'de' }] }] })); }, 'mã chạy được');
+    throws_(function () { call_(tok, 'addSubmission', sub({ tac_gia: {} })); }, 'Tên tác giả');
+    eq_(rows_('Problems').length, n, 'không thêm gì');
+  });
+  test_('17.3', 'Ảnh khi thêm bài: ảnh của đề vào cột Hình (in kèm đề), ảnh lời giải chèn cuối lời giải (không in); hiện trên trang; khoá kỳ chỉ đóng gói ảnh của đề, SVG gọi không đuôi', 'QT', function () {
+    withFolders(function (ex, fig) {
+      var tok = login_(A.QT);
+      var r = call_(tok, 'addSubmission', sub({ bai: [{ chu_de: 'HH', de_bai: 'Đề có hình.', loi_giai: 'Lời giải.',
+        anh: [{ name: 'cau-hinh.svg', b64: b64s(SVG_A), noi: 'de' }, { name: 'dap-an.png', b64: PNG_1, noi: 'lg' }] }] }));
+      var ma = r.bai[0].ma_bai, p = findRow_('Problems', 'ma_bai', ma).data;
+      eq_(p.hinh, ma + '-1.svg');
+      has_s_(p.loi_giai, '\\includegraphics[width=0.6\\textwidth]{' + ma + '-2.png}');
+      eq_(p.loi_giai_goc, p.loi_giai, 'bản gốc = bản lúc thêm');
+      var h = call_(tok, 'getProblem', { ma_bai: ma }).hinh;
+      eq_(Object.keys(h.pics).sort(), [ma + '-1.svg', ma + '-2.png']);
+      ok_(/^data:image\/svg\+xml;base64,/.test(h.pics[ma + '-1.svg']) && /^data:image\/png;base64,/.test(h.pics[ma + '-2.png']));
+      eq_(call_(tok, 'figures').items.filter(function (x) { return x.ma_bai === ma; }).map(function (x) { return x.noi; }), ['ảnh (đề)', 'ảnh (trong lời giải)']);
+      TEST_CONF.BOARD_LAYOUT = 'A';
+      call_(tok, 'newBoard', { so: '12/2026' }); call_(tok, 'place', { so: '12/2026', vi_tri: 1, ma_bai: ma }); call_(tok, 'submitBoard', { so: '12/2026' });
+      setUsers_({ QT: 'Quản trị', T1: 'TBT', T2: 'PB' }); call_(login_(A.T1), 'approveBoard', { so: '12/2026' });
+      var au = findRow_('Authors', 'tac_gia_id', p.tac_gia_id); ok_(au, 'có tác giả');
+      var c = call_(tok, 'closeIssue', { so: '12/2026', bat_dau: '1', xac_nhan: true });
+      var z = zipNames(c.url);
+      eq_(Object.keys(z).sort(), ['de-ra-ky-nay-12-2026.tex', 'pic/' + ma + '-1.svg'], 'ảnh lời giải không vào gói');
+      var t = z['de-ra-ky-nay-12-2026.tex'].getDataAsString();
+      has_s_(t, '\\includegraphics[width=0.45\\textwidth]{' + ma + '-1}'); lacks_(t, '-2.png');
+    });
+  });
+  test_('17.4', 'Thêm ảnh cho bài đã có: phải đúng phiên bản; ảnh đề vào cột Hình, ảnh lời giải vào lời giải; có lịch sử; cột Hình là TikZ thì không thêm ảnh đề; PB không thêm được', 'T1', function () {
+    withFolders(function (ex, fig) {
+      setUsers_({ QT: 'Quản trị', T1: 'NCB', T2: 'PB' });
+      var tok = login_(A.T1), v = Number(findRow_('Problems', 'ma_bai', 'TEST-02').data.phien_ban);
+      throws_(function () { call_(tok, 'uploadPictures', { ma_bai: 'TEST-02', phien_ban: v - 1, files: [{ name: 'a.png', b64: PNG_1, noi: 'de' }] }); }, 'người khác sửa');
+      var r = call_(tok, 'uploadPictures', { ma_bai: 'TEST-02', phien_ban: v, files: [{ name: 'a.png', b64: PNG_1, noi: 'de' }, { name: 'b.svg', b64: b64s(SVG_A), noi: 'lg' }] });
+      eq_(r.names, ['TEST-02-1.png', 'TEST-02-2.svg']); eq_(r.phien_ban, v + 2);
+      var p = findRow_('Problems', 'ma_bai', 'TEST-02').data;
+      eq_(p.hinh, 'TEST-02-1.png'); has_s_(p.loi_giai, '{TEST-02-2.svg}');
+      eq_(rows_('Revisions').map(function (x) { return x.truong; }), ['hinh', 'loi_giai']);
+      setP('TEST-03', { hinh: '\\begin{tikzpicture}\\draw (0,0)--(1,0);\\end{tikzpicture}' });
+      var v3 = Number(findRow_('Problems', 'ma_bai', 'TEST-03').data.phien_ban);
+      throws_(function () { call_(tok, 'uploadPictures', { ma_bai: 'TEST-03', phien_ban: v3, files: [{ name: 'a.png', b64: PNG_1, noi: 'de' }] }); }, 'mã TikZ');
+      setUsers_({ QT: 'Quản trị', T1: 'PB', T2: 'PB' });
+      throws_(function () { call_(login_(A.T1), 'uploadPictures', { ma_bai: 'TEST-02', phien_ban: v + 2, files: [{ name: 'a.png', b64: PNG_1, noi: 'de' }] }); }, 'Không có quyền');
     });
   });
 

@@ -19,7 +19,7 @@ Bài chưa xác định được hồ sơ gốc dùng mã tạm (ví dụ `SL09-
 | ConversionLog | thay đổi thuần cách gõ khi chuyển đổi |
 | Authors | tên in, đơn vị; `lien_he` hạn chế |
 | Users | email, vai trò |
-| Rounds, Shortlist, Assignments, Reviews, Comments | vòng chọn bài, phân công phản biện, nhận xét, thảo luận theo bài |
+| Rounds, Shortlist, Assignments, Reviews, Comments | kỳ phản biện (cả lúc mở lời giải), bảng chọn bài, phân công phản biện, phiếu, thảo luận theo bài |
 | Issues | bảng chọn bài theo số báo: trạng thái (đang chọn, chờ duyệt, đã duyệt, đã khoá), người duyệt, lúc khoá, gói chế bản |
 | Published | bài đã đăng: số tạp chí, số in (ghi khi khoá kỳ) |
 | Revisions, Audit | lịch sử sửa, nhật ký truy cập |
@@ -42,6 +42,17 @@ Bài chưa xác định được hồ sơ gốc dùng mã tạm (ví dụ `SL09-
 thêm xung đột, ghi cách giải quyết; xung đột loại *mức, tác giả, trùng bài* chỉ TBT đặt "đã giải quyết", người khác chuyển "chờ TBT".
 Đổi trạng thái bài: PT, TBT, Quản trị. Các danh sách trạng thái nằm ở đầu `apps/main/Schema.gs` (CHECK_STATUSES, CONFLICT_STATUSES,
 TBT_CONFLICTS, CORRECTION_STATUSES) — đổi quy ước thì sửa ở đó. Mọi thao tác được ghi vào Audit (ai, khi nào).
+
+**Lời giải và phản biện** (Nghĩa, 2026-10-08): phản biện tự giải trước — máy chủ KHÔNG gửi lời giải (cả hình trong lời giải) cho
+phản biện cho tới khi PT hoặc TBT bấm "Mở lời giải cho phản biện" ở kỳ đó (`Rounds.mo_loi_giai` = lúc mở; đóng lại được).
+Sau đó phản biện vẫn nhận xét tiếp; PT đóng kỳ rồi chọn bài trên Bảng chọn bài.
+
+**Thêm bài trên trang web** (Intake.gs; VP, NCB, PT, TBT, Quản trị): mã = tháng nhận + thư mục kế tiếp còn trống + a, b…; bài Mới,
+phiên bản 1, bản gốc = văn bản lúc thêm; Provenance (thư mục, tệp gốc, ngày, kênh), ConversionLog (ai thêm, mức tác giả đề nghị, ảnh).
+Ảnh của đề: tên trong cột Hình; ảnh lời giải: `\includegraphics{…}` cuối lời giải.
+
+**Danh sách bài**: mặc định chỉ bài đang xử lý (Mới, SL); sắp xếp mới nhận trước (thư mục mới trước, trong thư mục a, b…),
+cần xử lý trước, chủ đề rồi mức, hoặc theo mã; mỗi lần hiện 30 bài ("Xem thêm"). Phản biện thấy mọi bài được giao.
 
 **Kỳ phản biện** (tab Rounds, Assignments, Reviews): PT, Quản trị mở kỳ (tên, hạn), giao bài cho người có vai trò PB,
 gửi thư mời, đổi hạn, đóng kỳ; TBT, NCB xem tiến độ. Phản biện điền **Phiếu phản biện** (mức đề nghị A/B; đề nghị

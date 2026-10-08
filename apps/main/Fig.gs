@@ -13,7 +13,10 @@
  */
 var FIG_MANAGERS = EDITORS;                    // NCB, PT, Quản trị: tải mã nguồn hình, tải SVG lên
 var TIKZ_RE_ = /\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g;
-var PIC_NAME_RE_ = /^[\w][\w .\-]*\.(png|jpe?g|pdf)$/i;
+var PIC_NAME_RE_ = /^[\w][\w .\-]*\.(png|jpe?g|pdf|svg)$/i;
+var INCLUDE_RE_ = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
+/** Tên ảnh gọi bằng \includegraphics{…} trong một văn bản (đề bài, lời giải). */
+function includedPics_(text) { var out = [], m; INCLUDE_RE_.lastIndex = 0; while ((m = INCLUDE_RE_.exec(String(text || '')))) out.push(m[1].trim()); return out; }
 var FIG_SVG_MAX_ = 600 * 1024, FIG_PIC_MAX_ = 3 * 1024 * 1024;
 var FIG_DANGER_RE_ = /\\(input|include|openin|openout|write|immediate|read|catcode|directlua|special|usepackage|documentclass|newwrite|newread|includegraphics|pgfimage|lstinputlisting|verbatiminput)\b|\^\^/;
 
@@ -45,7 +48,7 @@ function hinhError_(hinh) {
     return '';
   }
   var wrong = k.pics.filter(function (n) { return !PIC_NAME_RE_.test(n); });
-  if (wrong.length) return 'Cột Hình: hoặc mã TikZ, hoặc tên tệp ảnh (.png, .jpg, .pdf), mỗi dòng một tên — không hiểu: ' + wrong.join(', ');
+  if (wrong.length) return 'Cột Hình: hoặc mã TikZ, hoặc tên tệp ảnh (.svg, .png, .jpg, .pdf), mỗi dòng một tên — không hiểu: ' + wrong.join(', ');
   return '';
 }
 
@@ -82,7 +85,8 @@ function dataUri_(file, max) {
  */
 function figsFor_(p) {
   var out = { figs: {}, pics: {}, thieu: [] };
-  var hasFig = [p.de_bai, p.loi_giai, p.hinh].some(function (t) { return /\\begin\{tikzpicture\}/.test(String(t || '')); }) || hinhKind_(p.hinh).pics.length;
+  var picNames = hinhKind_(p.hinh).pics.concat(includedPics_(p.de_bai), includedPics_(p.loi_giai));
+  var hasFig = [p.de_bai, p.loi_giai, p.hinh].some(function (t) { return /\\begin\{tikzpicture\}/.test(String(t || '')); }) || picNames.length;
   if (!hasFig || !conf_('FIG_FOLDER_ID')) return out;           // bài không có hình: không đụng tới Drive
   try {
     var idx = figIndex_(), cache = CacheService.getScriptCache();
@@ -99,8 +103,9 @@ function figsFor_(p) {
         if (uri) out.figs[b] = uri;
       });
     });
-    hinhKind_(p.hinh).pics.forEach(function (n) {
+    picNames.forEach(function (n) {
       var f = idx[n];
+      if (out.pics[n] || out.thieu.indexOf(n) >= 0) return;
       if (!f) { out.thieu.push(n); return; }
       var uri = dataUri_(f, FIG_PIC_MAX_);
       if (uri) out.pics[n] = uri;
@@ -124,7 +129,11 @@ function figureList_(w) {
       });
     });
     hinhKind_(p.hinh).pics.forEach(function (n) {
-      out.push({ ma_bai: p.ma_bai, trang_thai: p.trang_thai, noi: 'ảnh', ten: n, da_dung: !!idx[n] });
+      out.push({ ma_bai: p.ma_bai, trang_thai: p.trang_thai, noi: 'ảnh (đề)', ten: n, da_dung: !!idx[n] });
+    });
+    includedPics_(p.de_bai).concat(includedPics_(p.loi_giai)).forEach(function (n, i, all) {
+      if (all.indexOf(n) !== i) return;
+      out.push({ ma_bai: p.ma_bai, trang_thai: p.trang_thai, noi: 'ảnh (trong ' + (includedPics_(p.de_bai).indexOf(n) >= 0 ? 'đề bài' : 'lời giải') + ')', ten: n, da_dung: !!idx[n] });
     });
   });
   return out;

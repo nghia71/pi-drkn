@@ -14,7 +14,7 @@ var SCHEMA = {
   ConversionLog: ['id', 'ma_bai', 'noi_dung', 'ngay'],
   Authors: ['tac_gia_id', 'ten_in', 'don_vi', 'lien_he', 'ghi_chu'],            // hạn chế: VP, PT, TBT, Quản trị
   Users: ['email', 'ten', 'vai_tro', 'hoat_dong', 'ghi_chu'],
-  Rounds: ['ky', 'trang_thai', 'm', 'han_phan_bien', 'khoa_luc', 'ghi_chu'],
+  Rounds: ['ky', 'trang_thai', 'm', 'han_phan_bien', 'khoa_luc', 'ghi_chu', 'mo_loi_giai'],   // mo_loi_giai: lúc PT cho phản biện xem lời giải (thêm 2026-10)
   Shortlist: ['ky', 'ma_bai', 'vi_tri', 'phuong_an', 'quyet_dinh', 'nguoi', 'ngay', 'trang_thai_truoc', 'muc_truoc'],   // bảng chọn bài (Board.gs)
   Issues: ['so', 'trang_thai', 'nguoi_duyet', 'duyet_luc', 'ghi_chu', 'khoa_luc', 'tep'],                                         // thêm 2026-10; khoa_luc, tep: khoá kỳ (Close.gs)
   Assignments: ['ky', 'ma_bai', 'email', 'giao_luc', 'han', 'xong', 'moi_luc', 'nhac'],   // moi_luc, nhac: thêm 2026-10

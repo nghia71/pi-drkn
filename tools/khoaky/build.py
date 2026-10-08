@@ -101,6 +101,25 @@ def check_text(path, pics):
     return errors, notes
 
 
+def svg_to_pdf(work, pics):
+    """Ảnh SVG (vẽ bằng GeoGebra, Inkscape…) → PDF cùng tên: tệp .tex gọi \\includegraphics{tên} không đuôi.
+    Cần rsvg-convert (Mac: brew install librsvg). Trả về danh sách PDF đã tạo (vào gói cho BTK)."""
+    svgs = [p for p in pics if p.lower().endswith('.svg')]
+    if not svgs:
+        return []
+    if not shutil.which('rsvg-convert'):
+        fail('có ảnh SVG (%s) — cần rsvg-convert để chuyển sang PDF (Mac: brew install librsvg)' % ', '.join(svgs))
+    out = []
+    for p in svgs:
+        pdf = p[:-4] + '.pdf'
+        r = subprocess.run(['rsvg-convert', '-f', 'pdf', '-o', os.path.join(work, 'pic', pdf), os.path.join(work, 'pic', p)],
+                           capture_output=True, timeout=120)
+        if r.returncode != 0:
+            fail('không chuyển được %s sang PDF: %s' % (p, r.stderr.decode('utf-8', 'replace').strip()[:300]))
+        out.append(pdf)
+    return out
+
+
 def compile_pdf(work, tex, dinhdang):
     os.makedirs(os.path.join(work, 'structure'), exist_ok=True)
     shutil.copy(dinhdang, os.path.join(work, 'structure', 'dinhdang.tex'))
@@ -157,6 +176,7 @@ def main():
         errors, notes = check_text(os.path.join(work, tex), pics)
         if errors:
             fail('tệp .tex không dùng được:\n  ' + '\n  '.join(errors))
+        pics += svg_to_pdf(work, pics)
         notes += compile_pdf(work, tex, a.dinhdang)
         for n in notes:
             print('LƯU Ý: ' + n)
