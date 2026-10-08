@@ -95,3 +95,6 @@ Thêm cột vào mô hình: chỉ thêm ở **cuối** tab; chạy lại `setup(
 
 Lịch sử sửa đề/lời giải (tab Revisions) chỉ những vai trò thấy mọi bài xem được — PB không xem, vì các bản trước gần với bản gốc của tác giả.
 Sửa dùng khoá lạc quan: gửi kèm `phien_ban` đang xem; nếu người khác vừa lưu thì bị từ chối, không ghi đè. Lưu mà không đổi gì thì không tạo phiên bản mới.
+
+**Góp ý và lỗi** (Feedback.gs): tab `Feedback` (id, ngày, email, vai trò, trang, mức 1–5, nội dung, trạng thái: mới / đã xem / đã sửa /
+không làm) và `Errors` (ngày, email, vai trò, trang, lỗi, chi tiết, trình duyệt) — tự tạo khi dùng lần đầu. Chỉ Quản trị xem.

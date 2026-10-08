@@ -15,6 +15,7 @@ var IMPORT_CHUNK = 15;
  */
 function importLatest() {
   adminOnly_();
+  noTrial_();
   var prefix = (TEST_CONF && TEST_CONF.IMPORT_PREFIX) || 'pi-drkn-import';
   var props = PropertiesService.getScriptProperties(), files = [];
   var it = DriveApp.searchFiles("title contains '" + prefix + "' and trashed = false");
@@ -40,6 +41,7 @@ function importLatest() {
 
 function importBatch(fileId) {
   adminOnly_();
+  noTrial_();
   var props = PropertiesService.getScriptProperties();
   var key = 'IMPORT_' + fileId;
   var start = Number(props.getProperty(key) || 0);

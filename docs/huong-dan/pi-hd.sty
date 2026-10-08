@@ -1,0 +1,123 @@
+% Kiểu chung cho slide hướng dẫn theo vai trò (docs/huong-dan/<vai>/slides.tex).
+% Dịch bằng pdflatex (giống quy trình làm video ở kho lps67): T5 + Latin Modern cho tiếng Việt.
+% Ảnh và các bước lấy từ out/ui/ — tạo bằng scripts/test-all.sh (kiểm thử giao diện), không chụp tay.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{pi-hd}
+\RequirePackage[T5]{fontenc}
+\RequirePackage[utf8]{inputenc}
+% (không dùng babel: nó làm „;" „:" thành ký tự hoạt động, xung đột với TikZ; slide không cần ngắt âm tiếng Việt)
+\RequirePackage{lmodern}
+\RequirePackage{graphicx,tikz,enumitem}
+\def\pihdout{../../../out/ui/}   % ảnh và chú thích do tests/ui/run.js tạo
+\graphicspath{{\pihdout}}
+\renewcommand{\familydefault}{\sfdefault}
+
+\definecolor{pigreen}{HTML}{175F37}
+\definecolor{piorange}{HTML}{E8590C}
+\definecolor{piink}{HTML}{1E2A38}
+\definecolor{pisoft}{HTML}{F4F6F2}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{normal text}{fg=piink}
+\setbeamercolor{frametitle}{bg=pigreen,fg=white}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamertemplate{frametitle}{\nointerlineskip
+  \begin{beamercolorbox}[wd=\paperwidth,ht=8mm,dp=2.5mm,leftskip=6mm]{frametitle}\insertframetitle\end{beamercolorbox}\vskip2mm}
+\setbeamertemplate{footline}{\hskip6mm{\tiny\color{piink!55}Đề ra kỳ này · \vaitro}\hfill
+  {\tiny\color{piink!55}\insertframenumber\,/\,\inserttotalframenumber}\hskip6mm\vskip3mm}
+\setbeamersize{text margin left=6mm,text margin right=6mm}
+
+% số bước: vòng cam giống trên ảnh
+\newcommand\so[1]{\tikz[baseline=-0.6ex]\node[circle,fill=piorange,text=white,inner sep=0pt,minimum size=4.4mm,font=\scriptsize\bfseries]{#1};}
+\newlist{buoc}{enumerate}{1}
+\setlist[buoc]{label=\protect\so{\arabic*},leftmargin=6mm,itemsep=0.2mm,topsep=0.3mm}
+
+% Trang bìa của một vai trò. #1 tên vai trò, #2 một câu: vai trò này làm gì
+\newcommand\bia[2]{%
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay]
+\fill[pigreen] (current page.north west) rectangle ([yshift=-28mm]current page.north east);
+\node[anchor=west,text=white,font=\huge\bfseries] at ([xshift=10mm,yshift=-14mm]current page.north west) {$\pi$\quad Đề ra kỳ này};
+\node[anchor=north west,text width=135mm,align=left] at ([xshift=10mm,yshift=-40mm]current page.north west)
+  {{\LARGE\bfseries Hướng dẫn cho #1}\\[5mm]{\large\color{piink!75} #2}\\[12mm]
+   {\small\color{piink!60} Ảnh trong hướng dẫn chụp tự động từ trang thật, dữ liệu bịa (bài năm 2030, địa chỉ @example.com).}};
+\end{tikzpicture}
+\end{frame}}
+
+% Một màn hình: ảnh có các bước đánh số + chú thích và danh sách bước (cùng nguồn với ảnh).
+% #1 tên ảnh trong out/ui (không đuôi), #2 tiêu đề slide, #3 (tuỳ chọn) một câu thêm cho thầy cô
+\newcommand\manhinh[3][]{%
+\begin{frame}{#3}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.71\textwidth}\vspace{0pt}\centering
+\includegraphics[width=\linewidth,height=0.79\textheight,keepaspectratio]{#2.slide}\end{column}
+\begin{column}{0.27\textwidth}\vspace{0pt}\scriptsize
+{\tiny\color{piink!75}\input{\pihdout #2.cap.tex}\par}\smallskip
+\begin{buoc}\input{\pihdout #2.steps.tex}\end{buoc}
+\ifx\relax#1\relax\else\par\smallskip{\color{pigreen}\textbf{#1}}\fi
+\end{column}
+\end{columns}
+\end{frame}}
+
+% Ảnh không có bước (điện thoại, chế độ tối…): #1 tên ảnh, #2 tiêu đề, #3 chữ bên cạnh
+\newcommand\anh[3]{%
+\begin{frame}{#2}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.5\textwidth}\centering\includegraphics[height=0.76\textheight,width=\linewidth,keepaspectratio]{#1}\end{column}
+\begin{column}{0.48\textwidth}\small #3\end{column}
+\end{columns}
+\end{frame}}
+
+% Trang chữ: #1 tiêu đề, #2 nội dung
+\newcommand\chu[2]{\begin{frame}{#1}\small #2\end{frame}}
+
+% Trước khi bắt đầu — chung cho mọi vai trò
+\newcommand\chuanbi{%
+\begin{frame}{Trước khi bắt đầu}
+\footnotesize
+\begin{buoc}[itemsep=0.6mm]
+\item \textbf{Máy}: máy tính, máy tính bảng hay điện thoại; trình duyệt cập nhật — Chrome, Edge, Safari hoặc Firefox.
+\item \textbf{Tài khoản Google}: Gmail, hoặc email cơ quan chạy trên Google. Email khác (không phải Google): tạo tài khoản Google bằng chính
+  địa chỉ đó (accounts.google.com $\to$ Tạo tài khoản $\to$ \emph{Dùng địa chỉ email hiện tại của tôi}), hoặc dùng một Gmail cá nhân.
+\item \textbf{Một tài khoản Google trong cửa sổ}: trình duyệt đang đăng nhập nhiều tài khoản Google thì mở cửa sổ riêng tư (ẩn danh: Ctrl+Shift+N,
+  trên Mac Cmd+Shift+N), chỉ đăng nhập đúng tài khoản đã đăng ký với Pi.
+\item \textbf{Lần đầu}: Google hỏi cho ứng dụng biết địa chỉ email — bấm \emph{Cho phép}. Ứng dụng không xin quyền nào khác.
+\item \textbf{Thấy „Truy cập bị chặn" (Access blocked)}: quản trị email cơ quan chặn ứng dụng ngoài — dùng một Gmail cá nhân
+  (báo Quản trị để đổi email trong hệ thống), hoặc nhờ quản trị email cơ quan cho phép. Không vào được, trang trắng: chụp màn hình gửi Quản trị.
+\item Không cần cài hay chỉnh gì thêm trên trình duyệt.
+\end{buoc}
+\end{frame}}
+
+% Góp ý, báo lỗi — chung cho mọi vai trò
+\newcommand\gopy{\manhinh[Lỗi xảy ra bên trong trang được ghi lại tự động. Không vào được trang: chụp màn hình gửi Quản trị.]{gop-y}{Góp ý, báo lỗi}}
+
+% Dùng thử — chung cho mọi vai trò
+\newcommand\dungthu{%
+\begin{frame}{Dùng thử: thao tác hoàn tác được}
+\small
+\begin{buoc}[itemsep=0.8mm]
+\item \textbf{Bài luyện tập} THU-01…THU-10: bài bịa, chỉ người dùng thử thấy (phản biện: khi được giao). Kỳ phản biện, bảng chọn bài
+  luyện tập đặt tên bắt đầu bằng \textbf{THU-}. Muốn làm lại từ đầu: báo Phụ trách chuyên mục, Tổng biên tập hoặc Quản trị bấm
+  \emph{Đặt lại bài luyện tập} — việc của mọi người trên bài luyện bị xoá, bài thật không bị đụng tới.
+\item \textbf{Dùng thử trên bài thật}: khi đầu trang có dòng \emph{„Đang dùng thử"}, thầy cô làm việc trên bài thật như thật.
+  Hệ thống đã lưu một bản sao toàn bộ dữ liệu lúc bắt đầu; Quản trị hoặc Tổng biên tập đưa mọi bài, kỳ, bảng, phiếu, thảo luận
+  (kể cả kỳ đã khoá) về như trước bất cứ lúc nào.
+\item \textbf{Góp ý của thầy cô được giữ lại} khi đưa về, cùng danh sách lỗi hệ thống ghi được và tài khoản người dùng.
+  Thư đã gửi và tệp đã lưu trên Drive thì không đưa về được.
+\item Hết đợt dùng thử, dòng báo biến mất: từ đó mọi việc là thật.
+\end{buoc}
+\end{frame}}
+
+% Thuật ngữ — cho các vai trò ban biên tập
+\newcommand\thuatngu{%
+\begin{frame}{Trạng thái và thuật ngữ}
+\footnotesize
+\begin{buoc}[itemsep=0.8mm]
+\item \textbf{Mới}: bài vừa nhận. \textbf{SL}: vào danh sách sơ bộ (shortlist). \textbf{Không SL}: không vào danh sách sơ bộ, thôi xem (ghi lý do).
+\item \textbf{SL-OK}: Tổng biên tập đã duyệt vào bảng chọn bài của một số báo. \textbf{SL-Fail}: Tổng biên tập loại hẳn (ghi lý do).
+  \textbf{PL}: đã đăng (sau khi khoá kỳ).
+\item \textbf{Mức} A, B: độ khó của bài. \textbf{Xung đột}: hai ý kiến khác nhau về mức, tác giả hay trùng bài — Tổng biên tập quyết định.
+\item \textbf{Kỳ phản biện}: một đợt gửi bài cho phản biện, có hạn. \textbf{Khoá kỳ}: chốt số báo — đánh số in (P…), tạo gói chế bản.
+\item \textbf{Bấm hai lần}: nút quan trọng (Duyệt, Khoá kỳ, Xoá kỳ, Mở lại để sửa) đổi thành „Bấm lần nữa…" (màu cảnh báo) — bấm lần thứ hai để làm.
+\end{buoc}
+\end{frame}}

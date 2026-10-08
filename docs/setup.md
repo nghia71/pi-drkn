@@ -151,5 +151,47 @@ Sau lần triển khai có tính năng này: chạy `setup` (thêm cột `mo_loi
 
 ## 14. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.
-Rồi chạy `installAutoTests` (một lần): kiểm thử tự chạy sau mỗi lần triển khai và mỗi đêm; chỉ có thư khi có lỗi.
+Rồi chạy `installAutoTests` (một lần): kiểm thử tự chạy sau mỗi lần triển khai và mỗi đêm; chỉ có thư khi có lỗi. Cùng trigger này sao lưu dữ liệu mỗi đêm (mục 15).
 Trên máy, cho kiểm thử giao diện: `npm install` (một lần); kiểm thử dùng Google Chrome đã cài trên máy (hoặc Chromium của `npx playwright install chromium`).
+
+## 15. Sao lưu và khôi phục
+Trigger mỗi giờ của `installAutoTests` (mục 14) sao lưu **mỗi ngày một lần**, lần chạy đầu tiên sau `BACKUP_HOUR` giờ
+(Script property, mặc định 1 giờ sáng giờ Việt Nam): một bản sao của Sheet dữ liệu tên `Pi ĐRKN — dữ liệu — sao lưu NNNN-TT-NN`
+trong thư mục Drive **Pi ĐRKN — sao lưu** (tạo tự động; chỉ tài khoản chủ thấy). Giữ `BACKUP_KEEP` bản mới nhất (mặc định 30),
+bản cũ hơn vào Thùng rác. Sao lưu không được thì có thư gửi tài khoản chủ. Sao lưu ngay (ví dụ trước khi nhập, vá dữ liệu lớn):
+trình soạn thảo → `backupNow` → Run.
+
+Khôi phục (Sheet dữ liệu bị xoá nhầm, hỏng dữ liệu):
+1. Drive → **Pi ĐRKN — sao lưu** → chọn bản của ngày cần → Make a copy → đổi tên thành `Pi ĐRKN — dữ liệu`.
+2. Mở bản vừa tạo, chép mã trong địa chỉ (đoạn giữa `/d/` và `/edit`).
+3. Dự án chính → Project Settings → Script properties → `SHEET_ID` = mã đó. Có hiệu lực ngay, không cần triển khai lại.
+4. Giữ Sheet cũ (đổi tên thành `… — hỏng NNNN-TT-NN`) cho tới khi chắc mọi thứ đúng. Việc làm sau thời điểm sao lưu phải làm lại.
+Ảnh và hình (thư mục **Pi ĐRKN — hình**), gói chế bản không nằm trong bản sao — chúng là tệp Drive, có Thùng rác 30 ngày của Drive.
+
+## 16. Góp ý và lỗi người dùng gặp
+Nút **Góp ý** ở đầu mọi trang (mọi người): mức dễ dùng 1–5 (không bắt buộc), lời góp ý, kèm trang đang xem → tab `Feedback`.
+Lỗi người dùng gặp trên trang (thao tác bị từ chối, lỗi JavaScript) được ghi tự động vào tab `Errors` (ai, vai trò, trang, lỗi,
+trình duyệt; mỗi người tối đa 20 dòng mỗi giờ). Hai tab tự tạo lần đầu dùng, không cần chạy lại `setup`.
+Quản trị: hộp Góp ý → **Xem góp ý và lỗi đã nhận** (đổi trạng thái góp ý: mới, đã xem, đã sửa, không làm).
+Mỗi sáng (Script property `DIGEST_HOUR`, mặc định 7 giờ) trigger của `installAutoTests` gửi tài khoản chủ **một thư tóm tắt**
+góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mới thì không gửi. Thư có đường dẫn vào hệ thống nếu đã đặt `SIGNIN_URL` (mục 5).
+
+## 17. Dùng thử: bài luyện tập và bài thật
+- **Bài luyện tập** (THU-01…10, bịa): người dùng thử thấy khi email của họ ở Script property `PRACTICE_USERS` (email cách nhau dấu phẩy; tài khoản trong `TEST_USERS` cũng là người dùng thử —
+  xem `docs/testing.md`). Tên kỳ, số báo bắt đầu bằng `THU-` dành cho luyện tập: chỉ Quản trị và người dùng thử đặt được.
+  Trang **Kỳ phản biện** → mục *Luyện tập* → **Đặt lại bài luyện tập** (Quản trị, PT, TBT đang dùng thử): xoá mọi việc đã làm trên
+  bài luyện (phiếu, thảo luận, sửa, trạng thái, kỳ và bảng tên THU-…), đưa mười bài về như mới; bài thật không bị đụng: hệ thống
+  không cho xếp, giao bài luyện vào kỳ / bảng thật, hay bài thật vào kỳ / bảng THU-…
+- **Dùng thử trên bài thật** (`Trial.gs`): trang Kỳ phản biện → mục *Dùng thử trên bài thật* (Quản trị) → **Bắt đầu dùng thử**:
+  hệ thống chụp toàn bộ Sheet dữ liệu (bản sao trong thư mục sao lưu); mọi trang hiện dòng „Đang dùng thử". Mọi người làm việc như thật.
+  **Đưa về như trước khi dùng thử** (Quản trị hoặc TBT, làm được nhiều lần): thay bài, kỳ, bảng, phiếu, thảo luận, lịch sử… bằng bản
+  chụp; **giữ** người dùng (`Users`), nhật ký (`Audit`), góp ý (`Feedback`), lỗi (`Errors`); trước khi đưa về, chụp trạng thái hiện tại
+  (đưa về cũng hoàn tác được: mục 15 với bản „trước khi đưa về"). **Kết thúc dùng thử** (Quản trị): giữ mọi thay đổi, hoặc đưa về rồi kết thúc.
+  Không đưa về được: thư đã gửi (thư mời, nhắc hạn) và tệp trên Drive (ảnh, gói chế bản) — vô hại.
+  Lưu ý: việc làm thật trong lúc dùng thử (ví dụ Văn phòng nhập bài mới thật) cũng bị đưa về — nhập bài thật sau khi kết thúc,
+  hoặc kết thúc bằng „giữ mọi thay đổi".
+  Nhập và vá (`importLatest`, `applyPatchLatest`) bị chặn trong lúc dùng thử: đưa về khôi phục dữ liệu nhưng không xoá dấu
+  „đã nhập / đã vá" trong Script properties, nên lần sau tệp đó bị coi là đã nhập.
+  Bản chụp („trước dùng thử", „trước khi đưa về") nằm trong thư mục **Pi ĐRKN — sao lưu** nhưng **không** tự xoá như bản sao lưu
+  đêm — xoá tay khi không cần nữa. Đưa về cũng trả lại phân công phản biện như lúc bắt đầu: phản biện đã bị bỏ giao
+  trong lúc thử (ví dụ vì xung đột lợi ích) được giao lại — kiểm tra trang Kỳ phản biện sau khi đưa về. Sau khi kết thúc: xoá `PRACTICE_USERS` (`docs/moi-dung-thu/README.md`).

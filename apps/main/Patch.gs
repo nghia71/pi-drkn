@@ -17,6 +17,7 @@
  */
 function applyPatchLatest() {
   adminOnly_();
+  noTrial_();
   var it = DriveApp.searchFiles("title contains 'pi-drkn-patch' and trashed = false"), best = null;
   while (it.hasNext()) { var f = it.next(); if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f; }
   if (!best) throw new Error('Không thấy tệp pi-drkn-patch….json trong Drive.');
@@ -62,7 +63,7 @@ function applyOp_(o, nguoi, who) {
     case 'closeCheck':
       var hit = rows_('Checks').filter(function (c) { return c.ma_bai === o.ma_bai && String(c.noi_dung).indexOf(o.chua) >= 0; });
       if (hit.length !== 1) throw new Error('tìm thấy ' + hit.length + ' mục cần kiểm tra khớp "' + o.chua + '" (cần đúng 1)');
-      update_('Checks', hit[0]._row, { trang_thai: o.trang_thai || 'xong' }); return;
+      update_('Checks', hit[0], { trang_thai: o.trang_thai || 'xong' }); return;
     default: throw new Error('op không hỗ trợ');
   }
 }

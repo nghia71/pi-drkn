@@ -11,7 +11,7 @@ chỉ với quyền mà người đó có. Không phải để săn lỗi mới,
 | 2. Trên Google | dự án Apps Script thật, Sheet kiểm thử riêng | **tự chạy** (`installAutoTests`, một lần): `runSmoke` sau mỗi lần triển khai, toàn bộ mỗi đêm; thư chỉ khi có lỗi | 3–4 phút / ~30 phút |
 | 3. Bằng tay | trình duyệt, tài khoản Google thật | chỉ những gì máy không làm được — bảng ở đầu Lớp 3 | ~30 phút, một lần |
 
-Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 110 kịch bản): lớp 1 trên bản mô phỏng Apps Script
+Lớp 1 và 2 chạy **cùng một bộ kịch bản** (`apps/main/Tests.gs`, 120 kịch bản): lớp 1 trên bản mô phỏng Apps Script
 (`tools/gas-sim`), lớp 2 trên Google thật. Lớp 1 cũng kiểm tra kho mã không chứa dữ liệu (`scripts/guard.py`),
 bộ hiển thị công thức (`tests/render.test.js`), **giao diện** (`tests/ui/run.js`: trang thật trong Chromium, mỗi vai trò một cửa sổ, đi hết
 các quy trình — xem dưới) và hai địa chỉ web nhìn từ bên ngoài (`tests/http.test.js`).
@@ -19,7 +19,8 @@ Lớp 3 là những gì máy không làm thay được: màn hình xin quyền c
 công thức hiện ra trên màn hình, điện thoại.
 
 Mọi kịch bản tự động dùng **dữ liệu bịa**. Lớp 2 ghi vào Sheet "Pi ĐRKN — kiểm thử", không chạm Sheet thật.
-Lớp 3 dùng ba **bài luyện tập** THU-01…03 nằm trong Sheet thật nhưng chỉ Quản trị và người được giao thấy.
+Lớp 3 dùng mười **bài luyện tập** THU-01…10 (bịa) nằm trong Sheet thật nhưng chỉ Quản trị, người được giao và người dùng thử
+(`TEST_USERS`, `PRACTICE_USERS`) mang vai trò ban biên tập thấy.
 
 ## Tài khoản
 
@@ -45,7 +46,7 @@ Mỗi tài khoản thử dùng một cửa sổ riêng tư riêng (Safari: File 
 ```
 scripts/test-all.sh
 ```
-Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (110 kịch bản) · gói chế bản và hình (cần MacTeX) ·
+Các phần, mỗi phần phải báo đạt: chặn dữ liệu · bộ hiển thị · máy chủ mô phỏng (120 kịch bản) · gói chế bản và hình (cần MacTeX) ·
 giao diện · từ bên ngoài (người chưa đăng nhập Google chỉ thấy trang đăng nhập của Google, kể cả khi dùng liên kết giả).
 `scripts/deploy.sh` tự chạy chặn dữ liệu, bộ hiển thị, máy chủ mô phỏng, giao diện và **không đẩy mã** nếu có lỗi.
 
@@ -77,7 +78,7 @@ từ nút Run — dùng `runAllTests`, hoặc tạm thêm một hàm gọi `runT
 
 ### Chạy gì, khi nào
 
-Toàn bộ (~110 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
+Toàn bộ (~120 kịch bản) mất khoảng 30 phút trên Google (mỗi kịch bản dựng lại Sheet kiểm thử) — không cần chạy tay sau mỗi thay đổi.
 Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trước mỗi lần đẩy mã; lớp 2 chỉ để bắt chỗ Google khác bản mô phỏng.
 
 | Khi nào | Chạy | Thời gian |
@@ -98,6 +99,10 @@ Lớp 1 đã chạy **đủ** mọi kịch bản trên bản mô phỏng trướ
 | `Intake.gs` | 17 |
 | `Import.gs`, `Patch.gs` | 8 |
 | `resetPractice` (trong `Tests.gs`) | 11 |
+| `Backup.gs` | 12 |
+| `Feedback.gs` | 18 |
+| `Trial.gs` | 19 (và 11.5) |
+| `FigCloud.gs` | 16 |
 | `Db.gs`, `Schema.gs`, `Setup.gs` (dùng chung) | toàn bộ |
 | chỉ `ui/` (giao diện) | lớp 1 là đủ (10.1 nếu sửa bộ hiển thị) — rồi xem bằng mắt |
 
@@ -229,13 +234,17 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | 11.1 | resetPractice tạo 10 bài luyện (4 B, 6 A) + kỳ K-THU, chạy lại không nhân đôi, không chạm bài thật | QT |
 | 11.2 | Bài luyện chỉ hiện với Quản trị và người được giao; TBT/NCB không thấy | T1+T2 |
 | 11.3 | Hai tài khoản thử (TEST_USERS) mang vai trò ban biên tập thấy mọi bài luyện (B14, B15); với vai trò PB chỉ thấy bài được giao; người khác không thấy | T1+T2 |
+| 11.4 | Người dùng thử (PRACTICE_USERS) mang vai trò ban biên tập thấy bài luyện; bỏ khỏi danh sách thì không thấy | T1 |
+| 11.5 | Nút Đặt lại bài luyện tập: xoá mọi việc trên bài THU (phiếu, thảo luận, sửa) và kỳ / bảng TÊN THU-…; bài luyện không vào kỳ / bảng thật, bài thật không vào kỳ / bảng luyện tập; kỳ thật giữ nguyên; người thường không đặt được tên THU-…; chỉ Quản trị, PT, TBT đang dùng thử | T1 |
 
-**12. Hàm quản trị**
+**12. Hàm quản trị, sao lưu**
 
 | Mã | Kịch bản | Tài khoản |
 |---|---|---|
 | 12.1 | Khách trên trang web không gọi được setUser, setup, nhập, vá, kiểm thử, resetPractice | T1 |
 | 12.2 | Cài đặt lại trên Sheet cũ: tab thiếu cột mới ở cuối (Checks.ket_qua) được thêm tiêu đề, dữ liệu giữ nguyên | QT |
+| 12.3 | Sao lưu: bản sao Sheet vào thư mục sao lưu, đủ các tab và dữ liệu; chạy lại cùng ngày thay bản cũ; giữ BACKUP_KEEP bản mới nhất; chỉ chủ chạy tay được | QT |
+| 12.4 | Ghi, xoá đúng dòng khi dòng phía trên vừa bị xoá (đặt lại bài luyện, xoá kỳ, đưa về): tìm lại theo khoá; bảng ngắn lại thì không ghi vào dòng trống; dòng không còn thì báo, không ghi nhầm | QT |
 
 **13. Kỳ phản biện**
 
@@ -301,6 +310,22 @@ Nhiều nhóm một lúc: `runTests('3,13')`; nhóm và kịch bản lẫn nhau:
 | 17.3 | Ảnh khi thêm bài: ảnh của đề vào cột Hình (in kèm đề), ảnh lời giải chèn cuối lời giải (không in); hiện trên trang; khoá kỳ chỉ đóng gói ảnh của đề, SVG gọi không đuôi | QT |
 | 17.4 | Thêm ảnh cho bài đã có: phải đúng phiên bản; ảnh đề vào cột Hình, ảnh lời giải vào lời giải; có lịch sử; cột Hình là TikZ thì không thêm ảnh đề; PB không thêm được | T1 |
 
+**18. Góp ý và lỗi người dùng gặp**
+
+| Mã | Kịch bản | Tài khoản |
+|---|---|---|
+| 18.1 | Góp ý: mọi người đã vào hệ thống gửi được (mức 1–5 không bắt buộc, kèm trang đang xem, vai trò); trống hoặc mức lạ bị từ chối; chữ bắt đầu bằng "=" lưu như chữ; người chưa vào thì không | T1 |
+| 18.2 | Lỗi trên trang: ghi tab Errors (ai, vai trò, trang, lỗi, trình duyệt), cắt chữ quá dài; mỗi người tối đa 20 dòng mỗi giờ | T1 |
+| 18.3 | Trang Góp ý: chỉ Quản trị xem góp ý và lỗi (mới nhất trước), đổi trạng thái góp ý; người khác bị từ chối | QT |
+| 18.4 | Thư tóm tắt mỗi sáng: góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mới thì không gửi; mỗi ngày một lần | QT |
+
+**19. Dùng thử trên bài thật**
+
+| Mã | Kịch bản | Tài khoản |
+|---|---|---|
+| 19.1 | Dùng thử: Quản trị bắt đầu (chụp dữ liệu, mọi trang biết đang dùng thử); đưa về: bài, kỳ, bảng, thảo luận như trước; GIỮ người dùng, nhật ký, góp ý, lỗi; số báo "10/2026" vẫn là chữ; chụp trạng thái trước khi đưa về | QT |
+| 19.2 | Kết thúc dùng thử: giữ mọi thay đổi, hoặc đưa về rồi kết thúc; trong lúc thử không nhập, vá được; sau đó không còn dòng báo, không đưa về được nữa; chỉ Quản trị bắt đầu / kết thúc; TBT đưa về được; người khác không | QT |
+
 <!-- bảng tự sinh: hết -->
 
 Mỗi kịch bản bắt đầu từ dữ liệu bịa mới (5 bài TEST-01…05, một tác giả bịa, kỳ đang mở K-MO, kỳ đã đóng K-DONG).
@@ -332,6 +357,9 @@ Google thật, hộp thư thật, máy Mac hay điện thoại thật — làm *
 | B15 | giao diện mục 8; nhóm 15; tests/khoaky.test.py | gói trên Drive → `tools/khoaky/build.py` trên Mac, xem PDF (bước 6) |
 | B16 | giao diện mục 6; nhóm 16; tests/hinh.test.py | dựng hình thật trên Mac (bước 4) — hoặc tự động qua GitHub (setup.md) |
 | B17 | giao diện mục 2, 5; nhóm 17 | — |
+| Sao lưu | 12.3 | sáng hôm sau `installAutoTests`: thư mục **Pi ĐRKN — sao lưu** có bản của ngày |
+| Góp ý, lỗi | nhóm 18 | gửi một góp ý thật; sáng hôm sau thư tóm tắt đến hộp thư chủ |
+| Dùng thử | nhóm 19 | trước đợt thử thật: Bắt đầu dùng thử → sửa bài luyện THU-01 → Đưa về → bài trở lại như cũ, có bản „trước khi đưa về" trong thư mục sao lưu → Kết thúc (giữ) |
 
 ### Bài luyện tập và nút đặt lại
 
@@ -343,7 +371,9 @@ Trình soạn thảo dự án chính → chọn `resetPractice` → Run. Việc 
   (PT, TBT, NCB, VP, BTK) — vì thế ở B14, B15 T1 (PT), T2 (TBT) thấy đủ THU-01 … THU-10; người thật của ban biên tập không thấy bài luyện;
 - đặt T1, T2 làm PB.
 
-Không bài thật nào bị đụng tới. Ban biên tập (TBT, NCB…) không thấy bài luyện; chỉ Quản trị và người được giao thấy.
+Không bài thật nào bị đụng tới. Người thật của ban biên tập không có trong `TEST_USERS`/`PRACTICE_USERS` thì không thấy bài luyện.
+Đợt dùng thử với người thật: thêm email của họ vào Script property `PRACTICE_USERS` (cách nhau dấu phẩy) — với vai trò ban biên tập
+họ thấy đủ mười bài luyện; xoá khi xong (`docs/moi-dung-thu/README.md`).
 **Chạy `resetPractice` trước mỗi buổi kiểm thử tay.**
 
 Địa chỉ dùng trong mọi bài: **đường dẫn đăng nhập** (địa chỉ /exec của dự án đăng nhập). Không dùng địa chỉ của ứng dụng chính.
@@ -389,7 +419,7 @@ Nhận xét thứ hai hiện đúng `=1+1`; trong Sheet, tab Comments, ô đó l
 ### B5 — Người không có trong hệ thống
 **Các bước.**
 1. *(LẠ, cửa sổ riêng tư)* Mở đường dẫn đăng nhập, cho phép, bấm Vào hệ thống.
-**Bạn sẽ thấy.** "Địa chỉ … chưa có vai trò trong hệ thống. Hãy liên hệ Phụ trách chuyên mục." Không thấy bài nào.
+**Bạn sẽ thấy.** "Địa chỉ … chưa có vai trò trong hệ thống. Hãy liên hệ người đã mời thầy cô (Quản trị hoặc Phụ trách chuyên mục)…" Không thấy bài nào.
 Tab Audit có dòng "từ chối" với địa chỉ đó.
 
 ### B6 — Tạm ngưng một phản biện đang làm việc
@@ -476,9 +506,9 @@ Bước 7: chip trạng thái đổi thành SL; ô trạng thái của TBT có "
 **Trước khi bắt đầu.** Sau lần triển khai có tính năng này: `setup()` và `installReminderTrigger()` (mục 9 của setup.md).
 `resetPractice` (T1, T2 là PB; kỳ K-THU có hạn 14 ngày nữa).
 **Các bước.**
-1. *(QT)* Nút **Kỳ phản biện** → Mở kỳ mới: tên `PB-THU-2`, hạn = 3 ngày nữa **theo giờ Việt Nam** (dòng đầu trang ghi "hôm nay là …";
+1. *(QT)* Nút **Kỳ phản biện** → Mở kỳ mới: tên `THU-PB-2`, hạn = 3 ngày nữa **theo giờ Việt Nam** (dòng đầu trang ghi "hôm nay là …";
    sau khi mở, kỳ phải hiện "còn 3 ngày") → Mở kỳ.
-2. *(QT)* Ở kỳ PB-THU-2: giao THU-03 cho T1, rồi THU-03 cho T2, rồi THU-01 cho T1 (ô Giao bài / cho / Giao).
+2. *(QT)* Ở kỳ THU-PB-2: giao THU-03 cho T1, rồi THU-03 cho T2, rồi THU-01 cho T1 (ô Giao bài / cho / Giao).
 3. *(QT)* Bấm **Gửi thư mời (2 người chưa mời)**.
 4. *(T1, T2)* Mở hộp thư của mình.
 5. *(T1)* Vào hệ thống. Danh sách: THU-03 có chip "hạn …· chưa có phiếu". Mở THU-03 → Phiếu phản biện: bấm Lưu phiếu khi chưa chọn đề nghị;
@@ -486,15 +516,15 @@ Bước 7: chip trạng thái đổi thành SL; ô trạng thái của TBT có "
 6. *(T2)* Mở THU-03: xem Thảo luận; gửi một nhận xét.
 7. *(QT)* Mở THU-03: mục **Phiếu phản biện (1)**; Thảo luận. Rồi **Kỳ phản biện**.
 8. *(QT)* Trình soạn thảo → chạy `sendReminders`. Chạy lần nữa.
-9. *(QT)* Kỳ PB-THU-2 → **Đóng kỳ…** → bấm lần nữa. *(T1)* ← Danh sách (hoặc vào lại).
+9. *(QT)* Kỳ THU-PB-2 → **Đóng kỳ…** → bấm lần nữa. *(T1)* ← Danh sách (hoặc vào lại).
 **Vì sao quan trọng.** Thay chuỗi email phân công / nhắc hạn; phiếu có cấu trúc để lập bảng chọn bài; phản biện trao đổi mà không lộ danh tính.
 **Bạn sẽ thấy.** Bước 3: hai thư (T1 nhận MỘT thư cho 2 bài); nút thành "0 người chưa mời"; cột Mời có ✓.
-Bước 4: thư "Mời phản biện kỳ PB-THU-2" có số bài, hạn, đường dẫn đăng nhập — không có đề, mã bài hay tên tác giả.
+Bước 4: thư "Mời phản biện kỳ THU-PB-2" có số bài, hạn, đường dẫn đăng nhập — không có đề, mã bài hay tên tác giả.
 Bước 5: lần đầu nhắc "Hãy chọn đề nghị"; sau khi xong, phiếu bị khoá và có nút "Bỏ đánh dấu xong"; chip thành "đã xong".
 Bước 6: nhận xét của T1 ghi **Phản biện 1**, của mình ghi **Bạn**; không thấy email của ai; không có mục Phiếu phản biện của người khác.
 Bước 7: QT thấy phiếu của T1 kèm email; Thảo luận có email thật; bảng kỳ: 3 phân công · 1 phiếu · 1 xong.
 Bước 8: lần 1 gửi thư "Nhắc: còn 3 ngày" cho T1 (còn THU-01) và T2 — không gửi cho bài đã xong; cột Đã nhắc "3 ngày"; lần 2 không gửi gì.
-Execution log giải thích từng kỳ: "Hôm nay … (Asia/Ho_Chi_Minh)", "Kỳ PB-THU-2: hạn …, còn 3 ngày → nhắc 2 người (bỏ qua: …)".
+Execution log giải thích từng kỳ: "Hôm nay … (Asia/Ho_Chi_Minh)", "Kỳ THU-PB-2: hạn …, còn 3 ngày → nhắc 2 người (bỏ qua: …)".
 Nếu log ghi "còn 2 ngày" (hoặc 4): hạn chưa đúng 3 ngày theo giờ Việt Nam — dùng **Lưu hạn** để sửa rồi chạy lại.
 Bước 9: kỳ hiện "đóng", không còn nút; T1 không còn thấy THU-03 (vẫn thấy THU-01, THU-02 của kỳ K-THU).
 

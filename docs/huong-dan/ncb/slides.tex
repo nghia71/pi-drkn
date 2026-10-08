@@ -1,0 +1,55 @@
+% Hướng dẫn cho Người chuẩn bị bài (NCB). Dịch: pdflatex slides.tex (hai lần), sau scripts/test-all.sh
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage{../pi-hd}
+\newcommand\vaitro{Hướng dẫn cho Người chuẩn bị bài}
+\begin{document}
+
+\bia{Người chuẩn bị bài}{Biên tập đề và lời giải, ghi mục cần kiểm tra và xung đột, vẽ hình, thêm bài mới.}
+
+\chuanbi
+\dungthu
+\thuatngu
+
+\chu{Nguyên tắc biên tập}{%
+\begin{buoc}
+\item \textbf{Không sửa lén}: mỗi sửa đổi nội dung toán là một dòng ghi — vị trí, trước, sau, lý do; chờ tác giả xác nhận.
+\item \textbf{Bản gốc của tác giả giữ nguyên}; thầy cô chỉ sửa bản biên tập.
+\item \textbf{Văn bản sạch}: đề và lời giải chỉ có \LaTeX; ghi chú để ở mục Cần kiểm tra, Xung đột.
+\item \textbf{Nghi ngờ thì ghi, không tự sửa}: thành mục cần kiểm tra; khi cần, hỏi tác giả qua Văn phòng hoặc Phụ trách chuyên mục.
+\end{buoc}
+\medskip Mọi lần sửa đều có lịch sử (ai, khi nào, khác chỗ nào); hai người sửa cùng lúc không ghi đè lên nhau.}
+
+\manhinh{dang-nhap}{Vào hệ thống}
+\manhinh{danh-sach}{Danh sách bài}
+\manhinh{loc}{Lọc và sắp xếp}
+\manhinh{bai-moi-a}{Trang bài}
+\manhinh[Sửa nhỏ: chính tả, định dạng. Sửa nội dung toán: công thức, đáp số, lập luận.]{sua-de}{Sửa đề, xem trước ngay}
+\manhinh{hai-nguoi-sua}{Khi người khác vừa lưu}
+\manhinh{nguon-chinh-sua}{Nguồn và chỉnh sửa}
+\manhinh{hinh}{Hình vẽ TikZ}
+\manhinh{dung-tu-dong}{Dựng hình tự động}
+\manhinh{hinh-tren-trang}{Hình trên trang bài}
+\manhinh{them-bai}{Thêm bài: tác giả và tệp}
+\manhinh{them-bai-2}{Thêm bài: ảnh và lưu}
+\manhinh{da-them}{Bài vừa thêm}
+
+\chu{Khi có sự cố}{%
+\begin{itemize}\setlength\itemsep{2mm}
+\item \textbf{„Bài vừa được người khác sửa"}: bản của thầy cô vẫn còn trong ô; so với bản mới nhất bên dưới, gộp phần cần giữ, bấm Lưu lần nữa.
+\item \textbf{„Cảnh báo hiển thị"} dưới đề: công thức có lỗi \LaTeX\ (thiếu ngoặc, lệnh lạ) — sửa rồi lưu.
+\item \textbf{Hình „chưa dựng"} sau vài phút: trang Hình $\to$ Dựng ngay (khi Quản trị đã bật dựng tự động; chưa bật thì dựng trên máy
+  theo các bước ở trang Hình); hình lỗi hiện kèm thông báo của \LaTeX.
+\item \textbf{Huỷ khi đang sửa}: bấm Huỷ hai lần (lần đầu nhắc còn thay đổi chưa lưu).
+\end{itemize}}
+
+\gopy
+
+\chu{Tóm tắt}{%
+\begin{buoc}
+\item Lọc danh sách, mở bài cần xử lý.
+\item Sửa nhỏ, hoặc sửa nội dung toán kèm vị trí và lý do.
+\item Ghi mục cần kiểm tra, xung đột; đóng mục phải ghi kết quả.
+\item Vẽ hình bằng TikZ — hệ thống tự dựng.
+\item Thêm bài mới ở trang Thêm bài.
+\end{buoc}}
+\end{document}

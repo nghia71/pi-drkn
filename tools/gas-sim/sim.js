@@ -47,6 +47,8 @@ class Sheet {
   appendRow(vals) { const r = this.getLastRow() + 1; this.getRange(r, 1, 1, vals.length).setValues([vals]); return this; }
   clear() { this.cells = []; return this; }
   setFrozenRows() { return this; }
+  setName(n) { this.name = n; return this; }
+  copyTo(ss) { const n = new Sheet('Copy of ' + this.name); n.cells = JSON.parse(JSON.stringify(this.cells)); ss.sheets.push(n); return n; }
 }
 class Range {
   constructor(sh, r, c, nr, nc) { Object.assign(this, { sh, r, c, nr, nc }); }
@@ -54,6 +56,12 @@ class Range {
     const out = [];
     for (let i = 0; i < this.nr; i++) { const row = []; for (let j = 0; j < this.nc; j++) { const x = (this.sh.cells[this.r - 1 + i] || [])[this.c - 1 + j]; row.push(x ? x.v : ''); } out.push(row); }
     return out;
+  }
+  // chữ hiển thị (như Sheets): ngày theo kiểu M/D/YYYY giờ, TRUE/FALSE, số thành chữ
+  getDisplayValues() {
+    const fmt = v => v instanceof Date ? (v.getMonth() + 1) + '/' + v.getDate() + '/' + v.getFullYear() + ' ' + v.toTimeString().slice(0, 8)
+                   : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : String(v);
+    return this.getValues().map(r => r.map(fmt));
   }
   setValue(v) { return this.setValues([[v]]); }
   setValues(vals) {
@@ -126,7 +134,8 @@ function makeEnv(opts) {
       zip: (blobs, name) => blob(zipStore(blobs.map(b => ({ name: b.getName(), data: b.getBytes() }))), 'application/zip', name || 'archive.zip'),
       // chỉ hỗ trợ mẫu 'yyyy-MM-dd' (đủ cho mã hiện tại)
       formatDate: (d, tz, fmt) => {
-        if (fmt !== 'yyyy-MM-dd') throw new Error('formatDate mô phỏng chỉ hỗ trợ yyyy-MM-dd');
+        if (fmt === 'H') return String(Number(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }).format(d)) % 24);
+        if (fmt !== 'yyyy-MM-dd') throw new Error('formatDate mô phỏng chỉ hỗ trợ yyyy-MM-dd và H');
         return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
       }
     },
@@ -165,7 +174,12 @@ function makeEnv(opts) {
       createFolder: name => folderObj(newFolder(name, null)),
       getFolderById: id => { if (!folders[id]) throw new Error('Không có thư mục ' + id); return folderObj(id); },
       createFile: (name, content) => addFile(name, content, null),
-      getFileById: id => { if (!files[id]) throw new Error('Không có tệp'); return fileObj(id); },
+      getFileById: id => {
+        if (spreadsheets[id]) return { getId: () => id, getName: () => spreadsheets[id].name,     // Sheet như một tệp Drive: chỉ makeCopy (sao lưu)
+          makeCopy: (name, folder) => { const src = spreadsheets[id], c = new Spreadsheet(name);
+            c.sheets = src.sheets.map(sh => { const n = new Sheet(sh.name); n.cells = JSON.parse(JSON.stringify(sh.cells)); return n; });
+            spreadsheets[c.id] = c; files[c.id] = { name, content: '', parent: folder ? folder.getId() : null, trashed: false, t: Date.now() }; return fileObj(c.id); } };
+        if (!files[id]) throw new Error('Không có tệp'); return fileObj(id); },
       searchFiles: q => { const m = String(q || '').match(/title contains '([^']*)'/);
         const ids = Object.keys(files).filter(i => !files[i].trashed && (!m || files[i].name.indexOf(m[1]) >= 0)); let k = 0; return { hasNext: () => k < ids.length, next: () => fileObj(ids[k++]) }; }
     }

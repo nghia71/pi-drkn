@@ -25,6 +25,8 @@ catch (e) {
 }
 const MJ = path.join(REPO, 'node_modules', 'mathjax', 'es5');
 const { loadApp } = require(path.join(REPO, 'tools', 'gas-sim', 'sim'));
+// trang chính gọi include_('ui/RenderJs') khi đăng nhập: tệp sinh từ shared/pi-render.js (deploy.sh cũng làm vậy; không vào kho)
+fs.writeFileSync(path.join(APP, 'ui', 'RenderJs.html'), '<script>\n' + fs.readFileSync(path.join(REPO, 'shared', 'pi-render.js'), 'utf8') + '</script>\n');
 
 /* ---------------- máy chủ mô phỏng + dữ liệu bịa ---------------- */
 const QT = 'quantri@example.com', PT = 'pt@example.com', TBT = 'tbt@example.com', NCB = 'ncb@example.com',
@@ -112,10 +114,10 @@ async function open(email, opt) {
 }
 /** Chờ mọi lời gọi máy chủ xong, trang vẽ lại, công thức dựng xong. */
 async function idle(pg, ms) {
-  await pg.waitForFunction(() => window.__pending === 0, null, { timeout: 15000 });
+  await pg.waitForFunction(() => !window.__pending, null, { timeout: 15000 });
   await pg.waitForTimeout(ms || 120);
   await pg.evaluate(() => (window.MathJax && MathJax.typesetPromise ? MathJax.typesetPromise().catch(() => {}) : null)).catch(() => {});
-  await pg.waitForFunction(() => window.__pending === 0, null, { timeout: 15000 });
+  await pg.waitForFunction(() => !window.__pending, null, { timeout: 15000 });
 }
 /**
  * Chụp màn hình cho trang hướng dẫn. marks = các bước đánh số: [{sel, t, has?, next?}] — khung cam + số trên phần tử,
@@ -124,21 +126,41 @@ async function idle(pg, ms) {
 async function shot(pg, name, caption, full, marks) {
   if (!SHOTS) return;
   await idle(pg); await clearToasts(pg);
-  const file = String(tour.filter(x => x.img).length + 1).padStart(2, '0') + '-' + name + '.png';
+  const file = name + '.png';                                      // tên cố định: slide video (docs/video) gọi theo tên
   const ann = marks && marks.length ? await annotate(pg, marks) : { miss: [], out: false };
   ann.miss.forEach(m => check(false, 'chú thích ảnh ' + name + ': không thấy ' + m));
   const fullPage = full !== false || ann.out;
   if (fullPage) await pg.evaluate(() => window.scrollTo(0, 0));     // thanh đầu trang (sticky) nằm ở đầu ảnh, không ở giữa
   await pg.screenshot({ path: path.join(OUT, file), fullPage });
-  await pg.evaluate(() => { const a = document.getElementById('__ann'); if (a) a.remove(); });
+  // bản cho slide (16:10): cắt sát quanh các bước để chữ đủ lớn; trang dài không bị thu nhỏ thành dải hẹp
+  const W = pg.viewportSize().width, R = 1.6;
+  let clip = { x: 0, y: 0, width: W, height: Math.round(W / R) };
+  if (ann.rgt > 0) {
+    let w = Math.max(ann.rgt - ann.lft + 120, 760), h = Math.max(ann.bot - ann.top + 100, w / R);
+    w = Math.min(W, Math.max(w, h * R));
+    const cx = (ann.lft + ann.rgt) / 2, cy = (ann.top + ann.bot) / 2;
+    const x = Math.max(0, Math.min(cx - w / 2, W - w)), y = Math.max(0, Math.min(cy - h / 2, ann.docH - h));
+    clip = { x: Math.round(x), y: Math.round(y), width: Math.round(w), height: Math.round(Math.min(h, ann.docH)) };
+  }
+  await pg.screenshot({ path: path.join(OUT, name + '.slide.png'), fullPage: true, clip });
+  await pg.evaluate(() => { document.querySelectorAll('#__ann, .__ann').forEach(a => a.remove()); });
   tour.push({ img: file, caption, who: pg.who, view: pg.viewportSize().width < 600 ? 'điện thoại' : '', steps: (marks || []).map(m => m.t) });
+  // cùng chú thích cho slide hướng dẫn (docs/huong-dan): <tên>.cap.tex, <tên>.steps.tex — một nguồn cho ảnh và chữ
+  fs.writeFileSync(path.join(OUT, name + '.cap.tex'), texEsc(caption) + '\n');
+  fs.writeFileSync(path.join(OUT, name + '.steps.tex'), (marks || []).map(m => '\\item ' + texEsc(m.t)).join('\n') + '\n');
+}
+/** Chữ thường → LaTeX (pdflatex, T5): ký tự đặc biệt và mũi tên. */
+function texEsc(t) {
+  const map = { '\\': '\\textbackslash{}', '$': '\\$', '&': '\\&', '%': '\\%', '#': '\\#', '_': '\\_', '{': '\\{', '}': '\\}',
+                '→': '$\\to$', '↑': '$\\uparrow$', '↓': '$\\downarrow$', '×': '$\\times$', '…': '\\ldots{}', '≠': '$\\neq$' };
+  return String(t).replace(/[\\$&%#_{}→↑↓×…≠]/g, c => map[c]).replace(/"([^"]*)"/g, "``$1''");
 }
 async function annotate(pg, marks) {
   return pg.evaluate(ms => {
     const lay = document.createElement('div'); lay.id = '__ann';
     lay.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;z-index:99999;pointer-events:none';
     document.body.appendChild(lay);
-    const miss = []; let top = 1e9, bot = 0;
+    const miss = []; let top = 1e9, bot = 0, lft = 1e9, rgt = 0;
     ms.forEach((m, i) => {
       let els = Array.from(document.querySelectorAll(m.sel)).filter(e => e.getClientRects().length);
       if (m.has) els = els.filter(e => e.textContent.includes(m.has));
@@ -146,15 +168,27 @@ async function annotate(pg, marks) {
       if (!el) { miss.push(m.sel + (m.has ? ' «' + m.has + '»' : '')); return; }
       const r = el.getBoundingClientRect(); let L = r.left, T = r.top, R = r.right, B = r.bottom;
       if (m.next && el.nextElementSibling) { const q = el.nextElementSibling.getBoundingClientRect(); L = Math.min(L, q.left); T = Math.min(T, q.top); R = Math.max(R, q.right); B = Math.max(B, q.bottom); }
-      const x = L + scrollX - 5, y = T + scrollY - 5, w = R - L + 10, h = B - T + 10;
+      // phần tử trong hộp thoại (lớp trên cùng): vẽ khung bên trong hộp thoại, toạ độ theo hộp thoại
+      const dlg = el.closest('dialog[open]'), dr = dlg && dlg.getBoundingClientRect();
+      const ox = dlg ? dr.left + dlg.clientLeft : -scrollX, oy = dlg ? dr.top + dlg.clientTop : -scrollY;
+      const x = L - ox - 5, y = T - oy - 5, w = R - L + 10, h = B - T + 10;
+      let host = lay;
+      if (dlg) { host = dlg.querySelector(':scope > .__ann') || dlg.appendChild(Object.assign(document.createElement('div'), { className: '__ann' }));
+                 host.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;z-index:99999'; dlg.style.overflow = 'visible'; }
       const box = document.createElement('div');
       box.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;border:3px solid #e8590c;border-radius:10px;box-shadow:0 0 0 2px rgba(255,255,255,.85)`;
       const n = document.createElement('div'); n.textContent = i + 1;
       n.style.cssText = `position:absolute;left:${Math.max(2, x - 13)}px;top:${Math.max(2, y - 13)}px;width:26px;height:26px;border-radius:50%;background:#e8590c;color:#fff;` +
                         'font:700 14px/26px system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.45)';
-      lay.append(box, n); top = Math.min(top, Math.max(0, y - 13)); bot = Math.max(bot, y + h);
+      host.append(box, n);
+      const px = x + (dlg ? ox + scrollX : 0), py = y + (dlg ? oy + scrollY : 0);   // toạ độ trên trang, để cắt ảnh
+      top = Math.min(top, Math.max(0, py - 13)); bot = Math.max(bot, py + h); lft = Math.min(lft, Math.max(0, px - 13)); rgt = Math.max(rgt, px + w);
+      if (dlg) {                                                         // bước trong hộp thoại: ảnh cắt lấy trọn hộp thoại
+        top = Math.min(top, dr.top + scrollY - 8); bot = Math.max(bot, dr.bottom + scrollY + 8);
+        lft = Math.min(lft, dr.left + scrollX - 8); rgt = Math.max(rgt, dr.right + scrollX + 8);
+      }
     });
-    return { miss, out: top < scrollY || bot > scrollY + innerHeight };
+    return { miss, out: top < scrollY || bot > scrollY + innerHeight, top, bot, lft, rgt, docH: document.documentElement.scrollHeight };
   }, marks);
 }
 const text = (pg, sel) => pg.$eval(sel, el => el.innerText).catch(() => '');
@@ -170,6 +204,17 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   br = await launchBrowser();
   const pages = [];
   const O = async (email, opt) => { const p = await open(email, opt); pages.push(p); return p; };
+
+  /* ---------- 0. Đăng nhập (ứng dụng đăng nhập, như người dùng thấy sau khi Google xác nhận email) ---------- */
+  if (SHOTS) {
+    const sg = loadApp(path.join(REPO, 'apps', 'signin'), { owner: PB1 });
+    Object.assign(sg.props, { SECRET: 'x', B_URL: 'https://script.google.com/macros/s/THU/exec' });
+    const sp = await (await br.newContext({ viewport: { width: 1180, height: 420 } })).newPage(); sp.who = PB1;
+    await sp.setContent('<!doctype html><meta charset="utf-8">' + sg.ctx.doGet().getContent());
+    section('0. Vào hệ thống', 'Mở đường dẫn đăng nhập (gửi qua email), Google xác nhận địa chỉ email, rồi bấm Vào hệ thống.');
+    await shot(sp, 'dang-nhap', 'Trang đăng nhập: kiểm tra đúng tài khoản ở dòng "Xin chào", rồi bấm Vào hệ thống. Liên kết có hiệu lực 10 phút.', false,
+      [{ sel: 'b', t: 'Đúng tài khoản của bạn chưa?' }, { sel: 'a', t: 'Vào hệ thống' }]);
+  }
 
   /* ---------- 1. Danh sách ---------- */
   section('1. Danh sách bài', 'Mở hệ thống: danh sách mặc định chỉ có bài đang xử lý (Mới, SL), mỗi lần 30 bài; lọc theo chủ đề, mức, trạng thái; sắp xếp.');
@@ -237,7 +282,8 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   await ncb.selectOption('.nb[data-i="1"] [data-noi="0"]', 'lg'); await clearToasts(ncb);
   await ncb.click('[data-a=save]'); await idle(ncb);
   check((await text(ncb, '[data-a=save]')).startsWith('Bấm lần nữa'), 'nút Thêm cần bấm hai lần');
-  await shot(ncb, 'them-bai', 'Thêm bài: tệp .tex của tác giả tự tách thành đề và lời giải; chủ đề, mức lấy từ tên tệp; mỗi ảnh chọn chỗ đặt. Nút "Thêm vào danh sách" bấm hai lần.', true, [{"sel": "#add [data-k=thang]", "t": "Tháng nhận — thư mục sẽ cấp được tính tự động"}, {"sel": "#add [data-k=tg]", "t": "Chọn tác giả đã có, hoặc để trống và ghi tác giả mới bên dưới"}, {"sel": ".nb[data-i=\"0\"] [data-k=tex]", "t": "Tải tệp .tex của tác giả: tự tách đề và lời giải"}, {"sel": ".nb[data-i=\"0\"] [data-noi=\"0\"]", "t": "Mỗi ảnh: đặt ở đề (in kèm đề) hay minh hoạ lời giải (không in)"}, {"sel": "[data-a=more]", "t": "Thêm một bài nữa của cùng tác giả"}, {"sel": "[data-a=save]", "t": "Thêm vào danh sách — bấm hai lần"}]);
+  await shot(ncb, 'them-bai', 'Thêm bài: tệp .tex của tác giả tự tách thành đề và lời giải; chủ đề, mức lấy từ tên tệp; mỗi ảnh chọn chỗ đặt. Nút "Thêm vào danh sách" bấm hai lần.', true, [{"sel": "#add [data-k=thang]", "t": "Tháng nhận — thư mục sẽ cấp được tính tự động"}, {"sel": "#add [data-k=tg]", "t": "Chọn tác giả đã có, hoặc để trống và ghi tác giả mới bên dưới"}, {"sel": ".nb[data-i=\"0\"] [data-k=tex]", "t": "Tải tệp .tex của tác giả: tự tách đề và lời giải"}]);
+  await shot(ncb, 'them-bai-2', 'Thêm bài (tiếp): ảnh của từng bài, thêm bài nữa của cùng tác giả, rồi Thêm vào danh sách.', true, [{"sel": ".nb[data-i=\"0\"] [data-noi=\"0\"]", "t": "Mỗi ảnh: đặt ở đề (in kèm đề) hay minh hoạ lời giải (không in)"}, {"sel": "[data-a=more]", "t": "Thêm một bài nữa của cùng tác giả"}, {"sel": "[data-a=save]", "t": "Thêm vào danh sách — bấm hai lần"}]);
   await ncb.click('[data-a=save]'); await idle(ncb, 300);
   const added = await ncb.$$eval('#a-res .code', x => x.map(a => a.textContent));
   check(added.length === 2 && added[0] === next + 'a' && added[1] === next + 'b', 'đã thêm hai bài ' + next + 'a, b: ' + added);
@@ -476,6 +522,17 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   await tab(tbt, 'go-list'); await tab(tbt, 'go-boards');
   await shot(tbt, 'tbt-duyet', 'TBT mở bảng đang chờ duyệt: Duyệt (bấm hai lần) hoặc Trả lại (phải ghi lý do, PT sẽ thấy).', false, [{"sel": "[data-b=approve]", "t": "Duyệt — bấm hai lần; bài thành SL-OK"}, {"sel": "[data-b=return]", "t": "Hoặc Trả lại, ghi lý do cho PT"}]);
   await twice(tbt, '[data-b=approve]');
+  step = 'TBT quyết định xung đột mức';
+  await openProb(tbt, P1); await tbt.click('#props summary'); await idle(tbt);
+  await tbt.click('[data-act=confl-edit]'); await idle(tbt);
+  check((await tbt.$$eval('.inl select[data-k=trang_thai] option', x => x.map(o => o.textContent))).includes('đã giải quyết'), 'TBT đặt được "đã giải quyết"');
+  await tbt.fill('.inl textarea[data-k=cach_giai_quyet]', 'Giữ mức B theo phiếu phản biện');
+  await shot(tbt, 'tbt-xung-dot', 'TBT quyết định xung đột mức: chọn "đã giải quyết", ghi cách giải quyết, Lưu.', true,
+    [{ sel: '#props h4', has: 'Xung đột', next: 1, t: 'Xung đột đang chờ TBT' }, { sel: '.inl select[data-k=trang_thai]', t: 'Chọn "đã giải quyết"' },
+     { sel: '.inl textarea[data-k=cach_giai_quyet]', t: 'Ghi cách giải quyết' }, { sel: '.inl [data-k=ok]', t: 'Lưu' }]);
+  await tbt.click('.inl [data-k=ok]'); await idle(tbt, 300);
+  check((await text(tbt, '#props')).includes('Giữ mức B'), 'quyết định của TBT được ghi');
+  await tab(tbt, 'go-boards');
   check((await text(tbt, '.bd .head')).includes('đã duyệt'), 'bảng đã duyệt');
   await tab(tbt, 'go-list'); await tbt.selectOption('#f-status', 'SL-OK'); await idle(tbt);
   check((await count(tbt, '#list .card')) >= 10, 'mười bài thành SL-OK');
@@ -504,8 +561,66 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   check((await count(btk, '[data-b=tex]')) === 1 && (await count(btk, '[data-b=new],[data-b=close],[data-b=approve]')) === 0, 'BTK chỉ tải tệp .tex');
   await shot(btk, 'btk', 'BTK (chế bản) chỉ xem bảng và tải tệp .tex của số đã khoá; gói đầy đủ (.tex + hình) nằm trong thư mục chế bản trên Drive.', false, [{"sel": "[data-b=tex]", "t": "Tải tệp .tex của số đã khoá"}]);
 
-  /* ---------- 9. Điện thoại, chế độ tối ---------- */
-  section('9. Điện thoại và chế độ tối', 'Cùng trang trên điện thoại (390 px) và khi máy đặt chế độ tối.');
+  /* ---------- 9. Góp ý, lỗi ---------- */
+  section('9. Góp ý và lỗi người dùng gặp', 'Nút Góp ý ở mọi trang; lỗi người dùng gặp được ghi tự động; Quản trị xem cả hai và nhận thư tóm tắt mỗi sáng.');
+  step = 'phản biện góp ý';
+  const pbf = await O(PB2);
+  await pbf.click('#fb-btn'); await idle(pbf);
+  await pbf.click('#fb-dlg [data-d="4"]'); await pbf.fill('#fb-text', 'Nên có nút sang bài tiếp theo.');
+  await shot(pbf, 'gop-y', 'Góp ý: ở mọi trang, mọi người. Hệ thống tự ghi kèm trang đang xem và vai trò.', false,
+    [{ sel: '#fb-btn', t: 'Bấm Góp ý (đầu trang)' }, { sel: '#fb-dlg .fb-diem', t: 'Dễ dùng không? (không bắt buộc)' },
+     { sel: '#fb-text', t: 'Viết vài dòng' }, { sel: '#fb-send', t: 'Gửi góp ý' }]);
+  await pbf.click('#fb-send'); await idle(pbf, 300);
+  const fbRows = c.rows_('Feedback');
+  check(fbRows.length === 1 && fbRows[0].email === PB2 && String(fbRows[0].diem) === '4' && fbRows[0].noi_dung.includes('bài tiếp theo'), 'góp ý được ghi');
+  step = 'lỗi được ghi tự động';
+  await pbf.evaluate(() => call('feedbackList', {}).catch(() => {})); await idle(pbf, 300);
+  check(c.rows_('Errors').some(r => r.email === PB2 && /feedbackList: Không có quyền/.test(r.loi) && /Chrome|Mozilla/.test(r.trinh_duyet)), 'thao tác bị từ chối được ghi vào Errors');
+  await pbf.evaluate(() => setTimeout(() => { throw new Error('lỗi thử nghiệm'); }, 0)); await idle(pbf, 400);
+  check(c.rows_('Errors').some(r => /JavaScript: .*lỗi thử nghiệm/.test(r.loi)), 'lỗi JavaScript được ghi');
+  pbf.errs = pbf.errs.filter(x => !/lỗi thử nghiệm|Không có quyền/.test(x));   // lỗi cố ý, không phải lỗi giao diện
+  step = 'Quản trị xem';
+  await qt.click('#fb-btn'); await idle(qt); await qt.click('#fb-list'); await idle(qt, 300);
+  check((await text(qt, '#fb-res')).includes('Nên có nút sang bài tiếp theo.') && (await text(qt, '#fb-res')).includes('lỗi thử nghiệm'), 'Quản trị thấy góp ý và lỗi');
+  await shot(qt, 'gop-y-quan-tri', 'Quản trị: góp ý và lỗi người dùng gặp, ngay trong hộp Góp ý; đổi trạng thái góp ý khi đã xử lý.', false,
+    [{ sel: '#fb-list', t: 'Xem góp ý và lỗi đã nhận' }, { sel: '#fb-res select', t: 'Đánh dấu: đã xem / đã sửa / không làm' }]);
+  await qt.click('#fb-close');
+
+  step = 'luyện tập: đặt lại';
+  c.TEST_CONF.ACTIVE_USER = QT; c.resetPractice(); delete c.TEST_CONF.ACTIVE_USER;
+  c.TEST_CONF.PRACTICE_USERS = PT;
+  await pt.evaluate(() => loadList()); await idle(pt);
+  check((await pt.evaluate(() => ALL.filter(p => p.ma_bai.indexOf('THU-') === 0).length)) === 10, 'người dùng thử (PT) thấy mười bài luyện');
+  await openProb(pt, 'THU-05'); await pt.selectOption('#st-sel', 'SL'); await pt.click('[data-act=status]'); await idle(pt, 300);
+  await tab(pt, 'go-rounds');
+  await shot(pt, 'luyen-tap', 'Luyện tập: mười bài THU-… là bài bịa, làm gì cũng được; Đặt lại xoá mọi việc đã làm trên chúng và đưa về như mới.', false,
+    [{ sel: '.card.tap', t: 'Bài luyện tập THU-01…THU-10' }, { sel: '[data-r=practice]', t: 'Đặt lại — bấm hai lần' }]);
+  await twice(pt, '[data-r=practice]');
+  check(c.findRow_('Problems', 'ma_bai', 'THU-05').data.trang_thai === 'Mới', 'đặt lại: bài luyện về như mới');
+  delete c.TEST_CONF.PRACTICE_USERS;
+
+  step = 'dùng thử trên bài thật';
+  c.TEST_CONF.BACKUP_FOLDER_ID = c.DriveApp.createFolder('sao lưu (thử)').getId();
+  await tab(qt, 'go-rounds');
+  await shot(qt, 'dung-thu-bat-dau', 'Dùng thử trên bài thật: Quản trị bắt đầu — hệ thống chụp toàn bộ dữ liệu; sau đó đưa về như cũ được bất cứ lúc nào.', false,
+    [{ sel: '.card.tap', has: 'Dùng thử', t: 'Dùng thử trên bài thật' }, { sel: '[data-viec=bat_dau]', t: 'Bắt đầu dùng thử — bấm hai lần' }]);
+  await twice(qt, '[data-viec=bat_dau]');
+  check(!(await qt.$eval('#trial-bar', e => e.hidden)), 'dòng báo đang dùng thử');
+  const tbtv = await O(TBT);
+  check(!(await tbtv.$eval('#trial-bar', e => e.hidden)), 'mọi người thấy dòng báo');
+  await openProb(tbtv, P2); await tbtv.selectOption('#st-sel', 'SL'); await tbtv.click('[data-act=status]'); await idle(tbtv, 300);
+  check(c.findRow_('Problems', 'ma_bai', P2).data.trang_thai === 'SL', 'làm như thật trong lúc dùng thử');
+  await tab(tbtv, 'go-rounds');
+  await shot(tbtv, 'dung-thu-dua-ve', 'Đang dùng thử: mọi trang có dòng báo; Quản trị hoặc TBT đưa mọi bài, kỳ, bảng về như lúc bắt đầu (giữ góp ý, lỗi, người dùng).', false,
+    [{ sel: '#trial-bar', t: 'Dòng báo đang dùng thử (mọi trang, mọi người)' }, { sel: '[data-viec=dua_ve]', t: 'Đưa về như trước khi dùng thử — bấm hai lần' }]);
+  await twice(tbtv, '[data-viec=dua_ve]');
+  check(c.findRow_('Problems', 'ma_bai', P2).data.trang_thai === 'Không SL', 'đưa về: trạng thái như lúc bắt đầu');
+  await tab(qt, 'go-rounds');
+  await twice(qt, '[data-viec=ket_thuc][data-giu="1"]');
+  check(await qt.$eval('#trial-bar', e => e.hidden), 'kết thúc: hết dòng báo');
+
+  /* ---------- 10. Điện thoại, chế độ tối ---------- */
+  section('10. Điện thoại và chế độ tối', 'Cùng trang trên điện thoại (390 px) và khi máy đặt chế độ tối.');
   const ph = await O(PB2, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await ph.evaluate(() => loadList()); await idle(ph);
   const qtp = await O(QT, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

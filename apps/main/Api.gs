@@ -16,6 +16,7 @@ var MAX_TEXT_ = 45000;   // giới hạn một ô của Google Sheets là 50 000
 
 function api(token, method, args) {
   READ_MEMO_ = READ_ONLY_[method] ? {} : null;
+  FOUND_KEY_ = {};
   FIG_INDEX_ = null;
   try {
     if (method === 'bundle') prefetch_(['Users', 'Problems', 'Authors', 'Rounds', 'Assignments', 'Provenance', 'Corrections',
@@ -34,7 +35,7 @@ function api_(token, method, args) {
   var w = who_(token);
   args = args || {};
   switch (method) {
-    case 'me': return { email: w.email, name: w.name, roles: w.roles, eff: w.eff };
+    case 'me': return { email: w.email, name: w.name, roles: w.roles, eff: w.eff, trial: trialInfo_() };
     case 'listProblems': return listProblems_(w, args);
     case 'getProblem': return getProblem_(w, args.ma_bai);
     case 'bundle': return bundle_(w);
@@ -56,6 +57,12 @@ function api_(token, method, args) {
     case 'closeRound': return closeRound_(w, args);
     case 'releaseSolutions': return releaseSolutions_(w, args);
     case 'deleteRound': return deleteRound_(w, args);
+    case 'feedback': return addFeedback_(w, args);
+    case 'logError': return logError_(w, args);
+    case 'feedbackList': return feedbackList_(w);
+    case 'feedbackStatus': return feedbackStatus_(w, args);
+    case 'resetPractice': return practiceReset_(w);
+    case 'trial': return trialAction_(w, args);
     case 'sendInvites': return sendInvites_(w, args);
     case 'submitReview': return submitReview_(w, args);
     case 'markDone': return markDone_(w, args);
@@ -99,10 +106,17 @@ function canSee_(w, ma, assigned) {
   return has_(w, ['PB']) && !!assigned[ma];
 }
 
-/** Tài khoản thử (Script property TEST_USERS)? Tính một lần cho mỗi lời gọi. */
+/** Tên bắt đầu bằng THU- (và K-THU) dành cho luyện tập — nút Đặt lại xoá chúng; chỉ Quản trị, người dùng thử đặt được. */
+function practiceNameCheck_(w, name, label) {
+  var v = String(name || '');
+  if ((v === 'K-THU' || /^THU-/i.test(v)) && w.roles.indexOf('Quản trị') < 0 && !practiceUser_(w))
+    throw new Error(label + ' bắt đầu bằng THU- dành cho luyện tập (bị xoá khi đặt lại bài luyện tập) — hãy đặt tên khác.');
+}
+/** Thấy bài luyện tập: tài khoản thử (TEST_USERS) và người đang dùng thử (PRACTICE_USERS — thêm khi mời dùng thử, bỏ khi xong). */
 function practiceUser_(w) {
   if (w._thu === undefined) {
-    w._thu = String(conf_('TEST_USERS') || '').split(',').map(function (x) { return x.trim().toLowerCase(); }).indexOf(w.email) >= 0;
+    var list = (String(conf_('TEST_USERS') || '') + ',' + String(conf_('PRACTICE_USERS') || '')).split(',');
+    w._thu = list.map(function (x) { return x.trim().toLowerCase(); }).indexOf(w.email) >= 0;
   }
   return w._thu;
 }

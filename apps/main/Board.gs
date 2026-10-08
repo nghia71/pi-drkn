@@ -78,6 +78,7 @@ function newBoard_(w, a) {
   need_(w, BOARD_MANAGERS);
   var so = shortText_(a.so, 'Số báo', 30, true);
   if (/^[=+\-@']/.test(so)) throw new Error('Số báo không được bắt đầu bằng = + - @ \'.');
+  practiceNameCheck_(w, so, 'Số báo');
   withLock_(function () {
     if (findRow_('Issues', 'so', so)) throw new Error('Đã có bảng cho số ' + so + '.');
     sheet_('Issues').appendRow(rowOf_('Issues', { so: "'" + so, trang_thai: 'đang chọn', ghi_chu: '' }));
@@ -97,15 +98,14 @@ function placeProblem_(w, a) {
   var p = findRow_('Problems', 'ma_bai', a.ma_bai).data;
   if (p.trang_thai === 'PL') throw new Error('Bài ' + a.ma_bai + ' đã đăng.');
   if (REASON_STATUSES.indexOf(p.trang_thai) >= 0) throw new Error('Bài ' + a.ma_bai + ' đang ở trạng thái ' + p.trang_thai + ' (đã loại).');
+  practiceMatch_(a.ma_bai, a.so, 'bảng chọn bài');
   var other = rows_('Shortlist').filter(function (r) { return r.ma_bai === a.ma_bai && String(r.ky) !== String(a.so); })[0];
   if (other) throw new Error('Bài ' + a.ma_bai + ' đang ở bảng số ' + other.ky + '.');
   withLock_(function () {
-    var sh = sheet_('Shortlist');
-    // bỏ dòng ở vị trí đích và dòng cũ của chính bài này (xoá từ dưới lên để số dòng không lệch)
-    boardRows_(a.so).filter(function (r) { return Number(r.vi_tri) === pos || r.ma_bai === a.ma_bai; })
-      .map(function (r) { return r._row; }).sort(function (x, y) { return y - x; })
-      .forEach(function (row) { sh.deleteRow(row); });
-    sh.appendRow(rowOf_('Shortlist', { ky: "'" + a.so, ma_bai: a.ma_bai, vi_tri: pos, phuong_an: layout[pos - 1], quyet_dinh: '',
+    READ_MEMO_ = READ_MEMO_ && {};
+    // bỏ dòng ở vị trí đích và dòng cũ của chính bài này
+    deleteRows_('Shortlist', boardRows_(a.so).filter(function (r) { return Number(r.vi_tri) === pos || r.ma_bai === a.ma_bai; }));
+    sheet_('Shortlist').appendRow(rowOf_('Shortlist', { ky: "'" + a.so, ma_bai: a.ma_bai, vi_tri: pos, phuong_an: layout[pos - 1], quyet_dinh: '',
                                        nguoi: w.email, ngay: now_() }));
   });
   READ_MEMO_ = READ_MEMO_ && {};
@@ -118,7 +118,7 @@ function unplaceProblem_(w, a) {
   editableBoard_(a.so);
   var r = boardRows_(a.so).filter(function (x) { return Number(x.vi_tri) === Number(a.vi_tri); })[0];
   if (!r) throw new Error('Vị trí ' + a.vi_tri + ' đang trống.');
-  withLock_(function () { sheet_('Shortlist').deleteRow(r._row); });
+  withLock_(function () { deleteRows_('Shortlist', [r]); });
   READ_MEMO_ = READ_MEMO_ && {};
   audit_(w.email, 'bỏ bài khỏi bảng', a.so + ' #' + a.vi_tri + ' (' + r.ma_bai + ')');
   return true;
@@ -134,7 +134,7 @@ function swapPositions_(w, a) {
   withLock_(function () {
     rows.forEach(function (r) {
       var v = Number(r.vi_tri);
-      if (v === x || v === y) update_('Shortlist', r._row, { vi_tri: v === x ? y : x, phuong_an: layout[(v === x ? y : x) - 1] });
+      if (v === x || v === y) update_('Shortlist', r, { vi_tri: v === x ? y : x, phuong_an: layout[(v === x ? y : x) - 1] });
     });
   });
   audit_(w.email, 'đổi chỗ', a.so + ' #' + x + ' ↔ #' + y);
@@ -161,7 +161,7 @@ function approveBoard_(w, a) {
   withLock_(function () {
     rows.forEach(function (r) {
       var p = findRow_('Problems', 'ma_bai', r.ma_bai);
-      update_('Shortlist', r._row, { quyet_dinh: 'chọn', trang_thai_truoc: p.data.trang_thai, muc_truoc: p.data.muc || '-' });
+      update_('Shortlist', r, { quyet_dinh: 'chọn', trang_thai_truoc: p.data.trang_thai, muc_truoc: p.data.muc || '-' });
       update_('Problems', p.row, { trang_thai: 'SL-OK', muc: r.phuong_an, cap_nhat: t, nguoi_cap_nhat: w.email });
     });
     update_('Issues', hit.row, { trang_thai: 'đã duyệt', nguoi_duyet: w.email, duyet_luc: t,
@@ -195,7 +195,7 @@ function reopenBoard_(w, a) {
         update_('Problems', p.row, { trang_thai: r.trang_thai_truoc || 'SL', muc: r.muc_truoc === '-' ? '' : (r.muc_truoc || p.data.muc),
                                      cap_nhat: t, nguoi_cap_nhat: w.email });
       }
-      update_('Shortlist', r._row, { quyet_dinh: '' });
+      update_('Shortlist', r, { quyet_dinh: '' });
     });
     update_('Issues', hit.row, { trang_thai: 'đang chọn', nguoi_duyet: '', duyet_luc: '' });
   });

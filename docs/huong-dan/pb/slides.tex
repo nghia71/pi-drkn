@@ -1,0 +1,54 @@
+% Hướng dẫn cho Phản biện. Dịch: cd docs/huong-dan/pb && pdflatex slides.tex && pdflatex slides.tex
+% (trước đó chạy scripts/test-all.sh để có ảnh trong out/ui/)
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage{../pi-hd}
+\newcommand\vaitro{Hướng dẫn cho Phản biện}
+\begin{document}
+
+\bia{Phản biện}{Đọc bài được giao, tự giải, điền phiếu phản biện, trao đổi ẩn danh.}
+
+\chuanbi
+\dungthu
+
+\chu{Thầy cô làm gì, trong bao lâu}{%
+\begin{buoc}
+\item Nhận \textbf{thư mời} (người gửi: „Pi — Đề ra kỳ này"): số bài, hạn phản biện, đường dẫn đăng nhập.
+\item Mở từng bài, \textbf{tự giải trước} — lời giải chỉ hiện khi Phụ trách chuyên mục mở cho cả kỳ.
+\item Điền \textbf{phiếu phản biện} cho mỗi bài: mức đề nghị, đề nghị chọn hay không, nhận xét.
+\item \textbf{Đánh dấu đã xong}. Trao đổi thêm ở mục Thảo luận của bài nếu cần.
+\end{buoc}
+\medskip
+Chưa xong thì có thư nhắc 3 ngày và 1 ngày trước hạn. Hết kỳ, các bài rời khỏi danh sách của thầy cô.\\[2mm]
+\textbf{Chấm ẩn danh}: thầy cô không thấy tên tác giả; phản biện khác thấy thầy cô là ``Phản biện 1, 2\ldots'', không thấy email.}
+
+\manhinh[Mỗi lần vào hệ thống đều đi qua trang này.]{dang-nhap}{Vào hệ thống}
+\manhinh{pb-danh-sach}{Danh sách: chỉ các bài được giao}
+\manhinh{pb-phieu}{Trang bài và phiếu phản biện}
+\manhinh{pb2-an-danh}{Thảo luận ẩn danh}
+\manhinh{pb-loi-giai}{Khi lời giải được mở}
+\anh{dien-thoai-bai}{Trên điện thoại}{Trang dùng được trên điện thoại: đọc đề, điền phiếu, thảo luận.\\[2mm]
+Công thức dài cuộn ngang trong khung riêng.\\[2mm]
+Công thức trong nhận xét viết như \LaTeX: \texttt{\$x>0\$} hiện thành $x>0$.}
+
+\chu{Khi có sự cố}{%
+\begin{itemize}\setlength\itemsep{2mm}
+\item \textbf{„Phiên vào hệ thống đã hết hạn"}: bấm \emph{Đăng nhập lại} (liên kết có hiệu lực 10 phút; phiên làm việc 6 giờ).
+\item \textbf{Dòng „Xin chào …" không phải tài khoản của thầy cô}: trình duyệt đang đăng nhập nhiều tài khoản Google —
+  mở cửa sổ riêng tư, chỉ đăng nhập đúng một tài khoản.
+\item \textbf{Không thấy bài nào}: kỳ phản biện đã đóng, hoặc chưa được giao bài — hỏi Phụ trách chuyên mục.
+\item \textbf{Bấm „Lưu phiếu" bị nhắc}: chưa chọn đề nghị (chọn / sửa rồi chọn / không chọn).
+\item \textbf{Muốn sửa phiếu đã đánh dấu xong}: bấm \emph{Bỏ đánh dấu xong}, sửa, lưu, đánh dấu lại.
+\end{itemize}}
+
+\gopy
+
+\chu{Tóm tắt}{%
+\begin{buoc}
+\item Mở đường dẫn trong thư mời, kiểm tra dòng „Xin chào", bấm \emph{Vào hệ thống}.
+\item Mở từng bài, tự giải.
+\item Điền phiếu: mức, đề nghị, nhận xét — \emph{Lưu phiếu}.
+\item \emph{Đánh dấu đã xong} trước hạn.
+\item Trao đổi ở Thảo luận; khi lời giải được mở, đối chiếu và nhận xét thêm.
+\end{buoc}}
+
+\end{document}

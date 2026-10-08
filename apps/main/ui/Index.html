@@ -18,6 +18,7 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
     <a href="#" class="brand" id="go-home"><span class="pi">π</span><span>Đề ra kỳ này</span></a>
     <span class="who"><svg class="ic"><use href="#i-user"/></svg><span id="me"></span></span>
     <select id="view-as" hidden><option value="">Vai trò thật</option></select>
+    <button id="fb-btn" class="sm" title="Góp ý, báo lỗi cho người quản trị">Góp ý</button>
   </div>
   <nav class="tabs" aria-label="Các trang">
     <button id="go-list" class="tab on"><svg class="ic"><use href="#i-list"/></svg>Danh sách</button>
@@ -26,6 +27,7 @@ window.MathJax = { loader: { load: ['ui/safe'] }, tex: { inlineMath: [['\\(', '\
     <button id="go-figs" class="tab" hidden><svg class="ic"><use href="#i-image"/></svg>Hình</button>
     <button id="go-add" class="tab" hidden><svg class="ic"><use href="#i-file-plus"/></svg>Thêm bài</button>
   </nav>
+  <div id="trial-bar" hidden></div>
   <div class="fbar" aria-label="Lọc và sắp xếp danh sách">
     <select id="f-topic"><option value="">Mọi chủ đề</option><option>ĐS</option><option>SH</option><option>HH</option><option>TH</option></select>
     <select id="f-level"><option value="">Mọi mức</option><option>A</option><option>B</option></select>
@@ -46,9 +48,27 @@ var TOKEN = <?= token ?>;
 var ME0 = JSON.parse(<?= meJson ?>);
 function call(method, args) {
   return new Promise(function (ok, fail) {
-    google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { alertBox(e.message || e); fail(e); }).api(TOKEN, method, args || {});
+    google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) {
+      alertBox(e.message || e);
+      if (method !== 'logError') { logErr(method + ': ' + (e.message || e)); try { e.__logged = true; } catch (x) {} }
+      fail(e);
+    }).api(TOKEN, method, args || {});
   });
 }
+/* Lỗi người dùng gặp → tab Errors (Feedback.gs): thao tác bị từ chối, lỗi JavaScript. Mỗi lần mở trang tối đa 10, không lặp lại. */
+var ERR_SEEN = {}, ERR_N = 0;
+function pageCtx() {
+  var v = document.body.getAttribute('data-view') || 'list', ma = v === 'page' ? document.getElementById('page').dataset.ma : '';
+  return ({ list: 'danh sách', page: 'bài', rounds: 'kỳ phản biện', boards: 'bảng chọn bài', figs: 'hình', add: 'thêm bài' })[v] + (ma ? ' ' + ma : '');
+}
+function logErr(loi, chi) {
+  var k = String(loi).slice(0, 300);
+  if (ERR_SEEN[k] || ERR_N >= 10) return;
+  ERR_SEEN[k] = 1; ERR_N++;
+  try { google.script.run.withFailureHandler(function () {}).api(TOKEN, 'logError', { trang: pageCtx(), loi: k, chi_tiet: String(chi || '').slice(0, 1500), trinh_duyet: navigator.userAgent }); } catch (e) {}
+}
+window.addEventListener('error', function (e) { logErr('JavaScript: ' + (e.message || e), (e.filename || '') + ':' + (e.lineno || '') + ' ' + (e.error && e.error.stack || '')); });
+window.addEventListener('unhandledrejection', function (e) { var r = e.reason; if (r && r.__logged) return; logErr('JavaScript (promise): ' + (r && r.message || r), r && r.stack); });
 /** Thông báo góc trên: nhiều thông báo thì xếp chồng, không đè lên nhau. */
 function toast(msg, cls, ms) {
   var box = document.getElementById('toasts');
@@ -65,6 +85,10 @@ var ME;
 function showMe(me) {
   ME = me;
   document.getElementById('me').textContent = me.email + ' · ' + me.eff.join(', ');
+  var tb = document.getElementById('trial-bar');
+  tb.hidden = !me.trial;
+  if (me.trial) tb.innerHTML = ic('flask-conical') + '<span><b>Đang dùng thử</b> từ ' + esc(vnDate(me.trial.tu)) +
+    ' — thầy cô cứ làm như thật: mọi thay đổi trên bài có thể được đưa về như trước khi dùng thử. Góp ý: nút Góp ý ở đầu trang.</span>';
   var gr = document.getElementById('go-rounds');
   gr.hidden = !me.eff.some(function (r) { return ['TBT', 'PT', 'NCB', 'Quản trị'].indexOf(r) >= 0; });
   gr.onclick = function () { if (dirtyEdit()) { alertBox('Đang sửa dở — bấm Lưu hoặc Huỷ trước khi rời trang.'); return; } nav({ v: 'rounds' }); openRounds(); };
@@ -97,12 +121,12 @@ document.getElementById('go-list').onclick = document.getElementById('go-home').
  * Nút không hoàn tác được: viền đỏ; nút đang chờ bấm lần hai ("Bấm lần nữa…"): màu cảnh báo. */
 var BTN_ICON = [[/^Sửa/, 'pencil'], [/^Thêm ảnh/, 'image-plus'], [/^Thêm vào danh sách/, 'file-plus'], [/^\+ ?Thêm|^Thêm|^Lập bảng|^Mở kỳ|^Giao$/, 'plus'],
   [/^Lưu/, 'check'], [/^Huỷ|^Đóng$/, 'x'], [/^Gửi/, 'send'], [/^Duyệt|duyệt$/, 'check'], [/^Trả lại/, 'rotate-ccw'], [/^Mở lại/, 'lock-open'],
-  [/^Khoá kỳ|^Đóng kỳ/, 'lock'], [/^Tải (SVG )?lên/, 'upload'], [/^Dựng ngay/, 'refresh-cw'], [/^Tải/, 'download'], [/^Mở lời giải/, 'eye'], [/^Đóng lời giải/, 'eye-off'],
+  [/^Khoá kỳ|^Đóng kỳ/, 'lock'], [/^Tải (SVG )?lên/, 'upload'], [/^Dựng ngay/, 'refresh-cw'], [/^Góp ý$/, 'message-square'], [/^Gửi góp ý/, 'send'], [/^Tải/, 'download'], [/^Mở lời giải/, 'eye'], [/^Đóng lời giải/, 'eye-off'],
   [/^Đánh dấu/, 'check-check'], [/^Bỏ đánh dấu|^Đánh lại số/, 'rotate-ccw'], [/^Xem thêm/, 'chevron-down'], [/^Thu gọn/, 'chevron-up'], [/^Xem lịch sử/, 'history'],
-  [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
-var DANGER = /^(Đóng kỳ|Xoá|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải)/;
+  [/^Đổi trạng thái|^Đóng…$/, 'check'], [/^Ghi quyết định|^Ghi /, 'pencil'], [/^Bỏ bài|^Xoá/, 'trash-2'], [/^Đặt lại bài luyện/, 'rotate-ccw'], [/^Bắt đầu dùng thử/, 'flask-conical'], [/^Đưa về|^Kết thúc và đưa về/, 'rotate-ccw'], [/^Kết thúc dùng thử/, 'check'], [/^Chuyển sang/, 'ban'], [/^Bấm lần nữa/, 'triangle-alert']];
+var DANGER = /^(Đóng kỳ|Xoá|Trả lại|Bỏ bài|Chuyển sang|Mở lại để sửa|Đóng lời giải|Đưa về|Kết thúc và đưa về)/;
 var H3_ICON = [[/^(Sửa )?Đề bài/, 'file-text'], [/^(Sửa )?Lời giải/, 'lightbulb'], [/^(Sửa )?Hình/, 'image'], [/^Thảo luận/, 'message-square'],
-  [/^Phiếu phản biện/, 'clipboard-check'], [/^Khoá kỳ/, 'lock'], [/^Dựng hình/, 'image'], [/^Mở kỳ/, 'plus'], [/^Bài \d/, 'file-text']];
+  [/^Phiếu phản biện/, 'clipboard-check'], [/^Luyện tập/, 'graduation-cap'], [/^Dùng thử/, 'flask-conical'], [/^Khoá kỳ/, 'lock'], [/^Dựng hình/, 'image'], [/^Mở kỳ/, 'plus'], [/^Bài \d/, 'file-text']];
 function decorate(root) {
   root.querySelectorAll('button:not(.tab)').forEach(function (b) {
     // "+ Thêm …": dấu + trong chữ thay bằng biểu tượng
@@ -140,6 +164,52 @@ Promise.resolve(ME0).then(function (me) {
   }
   loadList();
 });
+
+/* ---------- Góp ý (mọi người); Quản trị xem góp ý và lỗi đã nhận ngay trong hộp này ---------- */
+var FB_LABEL = ['', 'rất khó dùng', 'khó dùng', 'tạm được', 'dễ dùng', 'rất dễ dùng'];
+function openFeedback() {
+  var d = document.getElementById('fb-dlg');
+  if (!d) { d = document.createElement('dialog'); d.id = 'fb-dlg'; document.body.appendChild(d); }
+  var admin = ME && ME.eff.indexOf('Quản trị') >= 0, diem = '';   // "xem như" vai trò khác: như người đó
+  d.innerHTML = '<h3>Góp ý</h3><p class="mut sm-t">Thầy cô thấy chỗ nào khó dùng, thiếu, sai — viết vài dòng. Hệ thống tự ghi kèm trang đang xem (' +
+    esc(pageCtx()) + ').</p><p class="fb-diem">Dễ dùng không? ' + [1, 2, 3, 4, 5].map(function (n) {
+      return '<button type="button" class="sm" data-d="' + n + '" title="' + FB_LABEL[n] + '">' + n + '</button>'; }).join('') +
+    ' <span class="mut sm-t" id="fb-lab"></span></p><textarea id="fb-text" rows="5" placeholder="Góp ý của thầy cô…"></textarea>' +
+    '<div class="edbar"><button class="pri" id="fb-send">Gửi góp ý</button> <button id="fb-close">Đóng</button>' +
+    (admin ? ' <button id="fb-list" class="sm">Xem góp ý và lỗi đã nhận</button>' : '') + '</div><div id="fb-res"></div>';
+  d.querySelectorAll('[data-d]').forEach(function (b) {
+    b.onclick = function () { diem = b.getAttribute('data-d'); d.querySelectorAll('[data-d]').forEach(function (x) { x.classList.toggle('pri', x === b); });
+                              document.getElementById('fb-lab').textContent = FB_LABEL[diem]; };
+  });
+  document.getElementById('fb-close').onclick = function () { d.close(); };
+  var send = document.getElementById('fb-send');
+  send.onclick = function () {
+    send.disabled = true;
+    call('feedback', { trang: pageCtx(), diem: diem, noi_dung: document.getElementById('fb-text').value }).then(function () {
+      d.close(); alertOk('Cảm ơn thầy cô — góp ý đã được ghi lại.');
+    }, function () { send.disabled = false; });
+  };
+  if (admin) document.getElementById('fb-list').onclick = function () { feedbackAdmin(document.getElementById('fb-res')); };
+  d.showModal();
+}
+function feedbackAdmin(box) {
+  box.innerHTML = '<p class="mut">Đang tải…</p>';
+  call('feedbackList', {}).then(function (v) {
+    var sel = function (r) { return '<select data-fb="' + escA(r.id) + '">' + v.trang_thai.map(function (s) {
+      return '<option' + (s === r.trang_thai ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>'; };
+    box.innerHTML = '<h4>Góp ý (' + v.gop_y.length + ')</h4>' + (v.gop_y.length ? '<div class="tbl-wrap"><table class="as"><tr><th>Lúc</th><th>Ai</th><th>Trang</th><th>Mức</th><th>Góp ý</th><th></th></tr>' +
+      v.gop_y.map(function (r) { return '<tr><td class="nw">' + esc(vnTime(r.ngay)) + '</td><td>' + esc(r.email) + '<br><span class="mut">' + esc(r.vai) + '</span></td><td>' + esc(r.trang) +
+        '</td><td>' + esc(r.diem) + '</td><td>' + esc(r.noi_dung) + '</td><td>' + sel(r) + '</td></tr>'; }).join('') + '</table></div>' : '<p class="mut">Chưa có góp ý.</p>') +
+      '<h4>Lỗi người dùng gặp (' + v.loi.length + ' gần nhất)</h4>' + (v.loi.length ? '<div class="tbl-wrap"><table class="as"><tr><th>Lúc</th><th>Ai</th><th>Trang</th><th>Lỗi</th></tr>' +
+      v.loi.map(function (r) { return '<tr><td class="nw">' + esc(vnTime(r.ngay)) + '</td><td>' + esc(r.email) + '</td><td>' + esc(r.trang) + '</td><td>' + esc(r.loi) + '</td></tr>'; }).join('') +
+      '</table></div>' : '<p class="mut">Chưa có lỗi nào.</p>');
+    box.onchange = function (ev) {
+      var s = ev.target.closest('[data-fb]'); if (!s) return;
+      s.disabled = true; call('feedbackStatus', { id: s.getAttribute('data-fb'), trang_thai: s.value }).then(function () { s.disabled = false; }, function () { s.disabled = false; });
+    };
+  }, function () { box.innerHTML = ''; });
+}
+document.getElementById('fb-btn').onclick = openFeedback;
 
 // Nút Quay lại / Tiến của trình duyệt: dùng lịch sử của Apps Script (trang chạy trong khung của Google).
 // Không có phần này, nút Quay lại rời khỏi hệ thống, về trang "Xin chào".
@@ -376,7 +446,7 @@ function props(d) {
       (can.props ? ' <button class="sm" data-act="confl-edit" data-id="' + escA(c.id) + '" data-tbt="' + (tbtOnly ? 1 : 0) + '">Ghi quyết định…</button>' : '') +
       '<div class="inl" data-for="' + escA(c.id) + '"></div>';
   };
-  return '<div class="props"><h4>Nguồn</h4><p>' + esc([v.thu_muc, v.tep_goc, v.ngay_nhan, v.kenh].filter(Boolean).join(' · ')) + '</p>' +
+  return '<div class="props"><h4>Nguồn</h4><p>' + esc([v.thu_muc, v.tep_goc, vnDate(v.ngay_nhan), v.kenh].filter(Boolean).join(' · ')) + '</p>' +
     '<h4>Đối chiếu nguyên bản</h4><p>' + esc(v.doi_chieu || 'chưa') + '</p>' +
     '<h4>Sửa đổi</h4>' + list(d.corrections, corr) +
     '<h4>Cần kiểm tra</h4>' + list(d.checks, check) +
@@ -638,10 +708,27 @@ function openRounds() {
 }
 function renderRounds() {
   var R = document.getElementById('rounds'), v = RV, today = v.today || new Date().toISOString().slice(0, 10);
-  var probs = (ALL || []).filter(function (p) { return p.ma_bai.indexOf('THU-') !== 0 || (ME && ME.roles.indexOf('Quản trị') >= 0); });
+  var probs = ALL || [];   // bài luyện chỉ có trong ALL với Quản trị và người dùng thử — họ giao được bài luyện
   var h = '<p><a href="#" id="r-back">← Danh sách</a></p><h2 class="pg">Kỳ phản biện</h2>' +
     '<p class="mut sm-t">Nhắc hạn tự động ' + esc((v.reminderDays || []).join(' và ')) + ' ngày trước hạn (cho người đã được mời, chưa đánh dấu xong). ' +
     'Ngày tính theo giờ ' + esc(v.timezone === 'Asia/Ho_Chi_Minh' ? 'Việt Nam' : v.timezone) + ': hôm nay là ' + esc(vnDate(v.today)) + '.</p>';
+  // luyện tập: chỉ người thấy bài THU (Quản trị, người dùng thử) với vai trò PT, TBT, Quản trị
+  var practice = (ALL || []).some(function (p) { return p.ma_bai.indexOf('THU-') === 0; }) &&
+    ME && ME.eff.some(function (r) { return ['Quản trị', 'PT', 'TBT'].indexOf(r) >= 0; });
+  if (practice) h += '<div class="card tap"><h3>Luyện tập</h3><p class="sm-t">Mười bài <b>THU-01…THU-10</b> là bài bịa để tập — làm gì cũng được. ' +
+    '<b>Đặt lại</b> xoá mọi việc đã làm trên chúng (phiếu, thảo luận, sửa đề, trạng thái, kỳ và bảng chọn bài tên THU-…) và đưa về như mới. ' +
+    'Bài luyện chỉ dùng trong kỳ, bảng tên THU-…; bài thật không bị đụng tới.</p><p><button class="sm" data-r="practice">Đặt lại bài luyện tập…</button></p></div>';
+  var isAdmin = ME && ME.eff.indexOf('Quản trị') >= 0, canRestore = ME && ME.eff.some(function (r) { return r === 'Quản trị' || r === 'TBT'; });
+  if (isAdmin || (ME && ME.trial && canRestore)) {
+    h += '<div class="card tap"><h3>Dùng thử trên bài thật</h3>' + (ME.trial
+      ? '<p class="sm-t">Đang dùng thử từ <b>' + esc(vnDate(ME.trial.tu)) + '</b>' + (ME.trial.lan_dua_ve ? ' · đã đưa về ' + ME.trial.lan_dua_ve + ' lần' : '') +
+        '. <b>Đưa về</b>: bài, kỳ, bảng, thảo luận như lúc bắt đầu; giữ người dùng, góp ý, lỗi, nhật ký. Trước khi đưa về, hệ thống chụp trạng thái hiện tại.</p>' +
+        '<p><button class="sm" data-r="trial" data-viec="dua_ve">Đưa về như trước khi dùng thử…</button>' +
+        (isAdmin ? ' <button class="sm" data-r="trial" data-viec="ket_thuc" data-giu="1">Kết thúc dùng thử, giữ mọi thay đổi…</button>' +
+                   ' <button class="sm" data-r="trial" data-viec="ket_thuc">Kết thúc và đưa về…</button>' : '') + '</p>'
+      : '<p class="sm-t">Cho người dùng thử làm việc trên <b>bài thật</b> mà không sợ sai: hệ thống chụp toàn bộ dữ liệu bây giờ; sau đó Quản trị hoặc TBT ' +
+        'đưa về như cũ bất cứ lúc nào. Mọi trang hiện dòng báo đang dùng thử.</p><p><button class="sm" data-r="trial" data-viec="bat_dau">Bắt đầu dùng thử…</button></p>') + '</div>';
+  }
   if (v.manage) h += '<div class="card"><h3>Mở kỳ mới</h3><div class="row"><label>Tên kỳ <input id="r-ky" placeholder="ví dụ: PB-10/2026"></label>' +
     '<label>Hạn <input id="r-han" type="date" min="' + today + '"></label><label>Ghi chú <input id="r-gc"></label>' +
     '<button class="pri" data-r="open">Mở kỳ</button></div></div>';
@@ -677,7 +764,9 @@ function renderRounds() {
             (man ? '<td><button class="sm" data-r="unassign" data-ma="' + escA(c) + '" data-email="' + escA(a.email) + '" title="Bỏ giao">×</button></td>' : '') + '</tr>';
         }).join('');
       }).join('') + '</table></div>' : '<p class="mut">Chưa giao bài nào.</p>';
-    if (man) h += '<div class="row"><label>Giao bài <select data-k="ma"><option value="">— chọn bài —</option>' + probs.map(function (p) {
+    if (man) h += '<div class="row"><label>Giao bài <select data-k="ma"><option value="">— chọn bài —</option>' + probs.filter(function (p) {
+        // bài luyện chỉ vào kỳ tên THU-… (hoặc K-THU), bài thật chỉ vào kỳ thật — máy chủ cũng chặn
+        return (p.ma_bai.indexOf('THU-') === 0) === (String(r.ky).indexOf('THU-') === 0 || r.ky === 'K-THU'); }).map(function (p) {
         return '<option value="' + escA(p.ma_bai) + '">' + esc(p.ma_bai + ' · ' + [p.chu_de, p.muc, p.trang_thai].filter(Boolean).join(' · ')) + '</option>'; }).join('') + '</select></label>' +
       '<label>cho <select data-k="pb"><option value="">— chọn phản biện —</option>' + v.reviewers.map(function (u) {
         return '<option value="' + escA(u.email) + '">' + esc(u.email + (u.ten ? ' (' + u.ten + ')' : '')) + '</option>'; }).join('') + '</select></label>' +
@@ -713,6 +802,23 @@ function renderRounds() {
     else if (a === 'del') {
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Bấm lần nữa: xoá kỳ ' + ky + ' và mọi phân công của kỳ'; return; }
       run(call('deleteRound', { ky: ky }), 'Đã xoá kỳ ' + ky + '.');
+    } else if (a === 'trial') {
+      var viec = b.getAttribute('data-viec'), giu = b.getAttribute('data-giu') === '1';
+      var tuoi = ME.trial ? Math.round((Date.now() - new Date(ME.trial.tu + 'T00:00:00').getTime()) / 86400000) : 0;
+      var ask = { bat_dau: 'Bấm lần nữa: chụp dữ liệu, bắt đầu dùng thử', dua_ve: 'Bấm lần nữa: bỏ mọi việc làm trong ' + tuoi + ' ngày dùng thử, đưa về như lúc bắt đầu',
+                  ket_thuc: giu ? 'Bấm lần nữa: kết thúc, giữ mọi thay đổi' : 'Bấm lần nữa: đưa về như trước rồi kết thúc' }[viec];
+      if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = ask; return; }
+      b.disabled = true;
+      call('trial', { viec: viec, dua_ve: viec === 'ket_thuc' ? !giu : undefined }).then(function () {
+        return call('me').then(function (m) { showMe(m); PCACHE = {}; loadListQuiet(); return openRounds(); }).then(function () {
+          alertOk({ bat_dau: 'Đã bắt đầu dùng thử (đã chụp dữ liệu).', dua_ve: 'Đã đưa về như trước khi dùng thử.', ket_thuc: 'Đã kết thúc dùng thử.' }[viec]);
+        });
+      }, function () { b.disabled = false; });
+    } else if (a === 'practice') {
+      if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Bấm lần nữa: xoá mọi việc luyện tập, đưa mười bài THU về như mới'; return; }
+      b.disabled = true;
+      call('resetPractice', {}).then(function (r) { PCACHE = {}; loadListQuiet(); return openRounds().then(function () { alertOk(r.msg); }); },
+                                     function () { b.disabled = false; });
     } else if (a === 'sol') {
       var mo = b.getAttribute('data-mo') === '1';
       if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = mo ? 'Bấm lần nữa: mọi phản biện của kỳ ' + ky + ' sẽ thấy lời giải' : 'Bấm lần nữa để ẩn lời giải'; return; }
