@@ -51,7 +51,7 @@ giao diện · từ bên ngoài (người chưa đăng nhập Google chỉ thấ
 
 ### Giao diện (tests/ui/run.js)
 
-Cài một lần trên máy: `npm install && npx playwright install chromium` (chưa cài thì phần này được bỏ qua, không báo lỗi).
+Cài một lần trên máy: `npm install`. Trình duyệt: Google Chrome đã cài trên máy được dùng tự động; hoặc `npx playwright install chromium`. Không có trình duyệt thì phần này được bỏ qua, không báo lỗi.
 Trang thật (`ui/Index.html`) chạy trong Chromium, nối vào máy chủ trên bản mô phỏng, **dữ liệu bịa** (bài năm 2030, địa chỉ @example.com).
 Mỗi vai trò một cửa sổ (Quản trị, PT, TBT, NCB, BTK, hai PB) đi hết: danh sách (lọc, sắp xếp, xem thêm / thu gọn, xem như PB) · thêm bài
 (tệp .tex, ảnh của đề / lời giải, tác giả mới) · sửa đề, xem trước, hai người cùng sửa, sửa nội dung toán, huỷ, lịch sử · mục cần kiểm tra,

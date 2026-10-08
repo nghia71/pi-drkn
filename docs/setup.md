@@ -152,4 +152,4 @@ Sau lần triển khai có tính năng này: chạy `setup` (thêm cột `mo_loi
 ## 14. Kiểm thử
 Xem `docs/testing.md`. Cài một lần: Script property `TEST_USERS` (hai tài khoản thử) rồi chạy `setupTests`.
 Rồi chạy `installAutoTests` (một lần): kiểm thử tự chạy sau mỗi lần triển khai và mỗi đêm; chỉ có thư khi có lỗi.
-Trên máy, cho kiểm thử giao diện: `npm install && npx playwright install chromium` (một lần).
+Trên máy, cho kiểm thử giao diện: `npm install` (một lần); kiểm thử dùng Google Chrome đã cài trên máy (hoặc Chromium của `npx playwright install chromium`).
