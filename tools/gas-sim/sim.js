@@ -126,7 +126,8 @@ function makeEnv(opts) {
       zip: (blobs, name) => blob(zipStore(blobs.map(b => ({ name: b.getName(), data: b.getBytes() }))), 'application/zip', name || 'archive.zip'),
       // chỉ hỗ trợ mẫu 'yyyy-MM-dd' (đủ cho mã hiện tại)
       formatDate: (d, tz, fmt) => {
-        if (fmt !== 'yyyy-MM-dd') throw new Error('formatDate mô phỏng chỉ hỗ trợ yyyy-MM-dd');
+        if (fmt === 'H') return String(Number(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }).format(d)) % 24);
+        if (fmt !== 'yyyy-MM-dd') throw new Error('formatDate mô phỏng chỉ hỗ trợ yyyy-MM-dd và H');
         return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
       }
     },

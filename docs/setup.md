@@ -167,3 +167,11 @@ Khôi phục (Sheet dữ liệu bị xoá nhầm, hỏng dữ liệu):
 3. Dự án chính → Project Settings → Script properties → `SHEET_ID` = mã đó. Có hiệu lực ngay, không cần triển khai lại.
 4. Giữ Sheet cũ (đổi tên thành `… — hỏng NNNN-TT-NN`) cho tới khi chắc mọi thứ đúng. Việc làm sau thời điểm sao lưu phải làm lại.
 Ảnh và hình (thư mục **Pi ĐRKN — hình**), gói chế bản không nằm trong bản sao — chúng là tệp Drive, có Thùng rác 30 ngày của Drive.
+
+## 16. Góp ý và lỗi người dùng gặp
+Nút **Góp ý** ở đầu mọi trang (mọi người): mức dễ dùng 1–5 (không bắt buộc), lời góp ý, kèm trang đang xem → tab `Feedback`.
+Lỗi người dùng gặp trên trang (thao tác bị từ chối, lỗi JavaScript) được ghi tự động vào tab `Errors` (ai, vai trò, trang, lỗi,
+trình duyệt; mỗi người tối đa 20 dòng mỗi giờ). Hai tab tự tạo lần đầu dùng, không cần chạy lại `setup`.
+Quản trị: hộp Góp ý → **Xem góp ý và lỗi đã nhận** (đổi trạng thái góp ý: mới, đã xem, đã sửa, không làm).
+Mỗi sáng (Script property `DIGEST_HOUR`, mặc định 7 giờ) trigger của `installAutoTests` gửi tài khoản chủ **một thư tóm tắt**
+góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mới thì không gửi. Thư có đường dẫn vào hệ thống nếu đã đặt `SIGNIN_URL` (mục 5).

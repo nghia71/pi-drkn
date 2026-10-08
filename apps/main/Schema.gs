@@ -22,7 +22,9 @@ var SCHEMA = {
   Comments: ['id', 'ma_bai', 'email', 'tra_loi_cho', 'noi_dung', 'ngay'],
   Published: ['ma_bai', 'so_tap_chi', 'so_in', 'ngay'],
   Revisions: ['id', 'ma_bai', 'truong', 'phien_ban', 'cu', 'moi', 'email', 'ngay'],
-  Audit: ['ngay', 'email', 'hanh_dong', 'chi_tiet']
+  Audit: ['ngay', 'email', 'hanh_dong', 'chi_tiet'],
+  Feedback: ['id', 'ngay', 'email', 'vai', 'trang', 'diem', 'noi_dung', 'trang_thai'],          // nút Góp ý (Feedback.gs); trang_thai: Quản trị ghi
+  Errors: ['ngay', 'email', 'vai', 'trang', 'loi', 'chi_tiet', 'trinh_duyet']                    // lỗi người dùng gặp trên trang (Feedback.gs)
 };
 
 /** Loại xung đột được phép (Nghĩa, 2026-10-06) — mỗi xung đột một dòng riêng. */

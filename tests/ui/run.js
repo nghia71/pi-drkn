@@ -141,7 +141,7 @@ async function shot(pg, name, caption, full, marks) {
     clip = { x: Math.round(x), y: Math.round(y), width: Math.round(w), height: Math.round(Math.min(h, ann.docH)) };
   }
   await pg.screenshot({ path: path.join(OUT, name + '.slide.png'), fullPage: true, clip });
-  await pg.evaluate(() => { const a = document.getElementById('__ann'); if (a) a.remove(); });
+  await pg.evaluate(() => { document.querySelectorAll('#__ann, .__ann').forEach(a => a.remove()); });
   tour.push({ img: file, caption, who: pg.who, view: pg.viewportSize().width < 600 ? 'điện thoại' : '', steps: (marks || []).map(m => m.t) });
   // cùng chú thích cho slide hướng dẫn (docs/huong-dan): <tên>.cap.tex, <tên>.steps.tex — một nguồn cho ảnh và chữ
   fs.writeFileSync(path.join(OUT, name + '.cap.tex'), texEsc(caption) + '\n');
@@ -166,13 +166,25 @@ async function annotate(pg, marks) {
       if (!el) { miss.push(m.sel + (m.has ? ' «' + m.has + '»' : '')); return; }
       const r = el.getBoundingClientRect(); let L = r.left, T = r.top, R = r.right, B = r.bottom;
       if (m.next && el.nextElementSibling) { const q = el.nextElementSibling.getBoundingClientRect(); L = Math.min(L, q.left); T = Math.min(T, q.top); R = Math.max(R, q.right); B = Math.max(B, q.bottom); }
-      const x = L + scrollX - 5, y = T + scrollY - 5, w = R - L + 10, h = B - T + 10;
+      // phần tử trong hộp thoại (lớp trên cùng): vẽ khung bên trong hộp thoại, toạ độ theo hộp thoại
+      const dlg = el.closest('dialog[open]'), dr = dlg && dlg.getBoundingClientRect();
+      const ox = dlg ? dr.left + dlg.clientLeft : -scrollX, oy = dlg ? dr.top + dlg.clientTop : -scrollY;
+      const x = L - ox - 5, y = T - oy - 5, w = R - L + 10, h = B - T + 10;
+      let host = lay;
+      if (dlg) { host = dlg.querySelector(':scope > .__ann') || dlg.appendChild(Object.assign(document.createElement('div'), { className: '__ann' }));
+                 host.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;z-index:99999'; dlg.style.overflow = 'visible'; }
       const box = document.createElement('div');
       box.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;border:3px solid #e8590c;border-radius:10px;box-shadow:0 0 0 2px rgba(255,255,255,.85)`;
       const n = document.createElement('div'); n.textContent = i + 1;
       n.style.cssText = `position:absolute;left:${Math.max(2, x - 13)}px;top:${Math.max(2, y - 13)}px;width:26px;height:26px;border-radius:50%;background:#e8590c;color:#fff;` +
                         'font:700 14px/26px system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.45)';
-      lay.append(box, n); top = Math.min(top, Math.max(0, y - 13)); bot = Math.max(bot, y + h); lft = Math.min(lft, Math.max(0, x - 13)); rgt = Math.max(rgt, x + w);
+      host.append(box, n);
+      const px = x + (dlg ? ox + scrollX : 0), py = y + (dlg ? oy + scrollY : 0);   // toạ độ trên trang, để cắt ảnh
+      top = Math.min(top, Math.max(0, py - 13)); bot = Math.max(bot, py + h); lft = Math.min(lft, Math.max(0, px - 13)); rgt = Math.max(rgt, px + w);
+      if (dlg) {                                                         // bước trong hộp thoại: ảnh cắt lấy trọn hộp thoại
+        top = Math.min(top, dr.top + scrollY - 8); bot = Math.max(bot, dr.bottom + scrollY + 8);
+        lft = Math.min(lft, dr.left + scrollX - 8); rgt = Math.max(rgt, dr.right + scrollX + 8);
+      }
     });
     return { miss, out: top < scrollY || bot > scrollY + innerHeight, top, bot, lft, rgt, docH: document.documentElement.scrollHeight };
   }, marks);
@@ -547,8 +559,33 @@ async function twice(pg, sel) { await pg.click(sel); await idle(pg); await pg.cl
   check((await count(btk, '[data-b=tex]')) === 1 && (await count(btk, '[data-b=new],[data-b=close],[data-b=approve]')) === 0, 'BTK chỉ tải tệp .tex');
   await shot(btk, 'btk', 'BTK (chế bản) chỉ xem bảng và tải tệp .tex của số đã khoá; gói đầy đủ (.tex + hình) nằm trong thư mục chế bản trên Drive.', false, [{"sel": "[data-b=tex]", "t": "Tải tệp .tex của số đã khoá"}]);
 
-  /* ---------- 9. Điện thoại, chế độ tối ---------- */
-  section('9. Điện thoại và chế độ tối', 'Cùng trang trên điện thoại (390 px) và khi máy đặt chế độ tối.');
+  /* ---------- 9. Góp ý, lỗi ---------- */
+  section('9. Góp ý và lỗi người dùng gặp', 'Nút Góp ý ở mọi trang; lỗi người dùng gặp được ghi tự động; Quản trị xem cả hai và nhận thư tóm tắt mỗi sáng.');
+  step = 'phản biện góp ý';
+  const pbf = await O(PB2);
+  await pbf.click('#fb-btn'); await idle(pbf);
+  await pbf.click('#fb-dlg [data-d="4"]'); await pbf.fill('#fb-text', 'Nên có nút sang bài tiếp theo.');
+  await shot(pbf, 'gop-y', 'Góp ý: ở mọi trang, mọi người. Hệ thống tự ghi kèm trang đang xem và vai trò.', false,
+    [{ sel: '#fb-btn', t: 'Bấm Góp ý (đầu trang)' }, { sel: '#fb-dlg .fb-diem', t: 'Dễ dùng không? (không bắt buộc)' },
+     { sel: '#fb-text', t: 'Viết vài dòng' }, { sel: '#fb-send', t: 'Gửi góp ý' }]);
+  await pbf.click('#fb-send'); await idle(pbf, 300);
+  const fbRows = c.rows_('Feedback');
+  check(fbRows.length === 1 && fbRows[0].email === PB2 && String(fbRows[0].diem) === '4' && fbRows[0].noi_dung.includes('bài tiếp theo'), 'góp ý được ghi');
+  step = 'lỗi được ghi tự động';
+  await pbf.evaluate(() => call('feedbackList', {}).catch(() => {})); await idle(pbf, 300);
+  check(c.rows_('Errors').some(r => r.email === PB2 && /feedbackList: Không có quyền/.test(r.loi) && /Chrome|Mozilla/.test(r.trinh_duyet)), 'thao tác bị từ chối được ghi vào Errors');
+  await pbf.evaluate(() => setTimeout(() => { throw new Error('lỗi thử nghiệm'); }, 0)); await idle(pbf, 400);
+  check(c.rows_('Errors').some(r => /JavaScript: .*lỗi thử nghiệm/.test(r.loi)), 'lỗi JavaScript được ghi');
+  pbf.errs = pbf.errs.filter(x => !/lỗi thử nghiệm|Không có quyền/.test(x));   // lỗi cố ý, không phải lỗi giao diện
+  step = 'Quản trị xem';
+  await qt.click('#fb-btn'); await idle(qt); await qt.click('#fb-list'); await idle(qt, 300);
+  check((await text(qt, '#fb-res')).includes('Nên có nút sang bài tiếp theo.') && (await text(qt, '#fb-res')).includes('lỗi thử nghiệm'), 'Quản trị thấy góp ý và lỗi');
+  await shot(qt, 'gop-y-quan-tri', 'Quản trị: góp ý và lỗi người dùng gặp, ngay trong hộp Góp ý; đổi trạng thái góp ý khi đã xử lý.', false,
+    [{ sel: '#fb-list', t: 'Xem góp ý và lỗi đã nhận' }, { sel: '#fb-res select', t: 'Đánh dấu: đã xem / đã sửa / không làm' }]);
+  await qt.click('#fb-close');
+
+  /* ---------- 10. Điện thoại, chế độ tối ---------- */
+  section('10. Điện thoại và chế độ tối', 'Cùng trang trên điện thoại (390 px) và khi máy đặt chế độ tối.');
   const ph = await O(PB2, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await ph.evaluate(() => loadList()); await idle(ph);
   const qtp = await O(QT, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

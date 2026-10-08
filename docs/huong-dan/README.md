@@ -16,3 +16,9 @@ tìm thấy trên trang thì kiểm thử báo lỗi.
 Slide dịch bằng **pdflatex** (T5 + Latin Modern) để dùng thẳng cho video bằng quy trình của kho `lps67` (`video-lectures/_shared`).
 Video làm sau cùng, khi hướng dẫn đã ổn định: thêm `script.md` (lời đọc, mỗi slide một mục), `voice.json`, `rebuild.sh` vào thư mục
 của vai trò — tạo âm thanh là bước duy nhất tốn tiền.
+
+## Đường dẫn để gửi người dùng
+Mỗi lần giao diện hoặc hướng dẫn đổi trên `main`, GitHub (`.github/workflows/huong-dan.yml`) dựng lại và cập nhật bản phát hành
+**huong-dan** — đường dẫn không đổi:
+`https://github.com/<chủ kho>/pi-drkn/releases/download/huong-dan/huong-dan-<vai>.pdf` với `<vai>` là pb, ncb, pt, tbt, vp, btk, quantri;
+`…/huong-dan-anh.zip`: mọi ảnh chụp từng bước và trang `ui/index.html`.

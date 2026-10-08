@@ -10,11 +10,16 @@ function conf_(key) {
   return PropertiesService.getScriptProperties().getProperty(key);
 }
 
+var LAZY_TABS_ = ['Feedback', 'Errors'];
 function sheet_(name) {
   var id = DB_OVERRIDE || PropertiesService.getScriptProperties().getProperty('SHEET_ID');
   if (!id) throw new Error('Chưa chạy setup().');
   var ss = SS_MEMO_[id] || (SS_MEMO_[id] = SpreadsheetApp.openById(id));
   var sh = ss.getSheetByName(name);
+  if (!sh && LAZY_TABS_.indexOf(name) >= 0) {        // tab mới thêm sau khi cài: tự tạo, khỏi phải chạy lại setup()
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, SCHEMA[name].length).setValues([SCHEMA[name]]).setFontWeight('bold'); sh.setFrozenRows(1);
+  }
   if (!sh) throw new Error('Thiếu tab ' + name);
   return sh;
 }

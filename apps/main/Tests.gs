@@ -75,6 +75,7 @@ function autoTests(e) {
   var props = PropertiesService.getScriptProperties();
   try { syncFigures_(); } catch (err) { Logger.log('dựng hình (GitHub): ' + err.message); }   // lưới an toàn: hình từ nhập / vá
   nightlyBackup_();                                                                            // sao lưu Sheet dữ liệu (Backup.gs)
+  try { feedbackDigest_(); } catch (err) { Logger.log('thư tóm tắt góp ý: ' + err.message); }   // góp ý, lỗi mới (Feedback.gs)
   if (props.getProperty(AUTO_JOB)) return 'đang có lượt kiểm thử chạy dở';
   var b = build_(), today = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd');
   var hour = Number(Utilities.formatDate(new Date(), tz_(), 'H'));
@@ -158,6 +159,7 @@ function runOne_(t) {
     delete TEST_CONF.TODAY; delete TEST_CONF.MAIL_QUOTA; delete TEST_CONF.REMINDER_DAYS; delete TEST_CONF.BOARD_LAYOUT; TEST_OUTBOX = [];
     delete TEST_CONF.EXPORT_FOLDER_ID; TEST_CONF.FIG_FOLDER_ID = '';   // không đụng thư mục hình thật; kịch bản cần thì tạo thư mục tạm
     TEST_CONF.TEST_USERS = '';   // mặc định: T1, T2 là người thường; 11.3 bật lại
+    [TK.acc.T1, TK.acc.T2].forEach(function (e) { CacheService.getScriptCache().remove('errn:' + e); });   // giới hạn ghi lỗi (Feedback.gs)
     delete TEST_CONF.GH_FAKE; delete TEST_CONF.FIG_CLOUD_STATE; delete TEST_CONF.BACKUP_FOLDER_ID; delete TEST_CONF.BACKUP_KEEP;   // không gọi GitHub thật; 16.8 dùng kho giả
     t.fn();
   } catch (e) { ok = false; msg = String(e && e.message || e); }
@@ -223,7 +225,7 @@ function seed_(roles) {
   putRows_('Rounds', [{ ky: 'K-MO', trang_thai: 'mở' }, { ky: 'K-DONG', trang_thai: 'đóng' }]);
   putRows_('Assignments', [{ ky: 'K-MO', ma_bai: 'TEST-01', email: A.T1 }, { ky: 'K-MO', ma_bai: 'TEST-02', email: A.T1 },
                            { ky: 'K-MO', ma_bai: 'TEST-02', email: A.T2 }, { ky: 'K-DONG', ma_bai: 'TEST-03', email: A.T1 }]);
-  ['Shortlist', 'Issues', 'Reviews', 'Comments', 'Published', 'Revisions', 'Audit'].forEach(function (t) { putRows_(t, []); });
+  ['Shortlist', 'Issues', 'Reviews', 'Comments', 'Published', 'Revisions', 'Audit', 'Feedback', 'Errors'].forEach(function (t) { putRows_(t, []); });
 }
 
 /** roles: {QT:'…', T1:'…', T2:'…'}; '' = không có dòng; giá trị có thể kèm cờ {vai_tro, hoat_dong, email}. */
@@ -1453,6 +1455,52 @@ function defineTests_() {
       ok_(!(figKey_(TB) in (TEST_CONF.FIG_CLOUD_STATE ? JSON.parse(TEST_CONF.FIG_CLOUD_STATE).loi : {})), 'quên lỗi của hình cũ');
       throws_(function () { call_(login_(A.T2), 'figureSync'); }, 'Không có quyền');
     });
+  });
+
+  // 18. Góp ý và lỗi người dùng gặp
+  test_('18.1', 'Góp ý: mọi người đã vào hệ thống gửi được (mức 1–5 không bắt buộc, kèm trang đang xem, vai trò); trống hoặc mức lạ bị từ chối; chữ bắt đầu bằng "=" lưu như chữ; người chưa vào thì không', 'T1', function () {
+    var tok = login_(A.T1);
+    eq_(call_(tok, 'feedback', { trang: 'bài TEST-01', diem: 4, noi_dung: 'Nút Lưu phiếu nên to hơn.' }).ok, true);
+    var r = rows_('Feedback')[0];
+    eq_([r.email, r.vai, r.trang, String(r.diem), r.noi_dung, r.trang_thai], [A.T1, 'PB', 'bài TEST-01', '4', 'Nút Lưu phiếu nên to hơn.', 'mới']);
+    throws_(function () { call_(tok, 'feedback', { trang: 'x', noi_dung: '   ' }); }, 'Hãy viết');
+    throws_(function () { call_(tok, 'feedback', { diem: 7, noi_dung: 'x' }); }, 'từ 1 đến 5');
+    call_(tok, 'feedback', { noi_dung: '=1+1' });
+    eq_(sheet_('Feedback').getRange(3, 7).getFormula(), '', 'không thành công thức');
+    throws_(function () { call_('token-bia', 'feedback', { noi_dung: 'x' }); });
+    eq_(rows_('Feedback').length, 2);
+  });
+  test_('18.2', 'Lỗi trên trang: ghi tab Errors (ai, vai trò, trang, lỗi, trình duyệt), cắt chữ quá dài; mỗi người tối đa ' + ERR_PER_HOUR + ' dòng mỗi giờ', 'T1', function () {
+    var tok = login_(A.T1);
+    eq_(call_(tok, 'logError', { trang: 'danh sách', loi: 'saveText: Bài vừa được người khác sửa', chi_tiet: new Array(3000).join('x'), trinh_duyet: 'Safari 18' }).ok, true);
+    var r = rows_('Errors')[0];
+    eq_([r.email, r.vai, r.trang, r.loi, r.trinh_duyet], [A.T1, 'PB', 'danh sách', 'saveText: Bài vừa được người khác sửa', 'Safari 18']);
+    ok_(String(r.chi_tiet).length <= 2000, 'cắt chi tiết');
+    for (var i = 1; i < ERR_PER_HOUR; i++) call_(tok, 'logError', { loi: 'lỗi ' + i });
+    eq_(call_(tok, 'logError', { loi: 'quá nhiều' }).bo_qua, true, 'quá giới hạn thì bỏ qua');
+    eq_(rows_('Errors').length, ERR_PER_HOUR);
+  });
+  test_('18.3', 'Trang Góp ý: chỉ Quản trị xem góp ý và lỗi (mới nhất trước), đổi trạng thái góp ý; người khác bị từ chối', 'QT', function () {
+    call_(login_(A.T1), 'feedback', { noi_dung: 'góp ý một' }); call_(login_(A.T2), 'feedback', { noi_dung: 'góp ý hai' });
+    call_(login_(A.T1), 'logError', { loi: 'lỗi thử' });
+    var v = call_(login_(A.QT), 'feedbackList');
+    eq_(v.gop_y.map(function (r) { return r.noi_dung; }), ['góp ý hai', 'góp ý một']);
+    eq_(v.loi[0].loi, 'lỗi thử');
+    call_(login_(A.QT), 'feedbackStatus', { id: v.gop_y[0].id, trang_thai: 'đã xem' });
+    eq_(findRow_('Feedback', 'id', v.gop_y[0].id).data.trang_thai, 'đã xem');
+    throws_(function () { call_(login_(A.QT), 'feedbackStatus', { id: v.gop_y[0].id, trang_thai: 'lạ' }); }, 'Trạng thái lạ');
+    throws_(function () { call_(login_(A.T1), 'feedbackList'); }, 'Không có quyền');
+  });
+  test_('18.4', 'Thư tóm tắt mỗi sáng: góp ý và lỗi mới (lỗi gộp theo loại, ai gặp); không có gì mới thì không gửi; mỗi ngày một lần', 'QT', function () {
+    call_(login_(A.T1), 'feedback', { diem: 2, noi_dung: 'Không thấy nút Giao.' });
+    call_(login_(A.T1), 'logError', { trang: 'kỳ', loi: 'assign: Không có quyền' }); call_(login_(A.T2), 'logError', { trang: 'kỳ', loi: 'assign: Không có quyền' });
+    TEST_OUTBOX = [];
+    eq_(feedbackDigest_(true), 3);
+    eq_(TEST_OUTBOX.length, 1); has_s_(TEST_OUTBOX[0].subject, '1 góp ý, 2 lỗi');
+    has_s_(TEST_OUTBOX[0].body, 'Không thấy nút Giao.'); has_s_(TEST_OUTBOX[0].body, '2× assign: Không có quyền');
+    has_s_(TEST_OUTBOX[0].body, A.T1 + ', ' + A.T2);
+    eq_(feedbackDigest_(true), 0, 'không có gì mới'); eq_(TEST_OUTBOX.length, 1, 'không gửi thư rỗng');
+    eq_(feedbackDigest_(false), null, 'hôm nay đã tóm tắt');
   });
 
   test_('12.3', 'Sao lưu: bản sao Sheet vào thư mục sao lưu, đủ các tab và dữ liệu; chạy lại cùng ngày thay bản cũ; giữ BACKUP_KEEP bản mới nhất; chỉ chủ chạy tay được', 'QT', function () {

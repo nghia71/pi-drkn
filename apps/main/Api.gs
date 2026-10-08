@@ -56,6 +56,10 @@ function api_(token, method, args) {
     case 'closeRound': return closeRound_(w, args);
     case 'releaseSolutions': return releaseSolutions_(w, args);
     case 'deleteRound': return deleteRound_(w, args);
+    case 'feedback': return addFeedback_(w, args);
+    case 'logError': return logError_(w, args);
+    case 'feedbackList': return feedbackList_(w);
+    case 'feedbackStatus': return feedbackStatus_(w, args);
     case 'sendInvites': return sendInvites_(w, args);
     case 'submitReview': return submitReview_(w, args);
     case 'markDone': return markDone_(w, args);

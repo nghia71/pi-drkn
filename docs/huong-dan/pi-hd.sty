@@ -70,3 +70,23 @@
 
 % Trang chữ: #1 tiêu đề, #2 nội dung
 \newcommand\chu[2]{\begin{frame}{#1}\small #2\end{frame}}
+
+% Trước khi bắt đầu — chung cho mọi vai trò
+\newcommand\chuanbi{%
+\begin{frame}{Trước khi bắt đầu}
+\footnotesize
+\begin{buoc}[itemsep=1.2mm]
+\item \textbf{Máy}: máy tính, máy tính bảng hay điện thoại; trình duyệt cập nhật — Chrome, Edge, Safari hoặc Firefox.
+\item \textbf{Tài khoản Google}: Gmail, hoặc email cơ quan chạy trên Google; email khác thì tạo tài khoản Google bằng chính địa chỉ đó
+  (accounts.google.com $\to$ Tạo tài khoản $\to$ \emph{Dùng địa chỉ email hiện tại của tôi}, xác nhận bằng mã gửi về email; không cần hộp thư Gmail).
+\item \textbf{Một tài khoản Google trong cửa sổ}: trình duyệt đang đăng nhập nhiều tài khoản Google thì mở cửa sổ riêng tư (ẩn danh),
+  chỉ đăng nhập đúng tài khoản đã đăng ký với Pi.
+\item \textbf{Lần đầu}: Google hỏi cho ứng dụng biết địa chỉ email — bấm \emph{Cho phép}. Ứng dụng không xin quyền nào khác.
+\item \textbf{Thấy „Truy cập bị chặn" (Access blocked)}: quản trị email cơ quan chặn ứng dụng ngoài — tạo tài khoản Google bằng
+  email đó như ở bước 2, hoặc nhờ quản trị email cơ quan cho phép.
+\item Trình duyệt để mặc định: bật JavaScript, cho phép cookie của Google, cho phép tải tệp về máy.
+\end{buoc}
+\end{frame}}
+
+% Góp ý, báo lỗi — chung cho mọi vai trò
+\newcommand\gopy{\manhinh[Lỗi thầy cô gặp trên trang được ghi lại tự động — không cần chụp màn hình gửi đi.]{gop-y}{Góp ý, báo lỗi}}

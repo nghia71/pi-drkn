@@ -1,0 +1,52 @@
+# Hướng dẫn theo vai trò: chụp ảnh (kiểm thử giao diện, dữ liệu bịa) → slide PDF → tệp đính kèm của bản phát hành "huong-dan".
+# Đường dẫn cố định để gửi cho người dùng:
+#   https://github.com/<chủ>/pi-drkn/releases/download/huong-dan/huong-dan-<vai>.pdf   (vai: pb ncb pt tbt vp btk quantri)
+# Pull request: chỉ dựng (để thấy lỗi); gộp vào main: dựng và cập nhật bản phát hành.
+name: huong-dan
+on:
+  push:
+    branches: [main]
+    paths: ['docs/huong-dan/**', 'tests/ui/**', 'tests/fixtures/**', 'apps/main/ui/**', 'apps/main/*.gs', 'shared/**', '.github/workflows/huong-dan.yml']
+  pull_request:
+    paths: ['docs/huong-dan/**', 'tests/ui/**', '.github/workflows/huong-dan.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: huong-dan
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Chụp ảnh hướng dẫn (trang thật, dữ liệu bịa)
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node tests/ui/run.js
+      - name: Cài TeX (pdflatex, tiếng Việt T5, Beamer, TikZ)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends texlive-latex-recommended texlive-latex-extra texlive-pictures \
+            texlive-lang-other texlive-fonts-recommended lmodern poppler-utils > /dev/null
+      - name: Dựng slide
+        run: docs/huong-dan/build.sh
+      - name: Gom tệp
+        run: |
+          mkdir -p dist
+          for d in pb ncb pt tbt vp btk quantri; do cp "docs/huong-dan/$d/slides.pdf" "dist/huong-dan-$d.pdf"; done
+          (cd out && zip -q -r ../dist/huong-dan-anh.zip ui)
+          ls -la dist
+      - name: Cập nhật bản phát hành "huong-dan"
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view huong-dan >/dev/null 2>&1 || gh release create huong-dan --title "Hướng dẫn sử dụng (theo vai trò)" \
+            --notes "Slide hướng dẫn cho từng vai trò và ảnh chụp từng bước (out/ui). Tự cập nhật mỗi khi giao diện hoặc hướng dẫn đổi."
+          gh release upload huong-dan dist/* --clobber
