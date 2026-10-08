@@ -220,6 +220,7 @@ function renderList() {
     c.querySelector('.code').onclick = function (e) { e.preventDefault(); LIST_Y = window.scrollY; nav({ ma: p.ma_bai }); openProblem(p.ma_bai); };
     L.appendChild(c);
   });
+  clipCheck(L);
   if (rows.length < all.length) {
     var more = document.createElement('p');
     more.innerHTML = '<button class="sm">Xem thêm ' + Math.min(LIST_PAGE, all.length - rows.length) + ' bài (còn ' + (all.length - rows.length) + ')</button>';
@@ -233,6 +234,18 @@ function renderList() {
     L.appendChild(less);
   }
   typeset(L);
+}
+/** Bài dài hơn khung xem trước: làm mờ phần cuối và nhắc mở bài. Đo lại sau khi công thức dựng xong (chiều cao đổi). */
+function clipCheck(L) {
+  var run = function () {
+    L.querySelectorAll('article .tx').forEach(function (t) {
+      var over = t.scrollHeight > t.clientHeight + 2, hint = t.nextElementSibling && t.nextElementSibling.classList.contains('clip-more');
+      t.classList.toggle('clip', over);
+      if (over && !hint) t.insertAdjacentHTML('afterend', '<div class="clip-more">… còn tiếp — mở bài để đọc hết</div>');
+      if (!over && hint) t.nextElementSibling.remove();
+    });
+  };
+  run(); [400, 1200, 3000].forEach(function (ms) { setTimeout(run, ms); });
 }
 function val(id) { return document.getElementById(id).value; }
 /** Thời điểm ISO → "08/10/2026 20:35" theo giờ của máy người xem; chữ khác thì để nguyên. */
