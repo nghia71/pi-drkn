@@ -11,19 +11,19 @@ xuất tệp chế bản — tất cả trên trình duyệt, thay cho email và
 **Em đề nghị** dùng thử ba tuần: tuần đầu tập trên mười bài bịa; tuần 2–3 làm trên bài thật đang có (chưa khoá số báo thật);
 cuối đợt họp 30 phút để anh quyết định dùng tiếp, điều chỉnh hay thôi. Mọi việc trong đợt thử đều đưa về như cũ được.
 
-Người cùng thử (đề xuất) — mỗi vai trò có một hướng dẫn với ảnh từng màn hình, anh lướt qua 10 phút là thấy cách làm việc:
-- Tổng biên tập: anh — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-tbt.pdf)
-- Phụ trách chuyên mục: anh — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pt.pdf)
-- Người chuẩn bị bài: {{TEN_NCB}} — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-ncb.pdf)
-- Phản biện: {{TEN_PB}} — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pb.pdf)
-- Văn phòng: {{TEN_VP}} — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-vp.pdf)
-- Ban trình bày: {{TEN_BTK}} — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-btk.pdf)
+Các vai trò trong đợt thử — mỗi vai trò có một hướng dẫn với ảnh từng màn hình, anh lướt qua 10 phút là thấy cách làm việc:
+- Tổng biên tập (anh) — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-tbt.pdf)
+- Phụ trách chuyên mục (anh) — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pt.pdf)
+- Người chuẩn bị bài — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-ncb.pdf)
+- Phản biện — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pb.pdf)
+- Văn phòng — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-vp.pdf)
+- Ban trình bày — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-btk.pdf)
 
 **Em xin anh cho biết**:
-1. Anh có đồng ý dùng thử, và với những người trên không (thêm, bớt, đổi tuỳ anh)?
-2. Anh muốn dùng địa chỉ email nào — cần là Gmail, hoặc email cơ quan chạy trên Google.
+1. Những người dùng thử theo các vai trò nêu trên là ai? (Phản biện nên là người khác người chuẩn bị bài, để thử phần chấm ẩn danh.)
+2. Địa chỉ email của anh và của từng người — là Gmail, hoặc email cơ quan chạy trên Google (đăng nhập được như Gmail).
 
-Khi anh đồng ý, em mở tài khoản và gửi anh đường dẫn đăng nhập. Nếu anh muốn xem thử trước khi quyết định, anh chỉ cần
+Có danh sách, em mở tài khoản và gửi mỗi người đường dẫn đăng nhập (cc anh). Nếu anh muốn xem thử trước khi quyết định, anh chỉ cần
 gửi em địa chỉ email, em mở trong ngày.
 
 Hệ thống miễn phí, dữ liệu riêng tư, có sao lưu mỗi đêm; khi Pi muốn, em bàn giao toàn bộ trong một buổi
