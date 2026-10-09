@@ -8,19 +8,16 @@ Kính gửi anh {{TEN}},
 Em đã làm xong hệ thống quản lý chuyên mục *Đề ra kỳ này* cho Pi: nhận bài, biên tập, phản biện ẩn danh, chọn bài cho từng số,
 xuất tệp chế bản — tất cả trên trình duyệt, thay cho email và tệp gửi qua lại.
 
-**Hệ thống trông thế nào**: hướng dẫn có ảnh từng màn hình, mỗi vai trò một bản —
-[Tổng biên tập](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-tbt.pdf) ·
-[Phụ trách chuyên mục](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pt.pdf).
-Anh lướt qua 10 phút là thấy cách làm việc.
-
 **Em đề nghị** dùng thử ba tuần: tuần đầu tập trên mười bài bịa; tuần 2–3 làm trên bài thật đang có (chưa khoá số báo thật);
 cuối đợt họp 30 phút để anh quyết định dùng tiếp, điều chỉnh hay thôi. Mọi việc trong đợt thử đều đưa về như cũ được.
-Người cùng thử (đề xuất):
-- Anh: Tổng biên tập, Phụ trách chuyên mục
-- Người chuẩn bị bài: {{TEN_NCB}}
-- Phản biện: {{TEN_PB}}
-- Văn phòng: {{TEN_VP}}
-- Ban trình bày: {{TEN_BTK}}
+
+Người cùng thử (đề xuất) — mỗi vai trò có một hướng dẫn với ảnh từng màn hình, anh lướt qua 10 phút là thấy cách làm việc:
+- Tổng biên tập: anh — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-tbt.pdf)
+- Phụ trách chuyên mục: anh — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pt.pdf)
+- Người chuẩn bị bài: {{TEN_NCB}} — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-ncb.pdf)
+- Phản biện: {{TEN_PB}} — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pb.pdf)
+- Văn phòng: {{TEN_VP}} — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-vp.pdf)
+- Ban trình bày: {{TEN_BTK}} — [hướng dẫn](https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-btk.pdf)
 
 **Em xin anh cho biết**:
 1. Anh có đồng ý dùng thử, và với những người trên không (thêm, bớt, đổi tuỳ anh)?
