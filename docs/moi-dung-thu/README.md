@@ -1,58 +1,85 @@
-# Mời dùng thử
+# Mời dùng thử — việc của Quản trị
 
-Mẫu thư và việc của Quản trị cho đợt dùng thử. **Tên, email thật, đường dẫn đăng nhập không ghi vào kho** — điền vào chỗ `{{…}}`
-khi soạn thư (Gmail), không commit bản đã điền.
+Hai mẫu thư:
 
-| Tệp | Dùng khi |
+- `thu-chinh.md` — thư giới thiệu cho người quyết định (Tổng biên tập / Phụ trách chuyên mục): hệ thống là gì, trông thế nào
+  (hướng dẫn có ảnh), đề nghị dùng thử, xin họ đồng ý và cho biết email. **Chưa có đường dẫn đăng nhập.**
+- `thu-vai-tro.md` — thư mở tài khoản, có đường dẫn đăng nhập: gửi người quyết định khi họ đồng ý (hoặc muốn xem thử),
+  rồi gửi từng người khác (cc người quyết định).
+
+Chép mẫu vào Gmail, thay các chỗ `{{…}}` (tên, email, đường dẫn đăng nhập…). Bản đã điền **không** đưa vào kho mã.
+
+---
+
+## A. Gửi thư giới thiệu (khoảng 10 phút)
+
+1. **Mã mới nhất đã triển khai.** Trên Mac, trong thư mục `pi-drkn`: `git pull`, rồi `scripts/test-all.sh`, rồi `scripts/deploy.sh`.
+2. **Hai cài đặt một lần** (dự án Apps Script chính):
+   - *Project Settings → Script properties* có dòng `SIGNIN_URL` = địa chỉ trang đăng nhập.
+   - *Triggers* (biểu tượng đồng hồ) có `sendReminders` và `autoTests`. Thiếu thì chạy `installReminderTrigger`, `installAutoTests` (Run).
+3. **Điền thư `thu-chinh.md` và gửi.** Chờ họ trả lời: đồng ý (hay muốn xem thử), danh sách người, email muốn dùng.
+
+## B. Khi người quyết định đồng ý: mở tài khoản cho họ
+
+1. Sheet *Pi ĐRKN — dữ liệu* → tab `Users` → thêm một dòng: email họ cho · tên · `TBT, PT` · `TRUE`.
+2. *Script properties* → `PRACTICE_USERS` = email đó (để họ thấy mười bài luyện tập).
+3. Vào hệ thống → trang *Kỳ phản biện* → **Bắt đầu dùng thử** (lưu bản sao toàn bộ dữ liệu — để mọi việc đưa về được).
+4. Tự mở đường dẫn đăng nhập trong cửa sổ ẩn danh: vào được, đầu trang có dòng „Đang dùng thử".
+5. Gửi họ thư `thu-vai-tro.md` (bỏ dòng cc).
+
+Họ trả lời „Truy cập bị chặn" kèm một Gmail: sửa email ở tab `Users` và ở `PRACTICE_USERS`, báo họ vào lại bằng đúng đường dẫn cũ.
+
+## C. Mời từng người khác (theo danh sách người quyết định đồng ý)
+
+1. Tab `Users`: mỗi người một dòng — email · tên · vai trò · `TRUE`. Vai trò ghi bằng **mã** (nhiều vai trò cách nhau dấu phẩy):
+
+   | Mã | Vai trò |
+   |---|---|
+   | `TBT` | Tổng biên tập |
+   | `PT` | Phụ trách chuyên mục |
+   | `NCB` | Người chuẩn bị bài |
+   | `PB` | Phản biện — dùng một tài khoản riêng, không kiêm NCB (để thử chấm ẩn danh) |
+   | `VP` | Văn phòng |
+   | `BTK` | Ban trình bày |
+   | `Quản trị` | Quản trị |
+
+2. `PRACTICE_USERS`: thêm email của họ (cách nhau dấu phẩy). Đừng dùng `TEST_USERS` cho người thật — đó là tài khoản của bộ kiểm thử.
+3. Có phản biện: mở kỳ phản biện `THU-KY-1`, giao vài bài THU-… cho họ (phản biện chỉ thấy bài được giao).
+4. Người khác trong ban biên tập đã có tài khoản (ngoài đợt thử): báo họ dòng „Đang dùng thử" nghĩa là việc làm trên trang có thể bị đưa về.
+5. Gửi mỗi người một thư theo mẫu `thu-vai-tro.md`, cc người quyết định.
+
+## D. Trong ba tuần dùng thử
+
+- Mỗi sáng đọc **thư tóm tắt góp ý và lỗi** (chỉ đến khi có điều mới).
+- **Không bấm Khoá kỳ cho số báo thật.** Khoá số luyện tập (tên THU-…) thì được — để Ban trình bày thử.
+- Trước lần khoá kỳ thật đầu tiên: bấm **Đặt lại bài luyện tập** (xoá số in của số luyện tập).
+- Sau mỗi lần ai đó bấm **Đưa về**: xem lại trang Kỳ phản biện — phân công trở về như lúc bắt đầu.
+- Nhập, vá dữ liệu bị khoá tự động cho tới khi kết thúc dùng thử.
+
+## E. Kết thúc (sau buổi họp tổng kết)
+
+1. Trang *Kỳ phản biện* → **Kết thúc dùng thử**: giữ mọi thay đổi, hoặc đưa về rồi kết thúc.
+2. Xoá `PRACTICE_USERS`.
+3. Tab `Users`: ai không tiếp tục thì đổi `TRUE` thành `FALSE`.
+4. Drive: trong *Pi ĐRKN — sao lưu* xoá các bản „trước dùng thử", „trước khi đưa về" (chúng không tự xoá); trong *Pi ĐRKN — chế bản*
+   xoá gói của số luyện tập.
+
+---
+
+## Đường dẫn để dán vào thư
+
+Hướng dẫn theo vai trò (PDF, có ảnh từng bước; tự cập nhật khi hướng dẫn đổi):
+
+| Vai trò | Đường dẫn |
 |---|---|
-| `thu-chinh.md` | thư đầu tiên, gửi người quyết định (TBT/PT): hệ thống là gì, ai tham gia, lịch, dùng thử không sợ sai, an toàn, bàn giao |
-| `thu-vai-tro.md` | sau khi người quyết định đồng ý: mỗi người một thư theo vai trò, cc người quyết định |
+| Tổng biên tập | https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-tbt.pdf |
+| Phụ trách chuyên mục | https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pt.pdf |
+| Người chuẩn bị bài | https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-ncb.pdf |
+| Phản biện | https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-pb.pdf |
+| Văn phòng | https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-vp.pdf |
+| Ban trình bày | https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-btk.pdf |
+| Quản trị | https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-quantri.pdf |
 
-## Trước khi gửi thư chính (khoảng 30 phút)
-
-1. Gộp Pull request vào `main`, chờ việc **huong-dan** trên GitHub xanh, mở thử bảy đường dẫn PDF (bên dưới). Triển khai từ `main`:
-   `git pull`, `scripts/test-all.sh`, `scripts/deploy.sh`. Kiểm thử sau triển khai chỉ gửi thư khi có lỗi — xem tab „Kết quả" của Sheet kiểm thử.
-2. Script properties của dự án chính có `SIGNIN_URL` (thư mời, nút Đăng nhập lại, thư tóm tắt cần nó). Đã chạy `installReminderTrigger`
-   và `installAutoTests` (sao lưu mỗi đêm, thư tóm tắt góp ý mỗi sáng): sáng hôm sau thư mục „Pi ĐRKN — sao lưu" có bản của ngày.
-3. Thử đăng nhập bằng **email của người quyết định** (nhờ họ, hoặc một tài khoản cùng tên miền): vào được thì ghi „đã thử vào được"
-   trong thư; gặp „Truy cập bị chặn" thì dùng Gmail cá nhân (thư mục 4.3).
-
-## Trước khi gửi thư theo vai trò
-
-4. Sheet dữ liệu → tab `Users`: mỗi người một dòng — `email`, `ten`, `vai_tro` ghi bằng **mã**: `TBT`, `PT`, `NCB`, `PB`, `VP`, `BTK`,
-   `Quản trị` (nhiều vai trò cách nhau dấu phẩy; tên đầy đủ như „Tổng biên tập" không được nhận), `hoat_dong` = TRUE.
-   Phản biện dùng một tài khoản riêng, không kiêm NCB (để thử chấm ẩn danh).
-5. Script property `PRACTICE_USERS` = email những người dùng thử (cách nhau dấu phẩy) — người có vai trò ban biên tập thấy mười bài luyện.
-   **Không** ghi email người thật vào `TEST_USERS`: hàm `resetPractice` trong trình soạn thảo đặt hai người đầu của `TEST_USERS` thành PB.
-   Đặt lại bài luyện cho đợt thử: nút *Đặt lại bài luyện tập* trên trang Kỳ phản biện (không đổi vai trò của ai).
-6. Phản biện dùng thử thấy bài luyện **khi được giao**: Phụ trách chuyên mục (hoặc Quản trị) mở kỳ `THU-KY-1`, giao vài bài THU-… cho họ.
-   Mỗi lần Đặt lại, giao lại.
-7. Trang Kỳ phản biện → **Bắt đầu dùng thử** (chụp toàn bộ dữ liệu). Báo những người khác trong ban biên tập đã có tài khoản: dòng
-   „Đang dùng thử" nghĩa là việc làm trên trang có thể bị đưa về.
-8. Điền và gửi thư theo vai trò (cc người quyết định). Theo dõi: thư tóm tắt góp ý và lỗi mỗi sáng (`docs/setup.md` mục 16).
-
-## Trong đợt thử
-
-- Nhập, vá (`importLatest`, `applyPatchLatest`) bị chặn cho tới khi kết thúc: đưa về như trước không xoá dấu „đã nhập / đã vá".
-- Bài luyện chỉ vào kỳ / bảng tên THU-…, bài thật chỉ vào kỳ / bảng thật (hệ thống chặn) — Đặt lại không chạm việc thật.
-- Sau mỗi lần Đưa về: xem lại trang Kỳ phản biện (phân công trở về như lúc bắt đầu).
-- Không khoá kỳ cho số thật. Khoá bảng luyện tập (THU-…) để Ban trình bày thử được; trước lần khoá kỳ thật đầu tiên, bấm Đặt lại bài
-  luyện tập (số in của bảng luyện bị xoá, không đẩy số thật lên).
-
-## Kết thúc đợt thử (họp tổng kết)
-
-9. Trang Kỳ phản biện → **Kết thúc dùng thử**: giữ mọi thay đổi, hoặc đưa về rồi kết thúc.
-10. Xoá `PRACTICE_USERS`; bấm Đặt lại bài luyện tập lần cuối (hoặc để nguyên — bài THU chỉ Quản trị thấy).
-11. Tab `Users`: `hoat_dong` = FALSE cho người không tiếp tục.
-12. Thư mục „Pi ĐRKN — sao lưu": xoá các bản „trước dùng thử", „trước khi đưa về" khi không cần nữa (chúng không tự xoá như bản sao lưu đêm).
-    Thư mục „Pi ĐRKN — chế bản": xoá gói của bảng luyện tập.
-
-## Đường dẫn (cố định, có sau khi gộp vào `main`)
-
-- Hướng dẫn theo vai trò: `https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-<vai>.pdf`
-  — `<vai>`: `pt` (Phụ trách chuyên mục), `tbt` (Tổng biên tập), `ncb` (Người chuẩn bị bài), `pb` (Phản biện), `vp` (Văn phòng),
-  `btk` (Ban trình bày), `quantri` (Quản trị).
-- Ảnh từng bước của mọi quy trình: `https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-anh.zip`
-- Kiến trúc, triển khai, bàn giao: `https://github.com/nghia71/pi-drkn/releases/download/huong-dan/kien-truc.pdf`;
-  `docs/setup.md`, `docs/handover.md` trong kho mã.
-- Đường dẫn đăng nhập: địa chỉ /exec của ứng dụng đăng nhập (`SIGNIN_URL`) — chỉ gửi qua thư, không đăng công khai.
+- Ảnh từng bước của mọi quy trình: https://github.com/nghia71/pi-drkn/releases/download/huong-dan/huong-dan-anh.zip
+- Kiến trúc, triển khai, bàn giao: https://github.com/nghia71/pi-drkn/releases/download/huong-dan/kien-truc.pdf
+- Đường dẫn đăng nhập (giá trị của `SIGNIN_URL`): chỉ gửi qua thư, không đăng ở nơi công khai.
